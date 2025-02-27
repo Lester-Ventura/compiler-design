@@ -104,7 +104,6 @@ public class Main {
         }
     }
 
-    @Deprecated
     private static void run(Lexer lexer, String source, Map<String, TokenType> reservedWords) {
         // String sourceMultiline = "faker goat \n goat faker; test \n wow;";
         // lexer.lex(sourceMultiline);

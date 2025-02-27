@@ -45,6 +45,7 @@ public class Lexer {
             start = current;
             scanToken();
         }
+        int c;
         // let's not add the EOF everytime para repeatable
         // tokens.add(new Token(TokenType.EOF, "", 0, line));
         // return tokens;
@@ -190,6 +191,7 @@ public class Lexer {
             addToken(reservedWords.get(lexeme));
         } else {
             addToken(TokenType.ID);
+            identifiers.add(lexeme);
         }
     }
 

@@ -160,14 +160,32 @@ public class Lexer {
             c = advance();
         }
         String lexeme = source.substring(start, current);
+        // this is just more straightforward than what crafting interpreters did
         if (reservedWords.containsKey(lexeme)) {
             addToken(reservedWords.get(lexeme));
         } else {
             addToken(TokenType.ID);
         }
-
     }
 
+    // This would be handled by the semantic analyzer to avoid unwanted tokens in
+    // the lex
+    private boolean escapeCharacter(char c) {
+        // I could make this a HashSet and just do a fast check there but this is a
+        // constant sized array
+        final char[] escapeCharacters = { '\\', '\'', '"', 'f', 'n', 't', 'c' };
+
+        if (c == '\\')
+            for (char esc : escapeCharacters) {
+                if (match(esc)) {
+                    return true;
+                }
+            }
+        Main.error(line, "Invalid escape character");
+        return false;
+    }
+
+    @Deprecated
     private boolean stringDelimiter(char c) {
         return switch (c) {
             case '\'' -> addToken(TokenType.APOSTROPHE, "'");
@@ -177,26 +195,23 @@ public class Lexer {
     }
 
     private void string(char delimiter) {
-        stringDelimiter(delimiter);
+        // stringDelimiter(delimiter);
         match(delimiter); // clean up
-
-        StringBuilder lexeme = new StringBuilder();
-        boolean delimited = false;
-        while (!isAtEnd()) {
+        while (!isAtEnd() && peek() != delimiter) {
             char c = advance();
-            lexeme.append(c);
-
-            if (match(delimiter)) {
-                addToken(TokenType.STRING_LITERAL, lexeme.toString());
-                stringDelimiter(delimiter);
-                delimited = true;
-                break;
+            // This would eat the escape character rather than tokenize it inside the string
+            if (c == '\\') {
+                escapeCharacter(c);
             }
         }
-        if (!delimited) {
+
+        if (isAtEnd()) {
             Main.error(line, "String not closed :: Expecting a closing " + delimiter);
         }
+        advance();
+        String lexeme = source.substring(start + 1, current - 1);
 
+        addToken(TokenType.STRING_LITERAL, lexeme.toString());
     }
 
     // Character Checking

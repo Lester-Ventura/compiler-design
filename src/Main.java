@@ -14,6 +14,7 @@ public class Main {
     static boolean hadError = false;
 
     public static void main(String[] args) {
+        // TODO: Move this logic to the parser
         Parser parser = new Parser();
         System.out.println("Work!");
 

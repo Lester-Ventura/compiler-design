@@ -1,4 +1,6 @@
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Lexer {
     private String source;
@@ -70,7 +72,24 @@ public class Lexer {
         }
 
         if (isDigit(c)) {
-            number();
+            if (c == '0') {
+                if (match('x'))
+                    number("[0-9a-fA-F]", TokenType.HEXADECIMAL_NUMBER);
+                else if (match('e'))
+                    number("[0-7]", TokenType.OCTAL_NUMBER);
+                else if (match('b'))
+                    number("[0|1]", TokenType.BINARY_NUMBER);
+                else if (isDigit(peek()))
+                    number("[0-9]", TokenType.DECIMAL_NUMBER);
+                else if (peek() == '.')
+                    floatingPoint("[0-9]", TokenType.FLOAT_NUMBER);
+                else {
+                    addToken(TokenType.NUMBER);
+                }
+
+            } else {
+                number("[0-9]", TokenType.DECIMAL_NUMBER);
+            }
             return;
         }
 
@@ -193,24 +212,62 @@ public class Lexer {
         addToken(TokenType.STRING_LITERAL, lexeme.toString());
     }
 
-    private void number() {
+    /**
+     * Tokenizes a given string if it's a valid number, also checks for floating
+     * points
+     * 
+     * @param regexRange : the range of possible values of a given number system in
+     *                   regex e.g. for
+     *                   octal it's [0-7]
+     * @param type       : the token type
+     */
+    private boolean number(String regexRange, TokenType type) {
+        Pattern pattern = Pattern.compile(regexRange, Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(peek() + "");
 
-        while (isDigit(peek())) {
-            advance();
+        // Just a guard clause so that I could duplicate the regex
+        if (!matcher.find()) {
+            Main.error(line, current, "Invalid number");
+            return false;
         }
+
+        do {
+            advance();
+            matcher = pattern.matcher(peek() + "");
+        } while (matcher.find());
 
         if (peek() == '.') {
             // consumes the token
-            advance();
-
-            if (!isDigit(peek())) {
-                Main.error(line, current, "Invalid number");
-                return;
-            }
-            while (isDigit(peek()))
-                advance();
+            return floatingPoint(regexRange, type);
         }
-        addToken(TokenType.NUMBER, source.substring(start, current));
+        addToken(type, source.substring(start, current));
+        return true;
+    }
+
+    private boolean floatingPoint(String regexRange, TokenType type) {
+        Pattern pattern = Pattern.compile(regexRange, Pattern.CASE_INSENSITIVE);
+        Matcher matcher;
+        if (peek() == '.') {
+            advance();
+            char c = peek();
+            matcher = pattern.matcher(peek() + "");
+            if (!matcher.find()) {
+                Main.error(line, current, "Invalid number");
+                return false;
+            }
+
+            // if it doesn't match after this then we can assume that it's a different
+            // string
+            do {
+                advance();
+                matcher = pattern.matcher(peek() + "");
+            } while (matcher.find());
+
+            addToken(type, source.substring(start, current));
+            return true;
+        }
+        return false;
+
     }
 
     // Additional String Stuff

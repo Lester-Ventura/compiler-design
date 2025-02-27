@@ -37,7 +37,6 @@ public class Lexer {
     }
 
     public void lex() {
-        line++;
         lastAddedIndex = tokens.size();
         while (!isAtEnd()) {
             start = current;
@@ -61,7 +60,7 @@ public class Lexer {
             return;
 
         if (isLetter(c) || c == '_') {
-            identifier(c);
+            identifier();
             return;
         }
 
@@ -155,9 +154,9 @@ public class Lexer {
         };
     }
 
-    private void identifier(char c) {
-        while (!isAtEnd() && (isLetter(c) || isDigit(c) || peek() == '_')) {
-            c = advance();
+    private void identifier() {
+        while (!isAtEnd() && (isLetter(peek()) || isDigit(peek()) || peek() == '_')) {
+            advance();
         }
         String lexeme = source.substring(start, current);
         // this is just more straightforward than what crafting interpreters did
@@ -175,14 +174,19 @@ public class Lexer {
         // constant sized array
         final char[] escapeCharacters = { '\\', '\'', '"', 'f', 'n', 't', 'c' };
 
-        if (c == '\\')
+        if (c == '\\') {
             for (char esc : escapeCharacters) {
                 if (match(esc)) {
                     return true;
                 }
             }
-        Main.error(line, "Invalid escape character");
-        return false;
+            Main.error(line, "Invalid escape character");
+            return false;
+        } else {
+            // error free
+            return false;
+        }
+
     }
 
     @Deprecated
@@ -206,7 +210,8 @@ public class Lexer {
         }
 
         if (isAtEnd()) {
-            Main.error(line, "String not closed :: Expecting a closing " + delimiter);
+            Main.error(line, "String not closed :: Expecting a closing [ " + delimiter + " ] token");
+            return;
         }
         advance();
         String lexeme = source.substring(start + 1, current - 1);
@@ -325,9 +330,8 @@ public class Lexer {
     }
 
     /**
-     * Gets a list of the tokens added from the last lex
-     * 
-     * @return
+     * @return, Gets a list of the tokens added from the last lex does not add an
+     * EOF token
      */
     public List<Token> getLastAddedTokens() {
         List<Token> lastAddedTokens = new ArrayList<>();

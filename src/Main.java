@@ -32,14 +32,14 @@ public class Main {
     private static void runPrompt(Map<String, TokenType> reservedWords) throws IOException {
         InputStreamReader input = new InputStreamReader(System.in);
         BufferedReader reader = new BufferedReader(input);
-        Lexer lexer = new Lexer(reservedWords);
+        Lexer lexter = new Lexer(reservedWords);
 
         for (;;) {
             System.out.print("> ");
             String line = reader.readLine();
             if (line == null)
                 break;
-            run(line, reservedWords);
+            run(lexter, line, reservedWords);
         }
     }
 
@@ -52,9 +52,22 @@ public class Main {
 
     // Would probably need to change this implementation, just using this for
     // testing
+    @Deprecated
     private static void run(String source, Map<String, TokenType> reservedWords) {
         Lexer lexer = new Lexer(source, reservedWords);
-        List<Token> tokens = lexer.lex();
+        lexer.lex();
+        List<Token> tokens = lexer.getLastAddedTokens();
+
+        // For now, just print the tokens.
+        for (Token token : tokens) {
+            System.out.println(token);
+        }
+    }
+
+    @Deprecated
+    private static void run(Lexer lexer, String source, Map<String, TokenType> reservedWords) {
+        lexer.lex(source);
+        List<Token> tokens = lexer.getLastAddedTokens();
 
         // For now, just print the tokens.
         for (Token token : tokens) {

@@ -7,9 +7,10 @@ public class Lexer {
     private final Set<String> identifiers = new HashSet<>(); // They all have the same type so I figured that they'd be
                                                              // redundant
 
-    private int line = 1;
+    private int line = 0;
     private int start = 0;
     private int current = 0;
+    private int lastAddedIndex = 0;
 
     // Might just choose one eventually lol
     // but rn they're flexible
@@ -29,13 +30,22 @@ public class Lexer {
         this.reservedWords = reservedWords;
     }
 
-    public List<Token> lex() {
+    public void lex(String source) {
+        current = 0;
+        this.source = source;
+        lex();
+    }
+
+    public void lex() {
+        line++;
+        lastAddedIndex = tokens.size();
         while (!isAtEnd()) {
             start = current;
             scanToken();
         }
-        tokens.add(new Token(TokenType.EOF, "", 0, line));
-        return tokens;
+        // let's not add the EOF everytime para repeatable
+        // tokens.add(new Token(TokenType.EOF, "", 0, line));
+        // return tokens;
     }
 
     private void scanToken() {
@@ -147,7 +157,6 @@ public class Lexer {
 
     private void identifier(char c) {
         while (!isAtEnd() && (isLetter(c) || isDigit(c) || peek() == '_')) {
-
             c = advance();
         }
         String lexeme = source.substring(start, current);
@@ -218,19 +227,6 @@ public class Lexer {
     }
 
     /**
-     * Adds a token to the token list using its type, its lexeme is equivalent to
-     * the parsed string.
-     * 
-     * @param type
-     * @return
-     */
-    private boolean addToken(TokenType type) {
-        String lexeme = source.substring(start, current);
-        tokens.add(new Token(type, lexeme, current, line));
-        return true;
-    }
-
-    /**
      * A more direct approach to adding a token into the token list. Used in strings
      * to avoid placing the delimiter
      * 
@@ -241,6 +237,18 @@ public class Lexer {
     private boolean addToken(TokenType type, String lexeme) {
         tokens.add(new Token(type, lexeme, current, line));
         return true;
+    }
+
+    /**
+     * Adds a token to the token list using its type, its lexeme is equivalent to
+     * the parsed string.
+     * 
+     * @param type
+     * @return
+     */
+    private boolean addToken(TokenType type) {
+        String lexeme = source.substring(start, current);
+        return addToken(type, lexeme);
     }
 
     private boolean match(char expected) {
@@ -283,7 +291,34 @@ public class Lexer {
         reservedWords.put(lexeme, type);
     }
 
+    /**
+     * Sets the given source code to be parsed
+     * 
+     * @param source
+     */
     public void setSourceCode(String source) {
         this.source = source;
+    }
+
+    /**
+     * 
+     * @return
+     */
+    public List<Token> getAllTokensWithEOF() {
+        tokens.add(new Token(TokenType.EOF, "", current, line));
+        return tokens;
+    }
+
+    /**
+     * Gets a list of the tokens added from the last lex
+     * 
+     * @return
+     */
+    public List<Token> getLastAddedTokens() {
+        List<Token> lastAddedTokens = new ArrayList<>();
+        for (int i = lastAddedIndex; i < tokens.size(); i++) {
+            lastAddedTokens.add(tokens.get(i));
+        }
+        return lastAddedTokens;
     }
 }

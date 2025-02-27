@@ -197,7 +197,7 @@ public class Lexer {
 
     private void string(char delimiter) {
         // stringDelimiter(delimiter);
-        match(delimiter); // clean up
+        // match(delimiter); // clean up
         while (!isAtEnd() && peek() != delimiter) {
             char c = advance();
             // This would eat the escape character rather than tokenize it inside the string

@@ -117,15 +117,15 @@ public class Main {
         }
     }
 
-    static void error(int line, String message) {
-        report(line, "", message);
+    static void error(int line, int column, String message) {
+        report(line, column, "", message);
     }
 
     // TODO: ADD Column
-    private static void report(int line, String where,
+    private static void report(int line, int column, String where,
             String message) {
-        System.err.println(
-                "[line " + line + "] Error" + where + ": " + message);
+        String err = String.format("[line %d :: column %d] Error %s : %s", line, column, where, message);
+        System.err.println(err);
         hadError = true;
     }
 }

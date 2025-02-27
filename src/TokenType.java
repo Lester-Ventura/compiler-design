@@ -30,5 +30,7 @@ public enum TokenType {
     // Identifier
     ID,
     // String_Literal
-    STRING_LITERAL
+    STRING_LITERAL,
+    // Numbers
+    DECIMAL_NUMBER, FLOAT_NUMBER, BINARY_NUMBER, OCTAL_NUMBER, HEXADECIMAL_NUMBER
 }

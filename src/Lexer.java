@@ -69,7 +69,12 @@ public class Lexer {
             return;
         }
 
-        Main.error(current, "Token cannot be read");
+        if (isDigit(c)) {
+            number();
+            return;
+        }
+
+        Main.error(line, current, "Token cannot be read");
     }
 
     // opted for functions just so it's easier to segment the code
@@ -167,6 +172,49 @@ public class Lexer {
         }
     }
 
+    private void string(char delimiter) {
+        // stringDelimiter(delimiter);
+        match(delimiter); // clean up
+        while (!isAtEnd() && peek() != delimiter) {
+            char c = advance();
+            // This would eat the escape character rather than tokenize it inside the string
+            if (c == '\\') {
+                escapeCharacter(c);
+            }
+        }
+
+        if (isAtEnd()) {
+            Main.error(line, current, "String not closed :: Expecting a closing [ " + delimiter + " ] token");
+            return;
+        }
+        advance();
+        String lexeme = source.substring(start + 1, current - 1);
+
+        addToken(TokenType.STRING_LITERAL, lexeme.toString());
+    }
+
+    private void number() {
+
+        while (isDigit(peek())) {
+            advance();
+        }
+
+        if (peek() == '.') {
+            // consumes the token
+            advance();
+
+            if (!isDigit(peek())) {
+                Main.error(line, current, "Invalid number");
+                return;
+            }
+            while (isDigit(peek()))
+                advance();
+        }
+        addToken(TokenType.NUMBER, source.substring(start, current));
+    }
+
+    // Additional String Stuff
+
     // This would be handled by the semantic analyzer to avoid unwanted tokens in
     // the lex
     private boolean escapeCharacter(char c) {
@@ -180,15 +228,15 @@ public class Lexer {
                     return true;
                 }
             }
-            Main.error(line, "Invalid escape character");
+            Main.error(line, current, "Invalid escape character");
             return false;
         } else {
             // error free
             return false;
         }
-
     }
 
+    // been experimenting if we should tokenize but I don't think we should
     @Deprecated
     private boolean stringDelimiter(char c) {
         return switch (c) {
@@ -196,27 +244,6 @@ public class Lexer {
             case '"' -> addToken(TokenType.QUOTATION, "\"");
             default -> false;
         };
-    }
-
-    private void string(char delimiter) {
-        // stringDelimiter(delimiter);
-        match(delimiter); // clean up
-        while (!isAtEnd() && peek() != delimiter) {
-            char c = advance();
-            // This would eat the escape character rather than tokenize it inside the string
-            if (c == '\\') {
-                escapeCharacter(c);
-            }
-        }
-
-        if (isAtEnd()) {
-            Main.error(line, "String not closed :: Expecting a closing [ " + delimiter + " ] token");
-            return;
-        }
-        advance();
-        String lexeme = source.substring(start + 1, current - 1);
-
-        addToken(TokenType.STRING_LITERAL, lexeme.toString());
     }
 
     // Character Checking

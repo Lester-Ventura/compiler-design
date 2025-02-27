@@ -13,6 +13,7 @@ public class Lexer {
     private int start = 0;
     private int current = 0;
     private int lastAddedIndex = 0;
+    private int col = 0;
 
     // Might just choose one eventually lol
     // but rn they're flexible
@@ -101,6 +102,7 @@ public class Lexer {
     private boolean whiteSpace(char c) {
         switch (c) {
             case '\n':
+                col = 0;
                 line++;
             case ' ':
             case '\r':
@@ -327,20 +329,8 @@ public class Lexer {
 
     // HELPER FUNCTIONS
     private char advance() {
+        col++;
         return source.charAt(current++);
-    }
-
-    /**
-     * A more direct approach to adding a token into the token list. Used in strings
-     * to avoid placing the delimiter
-     * 
-     * @param type
-     * @param lexeme
-     * @return
-     */
-    private boolean addToken(TokenType type, String lexeme) {
-        tokens.add(new Token(type, lexeme, current, line));
-        return true;
     }
 
     /**
@@ -355,12 +345,26 @@ public class Lexer {
         return addToken(type, lexeme);
     }
 
+    /**
+     * A more direct approach to adding a token into the token list. Used in strings
+     * to avoid placing the delimiter
+     * 
+     * @param type
+     * @param lexeme
+     * @return
+     */
+    private boolean addToken(TokenType type, String lexeme) {
+        tokens.add(new Token(type, lexeme, col, line));
+        return true;
+    }
+
     private boolean match(char expected) {
         if (isAtEnd())
             return false;
         if (peek() != expected)
             return false;
 
+        col++;
         current++;
         return true;
     }

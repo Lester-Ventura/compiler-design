@@ -105,12 +105,12 @@ public class Main {
     }
 
     private static void run(Lexer lexer, String source, Map<String, TokenType> reservedWords) {
-        String sourceMultiline = """
-                item binary : stats = 0b1001010;
-                item binary: stats = 0b1001010;
-                """;
-        lexer.lex(sourceMultiline);
-        // lexer.lex(source);
+        // String sourceMultiline = """
+        // item binary : stats = 0b1001010;
+        // item binary: stats = 0b1001010;
+        // """;
+        // lexer.lex(sourceMultiline);
+        lexer.lex(source);
         List<Token> tokens = lexer.getLastAddedTokens();
 
         // For now, just print the tokens.

@@ -82,7 +82,7 @@ public class Lexer {
                 else if (isDigit(peek()))
                     number("[0-9]", TokenType.DECIMAL_NUMBER);
                 else if (peek() == '.')
-                    floatingPoint("[0-9]", TokenType.FLOAT_NUMBER);
+                    floatingPoint("[0-9]", TokenType.DECIMAL_NUMBER);
                 else {
                     addToken(TokenType.NUMBER);
                 }

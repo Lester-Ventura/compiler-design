@@ -24,7 +24,13 @@ public class Lexer {
         this.source = source;
     }
 
-    Lexer(Map<String, TokenType> reservedWords) {
+    /**
+     * The constructor I prefer to use, only takes in the reserved words. The source
+     * code is passed in using the setter (could be repeated)
+     * 
+     * @param reservedWords
+     */
+    public Lexer(Map<String, TokenType> reservedWords) {
         this.reservedWords = reservedWords;
     }
 
@@ -33,22 +39,22 @@ public class Lexer {
         this.reservedWords = reservedWords;
     }
 
-    public void lex(String source) {
+    public List<Token> lex(String source) {
         current = 0;
         this.source = source;
-        lex();
+        return lex();
     }
 
-    public void lex() {
+    public List<Token> lex() {
         lastAddedIndex = tokens.size();
         while (!isAtEnd()) {
             start = current;
             scanToken();
         }
-        int c;
         // let's not add the EOF everytime para repeatable
         // tokens.add(new Token(TokenType.EOF, "", 0, line));
         // return tokens;
+        return getLastAddedTokens();
     }
 
     private void scanToken() {
@@ -76,21 +82,19 @@ public class Lexer {
         if (isDigit(c)) {
             if (c == '0') {
                 if (match('x'))
-                    number("[0-9a-fA-F]", TokenType.HEXADECIMAL_NUMBER);
+                    basedNumbers("[0-9a-fA-F]", TokenType.HEXADECIMAL_NUMBER);
                 else if (match('e'))
-                    number("[0-7]", TokenType.OCTAL_NUMBER);
+                    basedNumbers("[0-7]", TokenType.OCTAL_NUMBER);
                 else if (match('b'))
-                    number("[0|1]", TokenType.BINARY_NUMBER);
-                else if (isDigit(peek()))
-                    number("[0-9]", TokenType.DECIMAL_NUMBER);
+                    basedNumbers("[0|1]", TokenType.BINARY_NUMBER);
                 else if (peek() == '.')
-                    floatingPoint("[0-9]", TokenType.DECIMAL_NUMBER);
-                else {
-                    addToken(TokenType.DECIMAL_NUMBER);
-                }
+                    floatingPoint();
+                else
+                    decimalFloat();
 
             } else {
-                number("[0-9]", TokenType.DECIMAL_NUMBER);
+                // number("[0-9]", TokenType.DECIMAL_NUMBER);
+                decimalFloat();
             }
             return;
         }
@@ -99,7 +103,6 @@ public class Lexer {
     }
 
     // opted for functions just so it's easier to segment the code
-    // the switch cases are a lot less cleaner than I would have hoped tho
     private boolean whiteSpace(char c) {
         switch (c) {
             case '\n':
@@ -217,21 +220,54 @@ public class Lexer {
     }
 
     /**
-     * Tokenizes a given string if it's a valid number, also checks for floating
-     * points
+     * Tokenizes a string of digits into either a decimal or a floating point (if it
+     * has a . in between).
+     * 
+     * NOTE: 5. is tokenized as <DECIMAL> <DOT> and is not a valid floating point
+     */
+    private void decimalFloat() {
+        while (isDigit(peek()))
+            advance();
+
+        if (peek() == '.' && isDigit(peekNext())) {
+            floatingPoint();
+        } else {
+            addToken(TokenType.DECIMAL_NUMBER);
+        }
+
+    }
+
+    /**
+     * Abstraction of the floating point scanner, so that it could be reused in the
+     * 0 check
+     */
+    private void floatingPoint() {
+        if (peek() == '.') {
+            advance();
+            while (isDigit(peek()))
+                advance();
+
+            addToken(TokenType.FLOAT_NUMBER);
+        }
+
+    }
+
+    /**
+     * Tokenizes a given string if it's a valid number
      * 
      * @param regexRange : the range of possible values of a given number system in
      *                   regex e.g. for
      *                   octal it's [0-7]
      * @param type       : the token type
      */
-    private boolean number(String regexRange, TokenType type) {
+    private boolean basedNumbers(String regexRange, TokenType type) {
         Pattern pattern = Pattern.compile(regexRange, Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(peek() + "");
 
         // Just a guard clause so that I could duplicate the regex
         if (!matcher.find()) {
-            Main.error(line, current, "Invalid number");
+            String message = String.format("Invalid %s", type.toString());
+            Main.error(line, current, message);
             return false;
         }
 
@@ -240,38 +276,12 @@ public class Lexer {
             matcher = pattern.matcher(peek() + "");
         } while (matcher.find());
 
-        if (peek() == '.') {
-            // consumes the token
-            return floatingPoint(regexRange, type);
-        }
-        addToken(type, source.substring(start, current));
+        // if (peek() == '.') {
+        // // consumes the token
+        // return floatingPoint(regexRange, type);
+        // }
+        addToken(type);
         return true;
-    }
-
-    private boolean floatingPoint(String regexRange, TokenType type) {
-        Pattern pattern = Pattern.compile(regexRange, Pattern.CASE_INSENSITIVE);
-        Matcher matcher;
-        if (peek() == '.') {
-            advance();
-            char c = peek();
-            matcher = pattern.matcher(peek() + "");
-            if (!matcher.find()) {
-                Main.error(line, current, "Invalid number");
-                return false;
-            }
-
-            // if it doesn't match after this then we can assume that it's a different
-            // string
-            do {
-                advance();
-                matcher = pattern.matcher(peek() + "");
-            } while (matcher.find());
-
-            addToken(type, source.substring(start, current));
-            return true;
-        }
-        return false;
-
     }
 
     // Additional String Stuff
@@ -297,21 +307,23 @@ public class Lexer {
         }
     }
 
-    // been experimenting if we should tokenize but I don't think we should
-    @Deprecated
-    private boolean stringDelimiter(char c) {
-        return switch (c) {
-            case '\'' -> addToken(TokenType.APOSTROPHE, "'");
-            case '"' -> addToken(TokenType.QUOTATION, "\"");
-            default -> false;
-        };
-    }
-
     // Character Checking
+    /**
+     * Checks if a character is a letter a-z or A-Z
+     * 
+     * @param c
+     * @return
+     */
     private boolean isLetter(char c) {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
     }
 
+    /**
+     * Shorthand for checking if the character is a decimal number [0-9]
+     * 
+     * @param c
+     * @return
+     */
     private boolean isDigit(char c) {
         return c >= '0' && c <= '9';
     }
@@ -360,6 +372,12 @@ public class Lexer {
         return true;
     }
 
+    /**
+     * Lookahead + eat
+     * 
+     * @param expected
+     * @return
+     */
     private boolean match(char expected) {
         if (isAtEnd())
             return false;
@@ -371,17 +389,40 @@ public class Lexer {
         return true;
     }
 
+    /**
+     * 1 character lookahead, checks the next character
+     * 
+     * @return
+     */
     private char peek() {
         if (isAtEnd())
             return '\0';
         return source.charAt(current);
     }
 
+    /**
+     * 2 character lookahead, used in floating points similar to what was
+     * done in crafting interpreters
+     * 
+     * @return
+     */
+    private char peekNext() {
+        if (current + 1 >= source.length())
+            return '\0';
+        return source.charAt(current + 1);
+    }
+
+    /**
+     * Checks if the scanner is at the end of the given source code
+     * 
+     * @return true if at the end of the source code
+     */
     private boolean isAtEnd() {
         return current >= source.length();
     }
 
     // Getters and Setters
+
     /**
      * Gets all the identifers present in the given source code
      * 
@@ -429,5 +470,52 @@ public class Lexer {
             lastAddedTokens.add(tokens.get(i));
         }
         return lastAddedTokens;
+    }
+
+    // Deprecated stuff
+
+    /**
+     * Old floating point implementation, checks if a given number (any base) is a
+     * floating point
+     * 
+     * @param regexRange
+     * @param type       : specifies the type of the returned token
+     * @return
+     */
+    @Deprecated
+    private boolean floatingPoint(String regexRange, TokenType type) {
+        Pattern pattern = Pattern.compile(regexRange, Pattern.CASE_INSENSITIVE);
+        Matcher matcher;
+        if (peek() == '.') {
+            advance();
+            char c = peek();
+            matcher = pattern.matcher(peek() + "");
+            if (!matcher.find()) {
+                Main.error(line, current, "Invalid number");
+                return false;
+            }
+
+            // if it doesn't match after this then we can assume that it's a different
+            // string
+            do {
+                advance();
+                matcher = pattern.matcher(peek() + "");
+            } while (matcher.find());
+
+            addToken(type, source.substring(start, current));
+            return true;
+        }
+        return false;
+
+    }
+
+    // been experimenting if we should tokenize but I don't think we should
+    @Deprecated
+    private boolean stringDelimiter(char c) {
+        return switch (c) {
+            case '\'' -> addToken(TokenType.APOSTROPHE, "'");
+            case '"' -> addToken(TokenType.QUOTATION, "\"");
+            default -> false;
+        };
     }
 }

@@ -59,8 +59,7 @@ public class Main {
 
         // TODO: Move this logic to the parser
         Parser parser = new Parser();
-        System.out.println("Work!");
-
+        System.out.println("\nWelcome to the League of Languages!\n");
         try {
             runPrompt(reservedWords);
         } catch (IOException e) {

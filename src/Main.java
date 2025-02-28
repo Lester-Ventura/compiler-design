@@ -76,9 +76,9 @@ public class Main {
         for (;;) {
             System.out.print("> ");
             String line = reader.readLine();
-            line += "\n";
             if (line == null)
                 break;
+            line += "\n";
             run(lexter, line, reservedWords);
         }
     }

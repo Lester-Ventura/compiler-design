@@ -6,8 +6,7 @@ public class Lexer {
     private String source;
     private final List<Token> tokens = new ArrayList<Token>();
     private Map<String, TokenType> reservedWords = new HashMap<>();
-    private final Set<String> identifiers = new HashSet<>(); // They all have the same type so I figured that they'd be
-                                                             // redundant
+    private final Map<String, Token> identifiers = new HashMap<>(); // Initial symbol table implementation
 
     private int line = 0;
     private int start = 0;
@@ -194,7 +193,7 @@ public class Lexer {
             addToken(reservedWords.get(lexeme));
         } else {
             addToken(TokenType.ID);
-            identifiers.add(lexeme);
+            identifiers.put(lexeme, getLastToken());
         }
     }
 
@@ -428,7 +427,7 @@ public class Lexer {
      * 
      * @return
      */
-    public Set<String> getIdentifiers() {
+    public Map<String, Token> getIdentifiers() {
         return identifiers;
     }
 
@@ -453,7 +452,7 @@ public class Lexer {
 
     /**
      * 
-     * @return
+     * @return gets the entire token list, also appends the EOF token in the end
      */
     public List<Token> getAllTokensWithEOF() {
         tokens.add(new Token(TokenType.EOF, "", current, line));
@@ -461,7 +460,7 @@ public class Lexer {
     }
 
     /**
-     * @return, Gets a list of the tokens added from the last lex does not add an
+     * @return, Gets a list of the tokens added from the last lex. Does not add an
      * EOF token
      */
     public List<Token> getLastAddedTokens() {
@@ -470,6 +469,14 @@ public class Lexer {
             lastAddedTokens.add(tokens.get(i));
         }
         return lastAddedTokens;
+    }
+
+    /**
+     * 
+     * @return the last token added to the token list
+     */
+    public Token getLastToken() {
+        return tokens.get(tokens.size() - 1);
     }
 
     // Deprecated stuff
@@ -488,7 +495,6 @@ public class Lexer {
         Matcher matcher;
         if (peek() == '.') {
             advance();
-            char c = peek();
             matcher = pattern.matcher(peek() + "");
             if (!matcher.find()) {
                 Main.error(line, current, "Invalid number");

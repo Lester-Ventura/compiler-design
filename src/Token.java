@@ -14,7 +14,8 @@ public class Token {
 
     @Override
     public String toString() {
-        return String.format("Token: <%s> | Lexeme: %s | Line: %d & Column: %d", token.toString(), lexeme, line,
+        String tokenName = String.format("%20s", "<" + token.toString() + ">");
+        return String.format("Token: %s | Lexeme: %10s | Line: %3d & Column: %d", tokenName, lexeme, line,
                 column);
     }
 }

@@ -12,20 +12,87 @@ public class Lexer {
     }
 
     public Token getNextToken() {
+
+        while (ignoreComment())
+            ;
         ignoreWhitespace();
+
         startCharacterIndex = currentCharacterIndex;
 
         char nextChar = peek();
+        Token check;
         if (nextChar == '"')
             return lexStringLiteral();
         else if (Character.isAlphabetic(nextChar) || nextChar == '_')
             return lexIdentifier();
         else if (Character.isDigit(nextChar) || nextChar == '_')
             return lexNumerical();
-        else if (nextChar == '\0')
+        else if ((check = lexOperator()) != null) {
+            return check;
+        } else if (nextChar == '\0')
             return new Token(TokenType.EOF, "", ColumnAndRow.calculate(startCharacterIndex, source));
 
         throw new Error("Was unable to process the next token");
+    }
+
+    public Token lexOperator() {
+        String lexeme = peek() + "";
+
+        switch (peek()) {
+            case '+':
+                if (match('+'))
+                    return new Token(TokenType.DOUBLE_PLUS, lexeme + "+", defColumnAndRow());
+                else
+                    return new Token(TokenType.PLUS, lexeme,
+                            ColumnAndRow.calculate(startCharacterIndex, lexeme));
+            case '-':
+                if (match('-'))
+                    return new Token(TokenType.DOUBLE_MINUS, lexeme, defColumnAndRow());
+                else
+                    return new Token(TokenType.PLUS, lexeme, defColumnAndRow());
+            case '*':
+                if (match('*'))
+                    return new Token(TokenType.DOUBLE_STAR, lexeme, defColumnAndRow());
+                // else
+                // return new Token(TokenType.STAR, lexeme, )
+            default:
+                return null;
+        }
+
+    }
+
+    // eats all the comments
+    // need to loop due to the possibility of chained comments like this one
+    public boolean ignoreComment() {
+        char c = peek(); // for debugging
+        int length = source.length();
+        if (currentCharacterIndex < source.length() - 2 && peek() == '/') {
+            if (peekNext() == '/') {
+                advance('/');
+                advance('/');
+                while (hasNextToken() && peek() != '\0' && peek() != '\n') {
+                    c = peek();
+                    currentCharacterIndex++;
+                }
+                match('\n');
+                return true;
+            } else if (peekNext() == '*') {
+                advance('/');
+                advance('*');
+                while (peek() != '*' && peekNext() != '/') {
+                    if (currentCharacterIndex >= source.length() - 2) {
+                        throw new Error("Unterminated multiline comment");
+                    }
+                    currentCharacterIndex++;
+                }
+                c = peek();
+                match('*');
+                c = peek();
+                match('/');
+                return true;
+            }
+        }
+        return false;
     }
 
     public Token lexNumerical() {
@@ -175,6 +242,18 @@ public class Lexer {
 
         currentCharacterIndex++;
         return true;
+    }
+
+    // Just a boolean check for the next character
+    public boolean match(char c) {
+        if (peek() != c)
+            return false;
+        currentCharacterIndex++;
+        return true;
+    }
+
+    private ColumnAndRow defColumnAndRow() {
+        return ColumnAndRow.calculate(startCharacterIndex, source);
     }
 }
 

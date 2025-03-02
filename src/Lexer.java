@@ -37,6 +37,8 @@ public class Lexer {
             return parseHexadecimal();
         else if (peekNext() == 'e')
             return parseOctal();
+        else if (peekNext() == 'b')
+            return parseBinary();
         else
             return parseDecimal();
     }
@@ -68,7 +70,7 @@ public class Lexer {
             currentCharacterIndex++;
         }
 
-        return new Token(TokenType.OCTAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+        return new Token(TokenType.HEXADECIMAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
     public boolean isHexDigit(char c) {
@@ -79,16 +81,32 @@ public class Lexer {
         String number = "0e";
         currentCharacterIndex += 2; // skip over the 0x
 
-        while (peek() != '\0' && isHexDigit(peek())) {
+        while (peek() != '\0' && isOctalDigit(peek())) {
             number += peek();
             currentCharacterIndex++;
         }
 
-        return new Token(TokenType.HEXADECIMAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+        return new Token(TokenType.OCTAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
     public boolean isOctalDigit(char c) {
         return (c >= '0' && c <= '7');
+    }
+
+    public Token parseBinary() {
+        String number = "0b";
+        currentCharacterIndex += 2;
+
+        while (peek() != '\0' && isBinaryDigit(peek())) {
+            number += peek();
+            currentCharacterIndex++;
+        }
+
+        return new Token(TokenType.BINARY_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+    }
+
+    public boolean isBinaryDigit(char c) {
+        return (c == '0' || c == '1');
     }
 
     public Token lexIdentifier() {

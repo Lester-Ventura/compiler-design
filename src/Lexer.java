@@ -12,20 +12,172 @@ public class Lexer {
     }
 
     public Token getNextToken() {
-        ignoreWhitespace();
+
+        do {
+            ignoreWhitespace();
+        } while (ignoreComment());
+
         startCharacterIndex = currentCharacterIndex;
 
         char nextChar = peek();
-        if (nextChar == '"')
-            return lexStringLiteral();
+        Token check;
+        if (nextChar == '"' || nextChar == '\'')
+            return lexStringLiteral(nextChar); // takes either ' or " delimiter
         else if (Character.isAlphabetic(nextChar) || nextChar == '_')
             return lexIdentifier();
         else if (Character.isDigit(nextChar) || nextChar == '_')
             return lexNumerical();
+        else if ((check = lexOperator()) != null)
+            return check;
+        else if ((check = lexSymbols()) != null)
+            return check;
         else if (nextChar == '\0')
             return new Token(TokenType.EOF, "", ColumnAndRow.calculate(startCharacterIndex, source));
 
         throw new Error("Was unable to process the next token");
+    }
+
+    public Token lexOperator() {
+        String lexeme = peek() + "";
+        switch (peek()) {
+            case '+':
+                // I realized too late that this could all have been solved with an if statement
+                advance('+');
+                if (match('+'))
+                    return new Token(TokenType.DOUBLE_PLUS, lexeme + "+", defaultColumnAndRow());
+                else
+                    return new Token(TokenType.PLUS, lexeme,
+                            defaultColumnAndRow());
+            case '-':
+                advance('-');
+                if (match('-'))
+                    return new Token(TokenType.DOUBLE_MINUS, lexeme + '-', defaultColumnAndRow());
+                else if (match('>'))
+                    return new Token(TokenType.MINUS_R_ANGLE_BAR, lexeme + '>', defaultColumnAndRow());
+                else
+                    return new Token(TokenType.PLUS, lexeme, defaultColumnAndRow());
+            case '*':
+                advance('*');
+                if (match('*'))
+                    return new Token(TokenType.DOUBLE_STAR, lexeme + '*', defaultColumnAndRow());
+                else
+                    return new Token(TokenType.STAR, lexeme, defaultColumnAndRow());
+                // Comments are handled outside this
+            case '/':
+                advance('/');
+                return new Token(TokenType.FORWARD_SLASH, lexeme, defaultColumnAndRow());
+            case '%':
+                advance('%');
+                return new Token(TokenType.PERCENT, lexeme, defaultColumnAndRow());
+            case '<':
+                advance('<');
+                if (match('<'))
+                    return new Token(TokenType.DOUBLE_R_ANGLE_BAR, lexeme + '<', defaultColumnAndRow());
+                else if (match('='))
+                    return new Token(TokenType.R_ANGLE_BAR_EQUALS, lexeme + '=', defaultColumnAndRow());
+                else
+                    return new Token(TokenType.R_ANGLE_BAR, lexeme, defaultColumnAndRow());
+            case '>':
+                advance('>');
+                if (match('>'))
+                    return new Token(TokenType.DOUBLE_L_ANGLE_BAR, lexeme + '>', defaultColumnAndRow());
+                else if (match('='))
+                    return new Token(TokenType.L_ANGLE_BAR_EQUALS, lexeme + '=', defaultColumnAndRow());
+                else
+                    return new Token(TokenType.L_ANGLE_BAR, lexeme, defaultColumnAndRow());
+            case '|':
+                advance('|');
+                if (match('|'))
+                    return new Token(TokenType.DOUBLE_PIPE, lexeme + '|', defaultColumnAndRow());
+                else
+                    return new Token(TokenType.PIPE, lexeme, defaultColumnAndRow());
+            case '&':
+                advance('&');
+                if (match('&'))
+                    return new Token(TokenType.DOUBLE_AMPERSAND, lexeme + '&', defaultColumnAndRow());
+                else
+                    return new Token(TokenType.AMPERSAND, lexeme, defaultColumnAndRow());
+            case '!':
+                advance('!');
+                if (match('='))
+                    return new Token(TokenType.EXCLAMATION_EQUALS, lexeme + '=', defaultColumnAndRow());
+                else
+                    return new Token(TokenType.EXCLAMATION, lexeme, defaultColumnAndRow());
+            case '=':
+                advance('=');
+                if (match('='))
+                    return new Token(TokenType.DOUBLE_EQUALS, lexeme + '=', defaultColumnAndRow());
+                else
+                    return new Token(TokenType.EQUALS, lexeme, defaultColumnAndRow());
+            default:
+                return null;
+        }
+    }
+
+    public Token lexSymbols() {
+        String lexeme = peek() + "";
+
+        if (match('"'))
+            return new Token(TokenType.QUOTATION, lexeme, defaultColumnAndRow());
+        else if (match('\''))
+            return new Token(TokenType.APOSTROPHE, lexeme, defaultColumnAndRow());
+        else if (match('('))
+            return new Token(TokenType.L_PAREN, lexeme, defaultColumnAndRow());
+        else if (match(')'))
+            return new Token(TokenType.R_PAREN, lexeme, defaultColumnAndRow());
+        else if (match('['))
+            return new Token(TokenType.L_BRACE, lexeme, defaultColumnAndRow());
+        else if (match(']'))
+            return new Token(TokenType.R_BRACE, lexeme, defaultColumnAndRow());
+        else if (match(':'))
+            return new Token(TokenType.COLON, lexeme, defaultColumnAndRow());
+        else if (match(';'))
+            return new Token(TokenType.SEMICOLON, lexeme, defaultColumnAndRow());
+        else if (match(','))
+            return new Token(TokenType.COLON, lexeme, defaultColumnAndRow());
+        else if (match('.'))
+            return new Token(TokenType.DOT, lexeme, defaultColumnAndRow());
+        else if (match('{'))
+            return new Token(TokenType.L_CURLY_BRACE, lexeme, defaultColumnAndRow());
+        else if (match('}'))
+            return new Token(TokenType.R_CURLY_BRACE, lexeme, defaultColumnAndRow());
+        else
+            return null;
+    }
+
+    // eats all the comments
+    // need to loop due to the possibility of chained comments like this one
+    public boolean ignoreComment() {
+        char c = peek(); // for debugging
+        int length = source.length();
+        if (currentCharacterIndex < source.length() - 2 && peek() == '/') {
+            if (peekNext() == '/') {
+                advance('/');
+                advance('/');
+                while (hasNextToken() && peek() != '\0' && peek() != '\n') {
+                    c = peek();
+                    currentCharacterIndex++;
+                }
+                return true;
+            } else if (peekNext() == '*') {
+                advance('/');
+                advance('*');
+                while (peek() != '*' && peekNext() != '/') {
+                    if (currentCharacterIndex >= source.length() - 2) {
+                        throw new Error("Unterminated multiline comment");
+                    }
+                    currentCharacterIndex++;
+                }
+                c = peek();
+                match('*');
+                c = peek();
+                match('/');
+                c = peek();
+                return true;
+            }
+
+        }
+        return false;
     }
 
     public Token lexNumerical() {
@@ -37,6 +189,8 @@ public class Lexer {
             return parseHexadecimal();
         else if (peekNext() == 'e')
             return parseOctal();
+        else if (peekNext() == 'b')
+            return parseBinary();
         else
             return parseDecimal();
     }
@@ -68,7 +222,7 @@ public class Lexer {
             currentCharacterIndex++;
         }
 
-        return new Token(TokenType.OCTAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+        return new Token(TokenType.HEXADECIMAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
     public boolean isHexDigit(char c) {
@@ -79,16 +233,32 @@ public class Lexer {
         String number = "0e";
         currentCharacterIndex += 2; // skip over the 0x
 
-        while (peek() != '\0' && isHexDigit(peek())) {
+        while (peek() != '\0' && isOctalDigit(peek())) {
             number += peek();
             currentCharacterIndex++;
         }
 
-        return new Token(TokenType.HEXADECIMAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+        return new Token(TokenType.OCTAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
     public boolean isOctalDigit(char c) {
         return (c >= '0' && c <= '7');
+    }
+
+    public Token parseBinary() {
+        String number = "0b";
+        currentCharacterIndex += 2;
+
+        while (peek() != '\0' && isBinaryDigit(peek())) {
+            number += peek();
+            currentCharacterIndex++;
+        }
+
+        return new Token(TokenType.BINARY_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+    }
+
+    public boolean isBinaryDigit(char c) {
+        return (c == '0' || c == '1');
     }
 
     public Token lexIdentifier() {
@@ -109,12 +279,12 @@ public class Lexer {
         return new Token(TokenType.ID, identifier, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
-    public Token lexStringLiteral() {
-        advance('"'); // consume the opening "
+    public Token lexStringLiteral(char delimiter) {
+        advance(delimiter); // consume the opening "
         String str = "";
 
         char currentCharacter = peek();
-        while (currentCharacter != '"') {
+        while (currentCharacter != delimiter) {
             if (currentCharacter == '\n')
                 throw new Error("Unterminated string literal");
 
@@ -124,7 +294,7 @@ public class Lexer {
             currentCharacter = peek();
         }
 
-        advance('"'); // consume the ending "
+        advance(delimiter); // consume the ending "
         return new Token(TokenType.STRING_LITERAL, str, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
@@ -157,6 +327,18 @@ public class Lexer {
 
         currentCharacterIndex++;
         return true;
+    }
+
+    // Just a boolean check for the next character
+    public boolean match(char c) {
+        if (peek() != c)
+            return false;
+        currentCharacterIndex++;
+        return true;
+    }
+
+    private ColumnAndRow defaultColumnAndRow() {
+        return ColumnAndRow.calculate(startCharacterIndex, source);
     }
 }
 

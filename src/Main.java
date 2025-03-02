@@ -26,43 +26,43 @@ public class Main {
 
         Parser parser = new Parser(content);
         parser.parse();
+
+        testSelected();
     }
-    static void testEverything(){
+
+    static void testEverything() {
         CodeReader codeReader = new CodeReader();
-        try{
-        ArrayList<String> codeList = new ArrayList<>();
-        codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.demoList));
-        codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.invalidList));
-        codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.validList));
-        codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.longList));
-        for(String code:codeList){
-            Parser parser = new Parser(code);
-            Thread.sleep(200); //Small Delay for testing.
-            parser.parse();    
+        try {
+            ArrayList<String> codeList = new ArrayList<>();
+            codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.demoList));
+            codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.invalidList));
+            codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.validList));
+            codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.longList));
+            for (String code : codeList) {
+                Parser parser = new Parser(code);
+                Thread.sleep(200); // Small Delay for testing.
+                parser.parse();
             }
-        }
-        catch(IOException e){
+        } catch (IOException e) {
             e.getMessage();
-        }
-        catch(InterruptedException e){
+        } catch (InterruptedException e) {
             e.getMessage();
         }
     }
-    static void testSelected(){
+
+    static void testSelected() {
         CodeReader codeReader = new CodeReader();
-        try{
-        ArrayList<String> codeList = new ArrayList<>();
-        codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.validList));
-        for(String code:codeList){
-            Parser parser = new Parser(code);
-            Thread.sleep(200); //Small Delay for testing.
-            parser.parse();    
+        try {
+            ArrayList<String> codeList = new ArrayList<>();
+            codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.validList));
+            for (String code : codeList) {
+                Parser parser = new Parser(code);
+                Thread.sleep(200); // Small Delay for testing.
+                parser.parse();
             }
-        }
-        catch(IOException e){
+        } catch (IOException e) {
             e.getMessage();
-        }
-        catch(InterruptedException e){
+        } catch (InterruptedException e) {
             e.getMessage();
         }
     }

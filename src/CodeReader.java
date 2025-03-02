@@ -1,9 +1,7 @@
 import java.io.File;
-import java.io.FileReader;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
-
+import java.util.Scanner;
 public class CodeReader {
     String folderLocation;
 
@@ -15,7 +13,7 @@ public class CodeReader {
     CodeReader(String folderLocation) {
         this.folderLocation = folderLocation;
     }
-
+    //Predefined list for easy access
     public static String[] demoList = {
             "Demo_Arrays", "Demo_Loop_Var",
             "Demo_Object_Record", "Demo_Recursion",
@@ -38,41 +36,37 @@ public class CodeReader {
     public static String[] longList = {
             "Long_Demo", "Long_Demo_2", "Long_Demo_3"
     };
-
-    public ArrayList<String> retrieveDefinedFiles(String[] fileList) {
+    /**
+     * Returns a list of codes from a list of files. Automatically appends .lol 
+     * @param fileList The list of file names.
+     * @return List of Code Strings.
+     * @throws IOException No File Found.
+     */
+    public ArrayList<String> retrieveDefinedFiles(String[] fileList) throws IOException{
         ArrayList<String> codes = new ArrayList<>();
-        try {
             for (String fileName : fileList) {
                 File codeFile = new File(folderLocation + fileName + ".lol");
                 if (!codeFile.exists())
                     throw new IOException(fileName + " does not exist!");
-                String finalCode = "";
-                BufferedReader fileReader = new BufferedReader(new FileReader(codeFile));
-                while (fileReader.readLine() != null)
-                    finalCode = finalCode + fileReader.readLine() + '\n';
-                fileReader.close();
-                codes.add(finalCode);
+                Scanner scanner = new Scanner(codeFile);
+                codes.add(scanner.useDelimiter("\\Z").next() + "\n");
+                scanner.close();
             }
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-            e.printStackTrace();
-        }
         return codes;
     }
-
-    public String retrieveFile(String fileName) {
-        String finalCode = "";
-        try {
+    /**
+     * Returns string of code from a list of files. Automatically appends .lol 
+     * @param fileList The list of file names.
+     * @return List of Code Strings.
+     * @throws IOException No File Found.
+     */
+    public String retrieveFile(String fileName) throws IOException{
             File codeFile = new File(folderLocation + fileName + ".lol");
             if (!codeFile.exists())
                 throw new IOException(fileName + " does not exist!");
-            BufferedReader fileReader = new BufferedReader(new FileReader(codeFile));
-            while (fileReader.readLine() != null)
-                finalCode = finalCode + fileReader.readLine() + '\n';
-            fileReader.close();
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        }
-        return finalCode;
+            Scanner scanner = new Scanner(codeFile);
+            String code = scanner.useDelimiter("\\Z").next() + "\n";
+            scanner.close();
+        return code;
     }
 }

@@ -1,10 +1,18 @@
 
 public class Parser {
-    private Lexer lexer = new Lexer();
+    private String source;
 
-    Parser() {
-
+    public Parser(String source) {
+        this.source = source;
     }
 
-    // To Implement pa
+    public void parse() {
+        Lexer lexer = new Lexer(source);
+        Token nextToken = null;
+
+        while (nextToken == null || nextToken.token != TokenType.EOF) {
+            nextToken = lexer.getNextToken();
+            System.out.println(nextToken.toString());
+        }
+    }
 }

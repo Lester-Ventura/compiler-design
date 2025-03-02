@@ -1,1 +1,8 @@
-Insert readme here.
+![alt text](.github/image.png)
+
+# LoLang
+
+To setup the project
+ - clone this repository using `git clone git@github.com:Lester-Ventura/compiler-design.git`
+ - open your editor of choice and click the run button
+   - if you're manually compiling, you can run this command inside the source folder to compile and execute the example file: `javac *.java && java Main ../Example.lol`

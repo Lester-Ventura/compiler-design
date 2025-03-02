@@ -1,527 +1,215 @@
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Lexer {
+    private HashMap<String, TokenType> reservedWords = Table.generateReservedWords();
+    private int currentCharacterIndex = 0;
+    private int startCharacterIndex = 0;
     private String source;
-    private final List<Token> tokens = new ArrayList<Token>();
-    private Map<String, TokenType> reservedWords = new HashMap<>();
-    private final Map<String, Token> identifiers = new HashMap<>(); // Initial symbol table implementation
 
-    private int line = 0;
-    private int start = 0;
-    private int current = 0;
-    private int lastAddedIndex = 0;
-    private int col = 0;
-
-    // Might just choose one eventually lol
-    // but rn they're flexible
-    Lexer() {
-    }
-
-    Lexer(String source) {
+    public Lexer(String source) {
         this.source = source;
     }
 
-    /**
-     * The constructor I prefer to use, only takes in the reserved words. The source
-     * code is passed in using the setter (could be repeated)
-     * 
-     * @param reservedWords
-     */
-    public Lexer(Map<String, TokenType> reservedWords) {
-        this.reservedWords = reservedWords;
+    public Token getNextToken() {
+        ignoreWhitespace();
+        startCharacterIndex = currentCharacterIndex;
+
+        char nextChar = peek();
+        if (nextChar == '"')
+            return lexStringLiteral();
+        else if (Character.isAlphabetic(nextChar) || nextChar == '_')
+            return lexIdentifier();
+        else if (Character.isDigit(nextChar) || nextChar == '_')
+            return lexNumerical();
+        else if (nextChar == '\0')
+            return new Token(TokenType.EOF, "", ColumnAndRow.calculate(startCharacterIndex, source));
+
+        throw new Error("Was unable to process the next token");
     }
 
-    Lexer(String source, Map<String, TokenType> reservedWords) {
-        this.source = source;
-        this.reservedWords = reservedWords;
+    public Token lexNumerical() {
+        char digit = peek();
+
+        if (digit != '0')
+            return parseDecimal();
+        else if (peekNext() == 'x')
+            return parseHexadecimal();
+        else if (peekNext() == 'e')
+            return parseOctal();
+        else
+            return parseDecimal();
     }
 
-    public List<Token> lex(String source) {
-        current = 0;
-        this.source = source;
-        return lex();
-    }
-
-    public List<Token> lex() {
-        lastAddedIndex = tokens.size();
-        while (!isAtEnd()) {
-            start = current;
-            scanToken();
-        }
-        // let's not add the EOF everytime para repeatable
-        // tokens.add(new Token(TokenType.EOF, "", 0, line));
-        // return tokens;
-        return getLastAddedTokens();
-    }
-
-    private void scanToken() {
-        char c = advance();
-
-        if (whiteSpace(c))
-            return;
-
-        if (misc(c))
-            return;
-
-        if (operator(c))
-            return;
-
-        if (isLetter(c) || c == '_') {
-            identifier();
-            return;
-        }
-
-        if (c == '\'' || c == '"') {
-            string(c);
-            return;
-        }
-
-        if (isDigit(c)) {
-            if (c == '0') {
-                if (match('x'))
-                    basedNumbers("[0-9a-fA-F]", TokenType.HEXADECIMAL_NUMBER);
-                else if (match('e'))
-                    basedNumbers("[0-7]", TokenType.OCTAL_NUMBER);
-                else if (match('b'))
-                    basedNumbers("[0|1]", TokenType.BINARY_NUMBER);
-                else if (peek() == '.')
-                    floatingPoint();
-                else
-                    decimalFloat();
-
-            } else {
-                // number("[0-9]", TokenType.DECIMAL_NUMBER);
-                decimalFloat();
-            }
-            return;
-        }
-
-        Main.error(line, current, "Token cannot be read");
-    }
-
-    // opted for functions just so it's easier to segment the code
-    private boolean whiteSpace(char c) {
-        switch (c) {
-            case '\n':
-                col = 0;
-                line++;
-            case ' ':
-            case '\r':
-            case '\t':
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private boolean misc(char c) {
-        return switch (c) {
-            case '(' ->
-                addToken(TokenType.L_PAREN);
-            case ')' ->
-                addToken(TokenType.R_PAREN);
-            case '[' ->
-                addToken(TokenType.L_BRACE);
-            case ']' ->
-                addToken(TokenType.R_BRACE);
-            case '{' ->
-                addToken(TokenType.L_CURLY_BRACE);
-            case '}' ->
-                addToken(TokenType.R_CURLY_BRACE);
-            case ':' ->
-                addToken(TokenType.COLON);
-            case ';' ->
-                addToken(TokenType.SEMICOLON);
-            case ',' ->
-                addToken(TokenType.COMMA);
-            case '.' ->
-                addToken(TokenType.DOT);
-            default -> false;
-        };
-    }
-
-    private boolean operator(char c) {
-        return switch (c) {
-            case '+' -> addToken(match('+') ? TokenType.DOUBLE_PLUS : TokenType.PLUS);
-            case '-' -> addToken(match('-') ? TokenType.DOUBLE_MINUS : TokenType.MINUS);
-            case '*' -> addToken(match('*') ? TokenType.DOUBLE_STAR : TokenType.STAR);
-            case '%' -> addToken(TokenType.PERCENT);
-            case '^' -> addToken(TokenType.CARAT);
-            case '&' -> addToken(match('&') ? TokenType.DOUBLE_AMPERSAND : TokenType.AMPERSAND);
-            case '|' -> addToken(match('|') ? TokenType.DOUBLE_PIPE : TokenType.PIPE);
-            case '!' -> addToken(match('=') ? TokenType.EXCLAMATION_EQUALS : TokenType.EXCLAMATION);
-            case '=' -> addToken(match('=') ? TokenType.DOUBLE_EQUALS : TokenType.EQUALS);
-            case '<' -> {
-                if (match('<'))
-                    yield addToken(TokenType.DOUBLE_L_ANGLE_BAR);
-                else if (match('='))
-                    yield addToken(TokenType.L_ANGLE_BAR_EQUALS);
-                else
-                    yield addToken(TokenType.L_ANGLE_BAR);
-            }
-            case '>' -> {
-                if (match('>'))
-                    yield addToken(TokenType.DOUBLE_R_ANGLE_BAR);
-                else if (match('='))
-                    yield addToken(TokenType.R_ANGLE_BAR_EQUALS);
-                else
-                    yield addToken(TokenType.R_ANGLE_BAR);
-            }
-
-            case '/' -> {
-                if (match('/'))
-                    singleLineComment();
-                else if (match('*'))
-                    multiLineComment();
-                else
-                    addToken(TokenType.FORWARD_SLASH);
-                yield true;
-            }
-            default -> false;
-        };
-    }
-
-    private void identifier() {
-        while (!isAtEnd() && (isLetter(peek()) || isDigit(peek()) || peek() == '_')) {
-            advance();
-        }
-        String lexeme = source.substring(start, current);
-        // this is just more straightforward than what crafting interpreters did
-        if (reservedWords.containsKey(lexeme)) {
-            addToken(reservedWords.get(lexeme));
-        } else {
-            addToken(TokenType.ID);
-            identifiers.put(lexeme, getLastToken());
-        }
-    }
-
-    private void string(char delimiter) {
-        // stringDelimiter(delimiter);
-        // match(delimiter); // clean up
-        while (!isAtEnd() && peek() != delimiter) {
-            char c = advance();
-            // This would eat the escape character rather than tokenize it inside the string
-            if (c == '\\') {
-                escapeCharacter(c);
-            }
-        }
-
-        if (isAtEnd()) {
-            Main.error(line, current, "String not closed :: Expecting a closing [ " + delimiter + " ] token");
-            return;
-        }
-        advance();
-        String lexeme = source.substring(start + 1, current - 1);
-
-        addToken(TokenType.STRING_LITERAL, lexeme.toString());
-    }
-
-    /**
-     * Tokenizes a string of digits into either a decimal or a floating point (if it
-     * has a . in between).
-     * 
-     * NOTE: 5. is tokenized as <DECIMAL> <DOT> and is not a valid floating point
-     */
-    private void decimalFloat() {
-        while (isDigit(peek()))
-            advance();
-
-        if (peek() == '.' && isDigit(peekNext())) {
-            floatingPoint();
-        } else {
-            addToken(TokenType.DECIMAL_NUMBER);
-        }
-
-    }
-
-    /**
-     * Abstraction of the floating point scanner, so that it could be reused in the
-     * 0 check
-     */
-    private void floatingPoint() {
-        if (peek() == '.') {
-            advance();
-            while (isDigit(peek()))
-                advance();
-
-            addToken(TokenType.FLOAT_NUMBER);
-        }
-
-    }
-
-    /**
-     * Tokenizes a given string if it's a valid number
-     * 
-     * @param regexRange : the range of possible values of a given number system in
-     *                   regex e.g. for
-     *                   octal it's [0-7]
-     * @param type       : the token type
-     */
-    private boolean basedNumbers(String regexRange, TokenType type) {
-        Pattern pattern = Pattern.compile(regexRange, Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(peek() + "");
-
-        // Just a guard clause so that I could duplicate the regex
-        if (!matcher.find()) {
-            String message = String.format("Invalid %s", type.toString());
-            Main.error(line, current, message);
-            return false;
-        }
+    public Token parseDecimal() {
+        boolean hasHitDecimal = false;
+        String number = "";
 
         do {
-            advance();
-            matcher = pattern.matcher(peek() + "");
-        } while (matcher.find());
+            char currentCharacter = peek();
 
-        // if (peek() == '.') {
-        // // consumes the token
-        // return floatingPoint(regexRange, type);
-        // }
-        addToken(type);
-        return true;
-    }
-
-    // Additional String Stuff
-
-    // This would be handled by the semantic analyzer to avoid unwanted tokens in
-    // the lex
-    private boolean escapeCharacter(char c) {
-        // I could make this a HashSet and just do a fast check there but this is a
-        // constant sized array
-        final char[] escapeCharacters = { '\\', '\'', '"', 'f', 'n', 't', 'c' };
-
-        if (c == '\\') {
-            for (char esc : escapeCharacters) {
-                if (match(esc)) {
-                    return true;
-                }
-            }
-            Main.error(line, current, "Invalid escape character");
-            return false;
-        } else {
-            // error free
-            return false;
-        }
-    }
-
-    // Character Checking
-    /**
-     * Checks if a character is a letter a-z or A-Z
-     * 
-     * @param c
-     * @return
-     */
-    private boolean isLetter(char c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-    }
-
-    /**
-     * Shorthand for checking if the character is a decimal number [0-9]
-     * 
-     * @param c
-     * @return
-     */
-    private boolean isDigit(char c) {
-        return c >= '0' && c <= '9';
-    }
-
-    // Comments
-    private void singleLineComment() {
-        while (peek() != '\n' && !isAtEnd())
-            advance();
-    }
-
-    private void multiLineComment() {
-        // This doesn't throw an error when it reaches the end
-        while (!isAtEnd() && !(match('*') && match('/'))) {
-            advance();
-        }
-    }
-
-    // HELPER FUNCTIONS
-    private char advance() {
-        col++;
-        return source.charAt(current++);
-    }
-
-    /**
-     * Adds a token to the token list using its type, its lexeme is equivalent to
-     * the parsed string.
-     * 
-     * @param type
-     * @return
-     */
-    private boolean addToken(TokenType type) {
-        String lexeme = source.substring(start, current);
-        return addToken(type, lexeme);
-    }
-
-    /**
-     * A more direct approach to adding a token into the token list. Used in strings
-     * to avoid placing the delimiter
-     * 
-     * @param type
-     * @param lexeme
-     * @return
-     */
-    private boolean addToken(TokenType type, String lexeme) {
-        tokens.add(new Token(type, lexeme, col, line));
-        return true;
-    }
-
-    /**
-     * Lookahead + eat
-     * 
-     * @param expected
-     * @return
-     */
-    private boolean match(char expected) {
-        if (isAtEnd())
-            return false;
-        if (peek() != expected)
-            return false;
-
-        col++;
-        current++;
-        return true;
-    }
-
-    /**
-     * 1 character lookahead, checks the next character
-     * 
-     * @return
-     */
-    private char peek() {
-        if (isAtEnd())
-            return '\0';
-        return source.charAt(current);
-    }
-
-    /**
-     * 2 character lookahead, used in floating points similar to what was
-     * done in crafting interpreters
-     * 
-     * @return
-     */
-    private char peekNext() {
-        if (current + 1 >= source.length())
-            return '\0';
-        return source.charAt(current + 1);
-    }
-
-    /**
-     * Checks if the scanner is at the end of the given source code
-     * 
-     * @return true if at the end of the source code
-     */
-    private boolean isAtEnd() {
-        return current >= source.length();
-    }
-
-    // Getters and Setters
-
-    /**
-     * Gets all the identifers present in the given source code
-     * 
-     * @return
-     */
-    public Map<String, Token> getIdentifiers() {
-        return identifiers;
-    }
-
-    /**
-     * Adds a reserved word into the reserved word symbol table
-     * 
-     * @param lexeme
-     * @param type
-     */
-    public void addReservedWord(String lexeme, TokenType type) {
-        reservedWords.put(lexeme, type);
-    }
-
-    /**
-     * Sets the given source code to be parsed
-     * 
-     * @param source
-     */
-    public void setSourceCode(String source) {
-        this.source = source;
-    }
-
-    /**
-     * 
-     * @return gets the entire token list, also appends the EOF token in the end
-     */
-    public List<Token> getAllTokensWithEOF() {
-        tokens.add(new Token(TokenType.EOF, "", current, line));
-        return tokens;
-    }
-
-    /**
-     * @return, Gets a list of the tokens added from the last lex. Does not add an
-     * EOF token
-     */
-    public List<Token> getLastAddedTokens() {
-        List<Token> lastAddedTokens = new ArrayList<>();
-        for (int i = lastAddedIndex; i < tokens.size(); i++) {
-            lastAddedTokens.add(tokens.get(i));
-        }
-        return lastAddedTokens;
-    }
-
-    /**
-     * 
-     * @return the last token added to the token list
-     */
-    public Token getLastToken() {
-        return tokens.get(tokens.size() - 1);
-    }
-
-    // Deprecated stuff
-
-    /**
-     * Old floating point implementation, checks if a given number (any base) is a
-     * floating point
-     * 
-     * @param regexRange
-     * @param type       : specifies the type of the returned token
-     * @return
-     */
-    @Deprecated
-    private boolean floatingPoint(String regexRange, TokenType type) {
-        Pattern pattern = Pattern.compile(regexRange, Pattern.CASE_INSENSITIVE);
-        Matcher matcher;
-        if (peek() == '.') {
-            advance();
-            matcher = pattern.matcher(peek() + "");
-            if (!matcher.find()) {
-                Main.error(line, current, "Invalid number");
-                return false;
+            if (currentCharacter == '.') {
+                hasHitDecimal = true;
             }
 
-            // if it doesn't match after this then we can assume that it's a different
-            // string
-            do {
-                advance();
-                matcher = pattern.matcher(peek() + "");
-            } while (matcher.find());
+            number += currentCharacter;
+            currentCharacterIndex++;
+        } while (Character.isDigit(peek()) || (peek() == '.' && !hasHitDecimal));
 
-            addToken(type, source.substring(start, current));
-            return true;
-        }
-        return false;
-
+        return new Token(TokenType.DECIMAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
-    // been experimenting if we should tokenize but I don't think we should
-    @Deprecated
-    private boolean stringDelimiter(char c) {
-        return switch (c) {
-            case '\'' -> addToken(TokenType.APOSTROPHE, "'");
-            case '"' -> addToken(TokenType.QUOTATION, "\"");
-            default -> false;
-        };
+    public Token parseHexadecimal() {
+        String number = "0x";
+        currentCharacterIndex += 2; // skip over the 0x
+
+        while (peek() != '\0' && isHexDigit(peek())) {
+            number += peek();
+            currentCharacterIndex++;
+        }
+
+        return new Token(TokenType.OCTAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+    }
+
+    public boolean isHexDigit(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+    }
+
+    public Token parseOctal() {
+        String number = "0e";
+        currentCharacterIndex += 2; // skip over the 0x
+
+        while (peek() != '\0' && isHexDigit(peek())) {
+            number += peek();
+            currentCharacterIndex++;
+        }
+
+        return new Token(TokenType.HEXADECIMAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+    }
+
+    public boolean isOctalDigit(char c) {
+        return (c >= '0' && c <= '7');
+    }
+
+    public Token lexIdentifier() {
+        String identifier = "";
+
+        do {
+            char currentCharacter = peek();
+            identifier += currentCharacter;
+            currentCharacterIndex++;
+        } while (currentCharacterIndex < this.source.length()
+                && (Character.isAlphabetic(peek()) || Character.isDigit(peek()) || peek() == '_'));
+
+        if (reservedWords.containsKey(identifier)) {
+            return new Token(reservedWords.get(identifier), identifier,
+                    ColumnAndRow.calculate(startCharacterIndex, source));
+        }
+
+        return new Token(TokenType.ID, identifier, ColumnAndRow.calculate(startCharacterIndex, source));
+    }
+
+    public Token lexStringLiteral() {
+        advance('"'); // consume the opening "
+        String str = "";
+
+        char currentCharacter = peek();
+        while (currentCharacter != '"') {
+            if (currentCharacter == '\n')
+                throw new Error("Unterminated string literal");
+
+            str += currentCharacter;
+
+            currentCharacterIndex++;
+            currentCharacter = peek();
+        }
+
+        advance('"'); // consume the ending "
+        return new Token(TokenType.STRING_LITERAL, str, ColumnAndRow.calculate(startCharacterIndex, source));
+    }
+
+    // skips over every piece of whitespace
+    public void ignoreWhitespace() {
+        while (currentCharacterIndex < this.source.length() + 1 && Character.isWhitespace(peek())) {
+            currentCharacterIndex++;
+        }
+    }
+
+    // returns the character stored in currentCharacterIndex
+    public char peek() {
+        return currentCharacterIndex >= this.source.length() ? '\0' : this.source.charAt(currentCharacterIndex);
+    }
+
+    // returns the character stored in currentCharacterIndex + 1
+    public char peekNext() {
+        return currentCharacterIndex + 1 >= this.source.length() ? '\0' : this.source.charAt(currentCharacterIndex + 1);
+    }
+
+    public boolean hasNextToken() {
+        return currentCharacterIndex < this.source.length();
+    }
+
+    // checks the next character and advances if expedted, otherwise it throws an
+    // error
+    public boolean advance(char ch) {
+        if (peek() != ch)
+            throw new Error("Expected " + ch + ", got " + peek());
+
+        currentCharacterIndex++;
+        return true;
+    }
+}
+
+class Table {
+    public static HashMap<String, TokenType> generateReservedWords() {
+        HashMap<String, TokenType> reservedWords = new HashMap<>();
+
+        // Boolean Tokens
+        reservedWords.put("faker", TokenType.TRUE);
+        reservedWords.put("shaker", TokenType.FALSE);
+
+        // Declaration Tokens
+        reservedWords.put("item", TokenType.VARIABLE);
+        reservedWords.put("rune", TokenType.CONSTANT);
+        reservedWords.put("skill", TokenType.FUNCTION);
+        reservedWords.put("recast", TokenType.RETURN);
+        reservedWords.put("build", TokenType.OBJECT);
+
+        // Conditional Statements
+        reservedWords.put("canwin", TokenType.IF);
+        reservedWords.put("remake", TokenType.ELIF);
+        reservedWords.put("lose", TokenType.ELSE);
+        reservedWords.put("channel", TokenType.SWITCH);
+        reservedWords.put("teleport", TokenType.CASE);
+        reservedWords.put("recall", TokenType.DEFAULT);
+        reservedWords.put("flash", TokenType.S_GOTO);
+        reservedWords.put("cancel", TokenType.S_BREAK);
+
+        // Looping Statements
+        reservedWords.put("wave", TokenType.WHILE);
+        reservedWords.put("cannon", TokenType.FOR);
+        reservedWords.put("clear", TokenType.BREAK);
+        reservedWords.put("next", TokenType.CONTINUE);
+        reservedWords.put("of", TokenType.OF);
+
+        // Error Handling
+        reservedWords.put("feed", TokenType.THROW);
+        reservedWords.put("support", TokenType.TRY);
+        reservedWords.put("carry", TokenType.CATCH);
+
+        // Type Tokens
+        reservedWords.put("stats", TokenType.NUMBER);
+        reservedWords.put("goat", TokenType.BOOLEAN);
+        reservedWords.put("message", TokenType.STRING);
+        reservedWords.put("passive", TokenType.VOID);
+        reservedWords.put("build", TokenType.OBJECT);
+        reservedWords.put("cooldown", TokenType.NULL);
+
+        // I/O Operations
+        reservedWords.put("steal", TokenType.IMPORT);
+        reservedWords.put("chat", TokenType.PRINT);
+        reservedWords.put("broadcast", TokenType.INPUT);
+
+        return reservedWords;
     }
 }

@@ -25,12 +25,12 @@ public enum TokenType {
     NUMBER, BOOLEAN, STRING, VOID, NULL,
     // I/O Operation | import print input
     IMPORT, PRINT, INPUT,
-    // End-of-File
-    EOF,
     // Identifier
     ID,
     // String_Literal
     STRING_LITERAL,
     // Numbers
-    DECIMAL_NUMBER, FLOAT_NUMBER, BINARY_NUMBER, OCTAL_NUMBER, HEXADECIMAL_NUMBER
+    DECIMAL_NUMBER, FLOAT_NUMBER, BINARY_NUMBER, OCTAL_NUMBER, HEXADECIMAL_NUMBER,
+    // End-of-File
+    EOF
 }

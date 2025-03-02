@@ -34,7 +34,10 @@ public class Lexer {
         else if (nextChar == '\0')
             return new Token(TokenType.EOF, "", ColumnAndRow.calculate(startCharacterIndex, source));
 
-        throw new Error("Was unable to process the next token");
+        // throw new Error("Was unable to process the next token");
+        // Edited Error Message
+        ColumnAndRow position = ColumnAndRow.calculate(currentCharacterIndex, source);
+        throw new Error("Error: Unexpected character '" + nextChar + "' at Line: " + position.getRow() + ", Column: " + position.getColumn());
     }
 
     public Token lexOperator() {

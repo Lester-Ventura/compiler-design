@@ -13,8 +13,7 @@ public class Lexer {
 
     public Token getNextToken() {
 
-        while (ignoreComment())
-            ;
+        ignoreComment();
         ignoreWhitespace();
 
         startCharacterIndex = currentCharacterIndex;
@@ -63,7 +62,7 @@ public class Lexer {
 
     // eats all the comments
     // need to loop due to the possibility of chained comments like this one
-    public boolean ignoreComment() {
+    public void ignoreComment() {
         char c = peek(); // for debugging
         int length = source.length();
         if (currentCharacterIndex < source.length() - 2 && peek() == '/') {
@@ -75,7 +74,7 @@ public class Lexer {
                     currentCharacterIndex++;
                 }
                 match('\n');
-                return true;
+                ignoreComment();
             } else if (peekNext() == '*') {
                 advance('/');
                 advance('*');
@@ -89,10 +88,9 @@ public class Lexer {
                 match('*');
                 c = peek();
                 match('/');
-                return true;
+                ignoreComment();
             }
         }
-        return false;
     }
 
     public Token lexNumerical() {

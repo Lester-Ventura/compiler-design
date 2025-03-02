@@ -8,7 +8,6 @@ public class Main {
 
     public static void main(String[] args) {
         String content;
-
         try {
             if (args.length == 0) {
                 System.out.println("Please provide a file to run");
@@ -34,14 +33,13 @@ public class Main {
         CodeReader codeReader = new CodeReader();
         try {
             ArrayList<String> codeList = new ArrayList<>();
-            codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.demoList));
-            codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.invalidList));
-            codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.validList));
-            codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.longList));
+            codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.allList));
+            int index = 0;
             for (String code : codeList) {
+                System.out.println("Reading: "+(index+1)+" "+CodeReader.allList[index]);
                 Parser parser = new Parser(code);
-                Thread.sleep(200); // Small Delay for testing.
-                parser.parse();
+                parser.parseDelayed(0);
+                index++;
             }
         } catch (IOException e) {
             e.getMessage();
@@ -55,10 +53,12 @@ public class Main {
         try {
             ArrayList<String> codeList = new ArrayList<>();
             codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.validList));
+            int index = 0;
             for (String code : codeList) {
+                System.out.println("Reading: "+(index+1)+" "+CodeReader.validList[index]);
                 Parser parser = new Parser(code);
-                Thread.sleep(200); // Small Delay for testing.
-                parser.parse();
+                parser.parseDelayed(0);
+                index++;
             }
         } catch (IOException e) {
             e.getMessage();

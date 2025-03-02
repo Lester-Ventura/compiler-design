@@ -8,8 +8,8 @@ public class Token {
     Token(TokenType token, String lexeme, ColumnAndRow info) {
         this.token = token;
         this.lexeme = lexeme;
-        this.column = info.column;
-        this.line = info.row;
+        this.column = info.getActualColumn();
+        this.line = info.getActualRow();
     }
 
     @Override

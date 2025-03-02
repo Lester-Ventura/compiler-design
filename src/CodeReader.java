@@ -36,6 +36,21 @@ public class CodeReader {
     public static String[] longList = {
             "Long_Demo", "Long_Demo_2", "Long_Demo_3"
     };
+    public static String[] allList = {
+        "Demo_Arrays", "Demo_Loop_Var",
+        "Demo_Object_Record", "Demo_Recursion",
+        "Demo_Try_Catch", "Demo_Variable_Operation",
+        "Ex_Valid_Array", "Ex_Valid_Catch_Block",
+        "Ex_Valid_Exit", "Ex_Valid_For",
+        "Ex_Valid_Function", "Ex_Valid_If",
+        "Ex_Valid_Output", "Ex_Valid_Switch",
+        "Ex_Valid_While_Loop", "Ex_Variable_Dec",
+        "Ex_Lexical_Scoping", "Ex_Invalid_Array", "Ex_Invalid_Catch_Block",
+        "Ex_Invalid_Dec", "Ex_Invalid_For",
+        "Ex_Invalid_If", "Ex_Invalid_Output",
+        "Ex_Invalid_Switch", "Ex_Invalid_While",
+         "Long_Demo", "Long_Demo_2", "Long_Demo_3"
+    };
     /**
      * Returns a list of codes from a list of files. Automatically appends .lol 
      * @param fileList The list of file names.

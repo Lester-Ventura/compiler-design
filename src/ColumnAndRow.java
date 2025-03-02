@@ -6,14 +6,13 @@ public class ColumnAndRow {
       this.column = column;
       this.row = row;
   }
-
-  // we add one to getRow and getColumn if debugging is important, but will not be consistent to orig numbering
-  public int getRow() {
-      return row; 
+  //Start at index 1 functions.
+  public int getActualRow() {
+      return row + 1; 
   }
 
-  public int getColumn() {
-      return column; 
+  public int getActualColumn() {
+      return column + 1; 
   }
 
   public static ColumnAndRow calculate(int index, String source) {

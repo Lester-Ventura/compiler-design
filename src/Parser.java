@@ -15,4 +15,14 @@ public class Parser {
             System.out.println(nextToken.toString());
         }
     }
+    public void parseDelayed(int mili) throws InterruptedException{
+        Lexer lexer = new Lexer(source);
+        Token nextToken = null;
+        while (nextToken == null || nextToken.token != TokenType.EOF) {
+            nextToken = lexer.getNextToken();
+            
+            Thread.sleep(mili);
+            System.out.println(nextToken.toString());
+        }
+    }
 }

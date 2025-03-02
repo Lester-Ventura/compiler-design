@@ -112,6 +112,9 @@ public class Lexer {
                     return new Token(TokenType.DOUBLE_EQUALS, lexeme + '=', defaultColumnAndRow());
                 else
                     return new Token(TokenType.EQUALS, lexeme, defaultColumnAndRow());
+            case '^':
+                advance('^');
+                return new Token(TokenType.CARAT,lexeme,defaultColumnAndRow());
             default:
                 return null;
         }

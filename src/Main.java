@@ -26,7 +26,7 @@ public class Main {
         Parser parser = new Parser(content);
         parser.parse();
 
-        testSelected();
+        testList();
     }
 
     static void testEverything() {
@@ -48,7 +48,7 @@ public class Main {
         }
     }
 
-    static void testSelected() {
+    static void testList() {
         CodeReader codeReader = new CodeReader();
         try {
             ArrayList<String> codeList = new ArrayList<>();
@@ -58,6 +58,25 @@ public class Main {
                 System.out.println("Reading: " + (index + 1) + " " + CodeReader.validList[index]);
                 Parser parser = new Parser(code);
                 parser.parseDelayed(0);
+                index++;
+            }
+        } catch (IOException e) {
+            e.getMessage();
+        } catch (InterruptedException e) {
+            e.getMessage();
+        }
+    }
+
+    static void testCustom(int timeParseSpeed){
+        CodeReader codeReader = new CodeReader();
+        try {
+            ArrayList<String> codeList = new ArrayList<>();
+            codeList.add(codeReader.retrieveFile("CustomExample"));
+            int index = 0;
+            for (String code : codeList) {
+                System.out.println("Reading: " + (index + 1) + " " + CodeReader.validList[index]);
+                Parser parser = new Parser(code);
+                parser.parseDelayed(timeParseSpeed);
                 index++;
             }
         } catch (IOException e) {

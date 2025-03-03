@@ -36,7 +36,7 @@ public class Main {
             codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.allList));
             int index = 0;
             for (String code : codeList) {
-                System.out.println("Reading: "+(index+1)+" "+CodeReader.allList[index]);
+                System.out.println("Reading: " + (index + 1) + " " + CodeReader.allList[index]);
                 Parser parser = new Parser(code);
                 parser.parseDelayed(0);
                 index++;
@@ -55,7 +55,7 @@ public class Main {
             codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.validList));
             int index = 0;
             for (String code : codeList) {
-                System.out.println("Reading: "+(index+1)+" "+CodeReader.validList[index]);
+                System.out.println("Reading: " + (index + 1) + " " + CodeReader.validList[index]);
                 Parser parser = new Parser(code);
                 parser.parseDelayed(0);
                 index++;

@@ -37,7 +37,8 @@ public class Lexer {
         // throw new Error("Was unable to process the next token");
         // Edited Error Message
         ColumnAndRow position = ColumnAndRow.calculate(currentCharacterIndex, source);
-        throw new Error("Error: Unexpected character '" + nextChar + "' at Line: " + position.getActualRow() + ", Column: " + position.getActualColumn());
+        throw new Error("Error: Unexpected character '" + nextChar + "' at Line: " + position.getActualRow()
+                + ", Column: " + position.getActualColumn());
     }
 
     public Token lexOperator() {
@@ -114,7 +115,7 @@ public class Lexer {
                     return new Token(TokenType.EQUALS, lexeme, defaultColumnAndRow());
             case '^':
                 advance('^');
-                return new Token(TokenType.CARAT,lexeme,defaultColumnAndRow());
+                return new Token(TokenType.CARAT, lexeme, defaultColumnAndRow());
             default:
                 return null;
         }
@@ -149,41 +150,6 @@ public class Lexer {
             return new Token(TokenType.R_CURLY_BRACE, lexeme, defaultColumnAndRow());
         else
             return null;
-    }
-
-    // eats all the comments
-    // need to loop due to the possibility of chained comments like this one
-    public boolean ignoreComment() {
-        char c = peek(); // for debugging
-        int length = source.length();
-        if (currentCharacterIndex < source.length() - 2 && peek() == '/') {
-            if (peekNext() == '/') {
-                advance('/');
-                advance('/');
-                while (hasNextToken() && peek() != '\0' && peek() != '\n') {
-                    c = peek();
-                    currentCharacterIndex++;
-                }
-                return true;
-            } else if (peekNext() == '*') {
-                advance('/');
-                advance('*');
-                while (peek() != '*' && peekNext() != '/') {
-                    if (currentCharacterIndex >= source.length() - 2) {
-                        throw new Error("Unterminated multiline comment");
-                    }
-                    currentCharacterIndex++;
-                }
-                c = peek();
-                match('*');
-                c = peek();
-                match('/');
-                c = peek();
-                return true;
-            }
-
-        }
-        return false;
     }
 
     public Token lexNumerical() {
@@ -285,6 +251,32 @@ public class Lexer {
         return new Token(TokenType.ID, identifier, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
+    /**
+     * Eats escape characters in string. Does not tokenize.
+     * 
+     * @return the escaped character as a string
+     */
+    private String escapeCharacter() {
+
+        if (match('\\')) {
+            char c = peek();
+            switch (c) {
+                case '\\':
+                case 'n':
+                case 't':
+                case 'c':
+                case '\'':
+                case '"':
+                    advance(peek());
+                    return "\\" + c;
+
+                default:
+                    throw new Error("Invalid escape character");
+            }
+        }
+        return "";
+    }
+
     public Token lexStringLiteral(char delimiter) {
         advance(delimiter); // consume the opening "
         String str = "";
@@ -297,11 +289,47 @@ public class Lexer {
             str += currentCharacter;
 
             currentCharacterIndex++;
+            str += escapeCharacter();
             currentCharacter = peek();
         }
 
         advance(delimiter); // consume the ending "
         return new Token(TokenType.STRING_LITERAL, str, ColumnAndRow.calculate(startCharacterIndex, source));
+    }
+
+    // eats all the comments
+    // need to loop due to the possibility of chained comments like this one
+    public boolean ignoreComment() {
+        char c = peek(); // for debugging
+        int length = source.length();
+        if (currentCharacterIndex < source.length() - 2 && peek() == '/') {
+            if (peekNext() == '/') {
+                advance('/');
+                advance('/');
+                while (hasNextToken() && peek() != '\0' && peek() != '\n') {
+                    c = peek();
+                    currentCharacterIndex++;
+                }
+                return true;
+            } else if (peekNext() == '*') {
+                advance('/');
+                advance('*');
+                while (peek() != '*' && peekNext() != '/') {
+                    if (currentCharacterIndex >= source.length() - 2) {
+                        throw new Error("Unterminated multiline comment");
+                    }
+                    currentCharacterIndex++;
+                }
+                c = peek();
+                match('*');
+                c = peek();
+                match('/');
+                c = peek();
+                return true;
+            }
+
+        }
+        return false;
     }
 
     // skips over every piece of whitespace

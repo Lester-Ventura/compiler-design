@@ -6,3 +6,5 @@
 0b10010101
 // check 1 to 3
 5 + 3
+5 ^ 3
+" \" this should work "

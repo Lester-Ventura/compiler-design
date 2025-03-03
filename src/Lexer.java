@@ -183,7 +183,8 @@ public class Lexer {
             currentCharacterIndex++;
         } while (Character.isDigit(peek()) || (peek() == '.' && !hasHitDecimal));
 
-        return new Token(TokenType.DECIMAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+        return new Token(hasHitDecimal ? TokenType.FLOAT_NUMBER : TokenType.DECIMAL_NUMBER, number,
+                ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
     public Token parseHexadecimal() {

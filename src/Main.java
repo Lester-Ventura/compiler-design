@@ -4,7 +4,7 @@ import java.util.*;
 
 public class Main {
 
-    static boolean hadError = false;
+    private static boolean hadError = false;
 
     public static void main(String[] args) {
         String content;
@@ -25,8 +25,19 @@ public class Main {
 
         Parser parser = new Parser(content);
         parser.parse();
+        if (hadError)
+            System.out.println("I had an error");
 
-        testSelected();
+    }
+
+    /**
+     * Handles an error thrown by any of the interpreter's parts.
+     * 
+     * @param e : the thrown error
+     */
+    protected static void handleError(Error e) {
+        System.err.println(e.getMessage());
+        hadError = true;
     }
 
     static void testEverything() {

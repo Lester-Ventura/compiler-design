@@ -13,11 +13,16 @@ public class Parser {
         Token nextToken = null;
 
         while (nextToken == null || nextToken.token != TokenType.EOF) {
-            nextToken = lexer.getNextToken();
-            System.out.println(nextToken.toString());
-            if (nextToken.token == TokenType.ID) {
-                symbolTable.put(nextToken.lexeme, nextToken);
+            try {
+                nextToken = lexer.getNextToken();
+                System.out.println(nextToken.toString());
+                if (nextToken.token == TokenType.ID) {
+                    symbolTable.put(nextToken.lexeme, nextToken);
+                }
+            } catch (ScannerError e) {
+                Main.handleError(e);
             }
+
         }
 
         System.out.println("\n|| Symbol table || \n");
@@ -30,10 +35,21 @@ public class Parser {
         Lexer lexer = new Lexer(source);
         Token nextToken = null;
         while (nextToken == null || nextToken.token != TokenType.EOF) {
-            nextToken = lexer.getNextToken();
+            try {
+                nextToken = lexer.getNextToken();
 
-            Thread.sleep(mili);
-            System.out.println(nextToken.toString());
+                Thread.sleep(mili);
+                System.out.println(nextToken.toString());
+                if (nextToken.token == TokenType.ID) {
+                    symbolTable.put(nextToken.lexeme, nextToken);
+                }
+            } catch (ScannerError e) {
+                Main.handleError(e);
+            }
+        }
+        System.out.println("\n|| Symbol table || \n");
+        for (Map.Entry<String, Token> entry : symbolTable.entrySet()) {
+            System.out.println(entry);
         }
     }
 }

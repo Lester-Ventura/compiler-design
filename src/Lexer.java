@@ -25,7 +25,7 @@ public class Lexer {
             return lexStringLiteral(nextChar); // takes either ' or " delimiter
         else if (Character.isAlphabetic(nextChar) || nextChar == '_')
             return lexIdentifier();
-        else if (Character.isDigit(nextChar) || nextChar == '_')
+        else if (Character.isDigit(nextChar))
             return lexNumerical();
         else if ((check = lexOperator()) != null)
             return check;

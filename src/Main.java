@@ -7,27 +7,11 @@ public class Main {
     private static boolean hadError = false;
 
     public static void main(String[] args) {
-        String content;
-        try {
-            if (args.length == 0) {
-                System.out.println("Please provide a file to run");
-                return;
-            }
-
-            Scanner scanner = new Scanner(new File(args[0]));
-            content = scanner.useDelimiter("\\Z").next() + "\n";
-            scanner.close();
-        } catch (Exception err) {
-            System.out.println("Error while loading the file");
-            System.exit(1);
-            return;
-        }
-
-        Parser parser = new Parser(content);
-        parser.parse();
-        if (hadError)
-            System.out.println("I had an error");
-
+        test(50,"CustomExample");
+        //For testing the list of tokens
+        //test(0,"TokenList");
+        //For testing in actual code
+        //test(100,CodeReader.validList);
     }
 
     /**
@@ -40,7 +24,7 @@ public class Main {
         hadError = true;
     }
 
-    static void testEverything() {
+    static void testEverything(int delay) {
         CodeReader codeReader = new CodeReader();
         try {
             ArrayList<String> codeList = new ArrayList<>();
@@ -49,51 +33,33 @@ public class Main {
             for (String code : codeList) {
                 System.out.println("Reading: " + (index + 1) + " " + CodeReader.allList[index]);
                 Parser parser = new Parser(code);
-                parser.parseDelayed(0);
+                parser.parseDelayed(delay);
                 index++;
             }
         } catch (IOException e) {
-            e.getMessage();
+            System.err.println(e.getMessage());
         } catch (InterruptedException e) {
-            e.getMessage();
+            System.err.println(e.getMessage());
         }
     }
 
-    static void testList() {
+    static void test(int delay,String... listofFiles) {
         CodeReader codeReader = new CodeReader();
         try {
             ArrayList<String> codeList = new ArrayList<>();
-            codeList.addAll(codeReader.retrieveDefinedFiles(CodeReader.validList));
+            codeList.addAll(codeReader.retrieveDefinedFiles(listofFiles));
             int index = 0;
             for (String code : codeList) {
-                System.out.println("Reading: " + (index + 1) + " " + CodeReader.validList[index]);
+                System.out.println("Reading: " + (index + 1) + " " + listofFiles[index]);
                 Parser parser = new Parser(code);
-                parser.parseDelayed(0);
+                parser.parseDelayed(delay);
                 index++;
             }
         } catch (IOException e) {
-            e.getMessage();
+            System.err.println(e.getMessage());
         } catch (InterruptedException e) {
-            e.getMessage();
-        }
-    }
-
-    static void testCustom(int timeParseSpeed){
-        CodeReader codeReader = new CodeReader();
-        try {
-            ArrayList<String> codeList = new ArrayList<>();
-            codeList.add(codeReader.retrieveFile("CustomExample"));
-            int index = 0;
-            for (String code : codeList) {
-                System.out.println("Reading: " + (index + 1) + " " + CodeReader.validList[index]);
-                Parser parser = new Parser(code);
-                parser.parseDelayed(timeParseSpeed);
-                index++;
-            }
-        } catch (IOException e) {
-            e.getMessage();
-        } catch (InterruptedException e) {
-            e.getMessage();
+            System.err.println(e.getMessage());
         }
     }
 }
+    

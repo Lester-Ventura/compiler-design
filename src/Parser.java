@@ -37,7 +37,6 @@ public class Parser {
         while (nextToken == null || nextToken.token != TokenType.EOF) {
             try {
                 nextToken = lexer.getNextToken();
-
                 Thread.sleep(mili);
                 System.out.println(nextToken.toString());
                 if (nextToken.token == TokenType.ID) {

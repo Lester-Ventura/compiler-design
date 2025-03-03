@@ -63,8 +63,13 @@ public class CodeReader {
                 File codeFile = new File(folderLocation + fileName + ".lol");
                 if (!codeFile.exists())
                     throw new IOException(fileName + " does not exist!");
-                Scanner scanner = new Scanner(codeFile);
-                codes.add(scanner.useDelimiter("\\Z").next() + "\n");
+                Scanner scanner = new Scanner(codeFile,"UTF-8");
+                if(scanner.hasNext())
+                    codes.add(scanner.useDelimiter("\\Z").next() + "\n");
+                else{
+                    scanner.close();
+                    throw new IOException(fileName + " is empty!");
+                }
                 scanner.close();
             }
         return codes;
@@ -79,9 +84,13 @@ public class CodeReader {
             File codeFile = new File(folderLocation + fileName + ".lol");
             if (!codeFile.exists())
                 throw new IOException(fileName + " does not exist!");
-            Scanner scanner = new Scanner(codeFile);
-            String code = scanner.useDelimiter("\\Z").next() + "\n";
+            Scanner scanner = new Scanner(codeFile,"ASCII");
+            if(scanner.hasNext()){
+                String code = scanner.useDelimiter("\\Z").next() + "\n";
+                scanner.close();
+                return code;
+            }
             scanner.close();
-        return code;
+            throw new IOException(fileName +" is empty!");
     }
 }

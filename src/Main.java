@@ -7,9 +7,11 @@ public class Main {
     private static boolean hadError = false;
 
     public static void main(String[] args) {
-        test(50,"CustomExample");
+        //test(50,"CustomExample");
+        //A small test
+        //test(50,CodeReader.longList[0]);
         //For testing the list of tokens
-        //test(0,"TokenList");
+        test(20,"TokenList");
         //For testing in actual code
         //test(100,CodeReader.validList);
     }

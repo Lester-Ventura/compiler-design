@@ -17,7 +17,8 @@ public class Parser {
                 nextToken = lexer.getNextToken();
                 System.out.println(nextToken.toString());
                 if (nextToken.token == TokenType.ID) {
-                    symbolTable.put(nextToken.lexeme, nextToken);
+                    if(!symbolTable.containsKey(nextToken.lexeme))
+                        symbolTable.put(nextToken.lexeme, nextToken);
                 }
             } catch (ScannerError e) {
                 Main.handleError(e);

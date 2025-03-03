@@ -24,7 +24,7 @@ public class Lexer {
             return lexStringLiteral(nextChar); // takes either ' or " delimiter
         else if (Character.isAlphabetic(nextChar) || nextChar == '_')
             return lexIdentifier();
-        else if (Character.isDigit(nextChar) || nextChar == '_')
+        else if (Character.isDigit(nextChar))
             return lexNumerical();
         else if ((check = lexOperator()) != null)
             return check;
@@ -36,7 +36,8 @@ public class Lexer {
         // throw new Error("Was unable to process the next token");
         // Edited Error Message
         ColumnAndRow position = ColumnAndRow.calculate(currentCharacterIndex, source);
-        throw new Error("Error: Unexpected character '" + nextChar + "' at Line: " + position.getActualRow()
+        advance(nextChar); // still moves the scanner despite the error to avoid looping infinitely
+        throw new ScannerError("Error: Unexpected character '" + nextChar + "' at Line: " + position.getActualRow()
                 + ", Column: " + position.getActualColumn());
     }
 
@@ -106,7 +107,9 @@ public class Lexer {
             number += currentCharacter;
             currentCharacterIndex++;
         } while (Character.isDigit(peek()) || (peek() == '.' && !hasHitDecimal));
-        return new Token(TokenType.DECIMAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+
+        return new Token(hasHitDecimal ? TokenType.FLOAT_NUMBER : TokenType.DECIMAL_NUMBER, number,
+                ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
     public Token parseHexadecimal() {
@@ -175,6 +178,26 @@ public class Lexer {
         return new Token(TokenType.ID, identifier, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
+    public Token lexStringLiteral(char delimiter) {
+        advance(delimiter); // consume the opening "
+        String str = "";
+
+        char currentCharacter = peek();
+        while (currentCharacter != delimiter) {
+            if (currentCharacter == '\n')
+                throw new ScannerError("Error: Unterminated string literal");
+
+            str += currentCharacter;
+
+            currentCharacterIndex++;
+            str += escapeCharacter();
+            currentCharacter = peek();
+        }
+
+        advance(delimiter); // consume the ending "
+        return new Token(TokenType.STRING_LITERAL, str, ColumnAndRow.calculate(startCharacterIndex, source));
+    }
+
     /**
      * Eats escape characters in string. Does not tokenize.
      * 
@@ -195,30 +218,10 @@ public class Lexer {
                     return "\\" + c;
 
                 default:
-                    throw new Error("Invalid escape character");
+                    throw new ScannerError("Error: Invalid escape character");
             }
         }
         return "";
-    }
-
-    public Token lexStringLiteral(char delimiter) {
-        advance(delimiter); // consume the opening "
-        String str = "";
-
-        char currentCharacter = peek();
-        while (currentCharacter != delimiter) {
-            if (currentCharacter == '\n')
-                throw new Error("Unterminated string literal");
-
-            str += currentCharacter;
-
-            currentCharacterIndex++;
-            str += escapeCharacter();
-            currentCharacter = peek();
-        }
-
-        advance(delimiter); // consume the ending "
-        return new Token(TokenType.STRING_LITERAL, str, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
     // eats all the comments
@@ -237,7 +240,7 @@ public class Lexer {
                 advance('*');
                 while (peek() != '*' && peekNext() != '/') {
                     if (currentCharacterIndex >= source.length() - 2) {
-                        throw new Error("Unterminated multiline comment");
+                        throw new ScannerError("Error: Unterminated multiline comment");
                     }
                     currentCharacterIndex++;
                 }
@@ -296,7 +299,7 @@ public class Lexer {
     // error
     public boolean advance(char ch) {
         if (peek() != ch)
-            throw new Error("Expected " + ch + ", got " + peek());
+            throw new ScannerError("Error: Expected " + ch + ", got " + peek());
 
         currentCharacterIndex++;
         return true;

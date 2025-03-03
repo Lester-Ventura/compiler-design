@@ -1,5 +1,4 @@
 import java.util.HashMap;
-import java.util.Map;
 
 public class Lexer {
     private HashMap<String, TokenType> reservedWords = Table.generateReservedWords();
@@ -45,112 +44,39 @@ public class Lexer {
     public Token lexOperator() {
         String lexeme = peek() + "";
         switch (peek()) {
-            case '+':
-                // I realized too late that this could all have been solved with an if statement
-                advance('+');
-                if (match('+'))
-                    return new Token(TokenType.DOUBLE_PLUS, lexeme + "+", defaultColumnAndRow());
-                else
-                    return new Token(TokenType.PLUS, lexeme,
-                            defaultColumnAndRow());
-            case '-':
-                advance('-');
-                if (match('-'))
-                    return new Token(TokenType.DOUBLE_MINUS, lexeme + '-', defaultColumnAndRow());
-                else if (match('>'))
-                    return new Token(TokenType.MINUS_R_ANGLE_BAR, lexeme + '>', defaultColumnAndRow());
-                else
-                    return new Token(TokenType.PLUS, lexeme, defaultColumnAndRow());
-            case '*':
-                advance('*');
-                if (match('*'))
-                    return new Token(TokenType.DOUBLE_STAR, lexeme + '*', defaultColumnAndRow());
-                else
-                    return new Token(TokenType.STAR, lexeme, defaultColumnAndRow());
-                // Comments are handled outside this
-            case '/':
-                advance('/');
-                return new Token(TokenType.FORWARD_SLASH, lexeme, defaultColumnAndRow());
-            case '%':
-                advance('%');
-                return new Token(TokenType.PERCENT, lexeme, defaultColumnAndRow());
-            case '<':
-                advance('<');
-                if (match('<'))
-                    return new Token(TokenType.DOUBLE_R_ANGLE_BAR, lexeme + '<', defaultColumnAndRow());
-                else if (match('='))
-                    return new Token(TokenType.R_ANGLE_BAR_EQUALS, lexeme + '=', defaultColumnAndRow());
-                else
-                    return new Token(TokenType.R_ANGLE_BAR, lexeme, defaultColumnAndRow());
-            case '>':
-                advance('>');
-                if (match('>'))
-                    return new Token(TokenType.DOUBLE_L_ANGLE_BAR, lexeme + '>', defaultColumnAndRow());
-                else if (match('='))
-                    return new Token(TokenType.L_ANGLE_BAR_EQUALS, lexeme + '=', defaultColumnAndRow());
-                else
-                    return new Token(TokenType.L_ANGLE_BAR, lexeme, defaultColumnAndRow());
-            case '|':
-                advance('|');
-                if (match('|'))
-                    return new Token(TokenType.DOUBLE_PIPE, lexeme + '|', defaultColumnAndRow());
-                else
-                    return new Token(TokenType.PIPE, lexeme, defaultColumnAndRow());
-            case '&':
-                advance('&');
-                if (match('&'))
-                    return new Token(TokenType.DOUBLE_AMPERSAND, lexeme + '&', defaultColumnAndRow());
-                else
-                    return new Token(TokenType.AMPERSAND, lexeme, defaultColumnAndRow());
-            case '!':
-                advance('!');
-                if (match('='))
-                    return new Token(TokenType.EXCLAMATION_EQUALS, lexeme + '=', defaultColumnAndRow());
-                else
-                    return new Token(TokenType.EXCLAMATION, lexeme, defaultColumnAndRow());
-            case '=':
-                advance('=');
-                if (match('='))
-                    return new Token(TokenType.DOUBLE_EQUALS, lexeme + '=', defaultColumnAndRow());
-                else
-                    return new Token(TokenType.EQUALS, lexeme, defaultColumnAndRow());
-            case '^':
-                advance('^');
-                return new Token(TokenType.CARAT, lexeme, defaultColumnAndRow());
-            default:
-                return null;
+            case '+': return doubleCharacterCase(lexeme,'+', TokenType.PLUS, '+', TokenType.DOUBLE_PLUS);
+            case '-': return twoDoubleCharacterCase(lexeme,'-', TokenType.MINUS, '-', TokenType.DOUBLE_MINUS, '>', TokenType.MINUS_R_ANGLE_BAR);
+            case '*': return doubleCharacterCase(lexeme,'*', TokenType.STAR, '*', TokenType.DOUBLE_STAR);
+            case '/': return singleCharacterCase(lexeme, '/', TokenType.FORWARD_SLASH);
+            case '%': return singleCharacterCase(lexeme, '%',TokenType.PERCENT);
+            case '<': return twoDoubleCharacterCase(lexeme,'<', TokenType.R_ANGLE_BAR, '<', TokenType.DOUBLE_R_ANGLE_BAR , '=', TokenType.R_ANGLE_BAR_EQUALS);
+            case '>': return twoDoubleCharacterCase(lexeme,'>', TokenType.L_ANGLE_BAR, '>', TokenType.DOUBLE_L_ANGLE_BAR , '=', TokenType.L_ANGLE_BAR_EQUALS);
+            case '|': return doubleCharacterCase(lexeme, '|',TokenType.PIPE, '|', TokenType.DOUBLE_PIPE);
+            case '&': return doubleCharacterCase(lexeme, '&',TokenType.AMPERSAND, '*', TokenType.AMPERSAND);
+            case '!': return doubleCharacterCase(lexeme, '!',TokenType.EXCLAMATION, '=', TokenType.EXCLAMATION_EQUALS);
+            case '=': return doubleCharacterCase(lexeme, '=',TokenType.EQUALS, '=', TokenType.DOUBLE_EQUALS);
+            case '^': return singleCharacterCase(lexeme, '^', TokenType.CARAT);
+            default: return null;
         }
     }
 
     public Token lexSymbols() {
         String lexeme = peek() + "";
-
-        if (match('"'))
-            return new Token(TokenType.QUOTATION, lexeme, defaultColumnAndRow());
-        else if (match('\''))
-            return new Token(TokenType.APOSTROPHE, lexeme, defaultColumnAndRow());
-        else if (match('('))
-            return new Token(TokenType.L_PAREN, lexeme, defaultColumnAndRow());
-        else if (match(')'))
-            return new Token(TokenType.R_PAREN, lexeme, defaultColumnAndRow());
-        else if (match('['))
-            return new Token(TokenType.L_BRACE, lexeme, defaultColumnAndRow());
-        else if (match(']'))
-            return new Token(TokenType.R_BRACE, lexeme, defaultColumnAndRow());
-        else if (match(':'))
-            return new Token(TokenType.COLON, lexeme, defaultColumnAndRow());
-        else if (match(';'))
-            return new Token(TokenType.SEMICOLON, lexeme, defaultColumnAndRow());
-        else if (match(','))
-            return new Token(TokenType.COLON, lexeme, defaultColumnAndRow());
-        else if (match('.'))
-            return new Token(TokenType.DOT, lexeme, defaultColumnAndRow());
-        else if (match('{'))
-            return new Token(TokenType.L_CURLY_BRACE, lexeme, defaultColumnAndRow());
-        else if (match('}'))
-            return new Token(TokenType.R_CURLY_BRACE, lexeme, defaultColumnAndRow());
-        else
-            return null;
+        switch(peek()){
+            case '"': return singleCharacterCase(lexeme, '"', TokenType.QUOTATION);
+            case '\'': return singleCharacterCase(lexeme, '\'', TokenType.APOSTROPHE);
+            case '(': return singleCharacterCase(lexeme, '(', TokenType.L_PAREN);
+            case ')': return singleCharacterCase(lexeme, ')', TokenType.R_PAREN);
+            case '[': return singleCharacterCase(lexeme, '[', TokenType.L_BRACE);
+            case ']': return singleCharacterCase(lexeme, ']', TokenType.R_BRACE);
+            case ':': return singleCharacterCase(lexeme, ':', TokenType.COLON);
+            case ';': return singleCharacterCase(lexeme, ';', TokenType.SEMICOLON);
+            case ',': return singleCharacterCase(lexeme, ',', TokenType.COMMA);
+            case '.': return singleCharacterCase(lexeme, '.', TokenType.DOT);
+            case '{': return singleCharacterCase(lexeme, '{', TokenType.L_CURLY_BRACE);
+            case '}': return singleCharacterCase(lexeme, '}', TokenType.R_CURLY_BRACE);
+            default: return null;
+        }
     }
 
     public Token lexNumerical() {
@@ -174,7 +100,6 @@ public class Lexer {
 
         do {
             char currentCharacter = peek();
-
             if (currentCharacter == '.') {
                 hasHitDecimal = true;
             }
@@ -302,14 +227,11 @@ public class Lexer {
     // eats all the comments
     // need to loop due to the possibility of chained comments like this one
     public boolean ignoreComment() {
-        char c = peek(); // for debugging
-        int length = source.length();
         if (currentCharacterIndex < source.length() - 2 && peek() == '/') {
             if (peekNext() == '/') {
                 advance('/');
                 advance('/');
                 while (hasNextToken() && peek() != '\0' && peek() != '\n') {
-                    c = peek();
                     currentCharacterIndex++;
                 }
                 return true;
@@ -322,16 +244,34 @@ public class Lexer {
                     }
                     currentCharacterIndex++;
                 }
-                c = peek();
                 match('*');
-                c = peek();
                 match('/');
-                c = peek();
                 return true;
             }
 
         }
         return false;
+    }
+    public Token singleCharacterCase(String lexeme,char singleChar, TokenType singleCharacter){
+        advance(singleChar);
+        return new Token(singleCharacter,lexeme,defaultColumnAndRow());
+    }
+    public Token doubleCharacterCase(String lexeme,char singleChar, TokenType singleCharacter, char nextChar,
+            TokenType doubleCharacter) {
+        advance(singleChar);
+        return (match(nextChar) ? new Token(singleCharacter, lexeme, defaultColumnAndRow())
+                : new Token(doubleCharacter, lexeme + nextChar, defaultColumnAndRow()));
+    }
+    
+    public Token twoDoubleCharacterCase(String lexeme,char singleChar, TokenType singleCharacter, char nextChar,
+            TokenType doubleCharacter, char alternateNextChar, TokenType doubleCharacterAlternate) {
+        advance(singleChar);
+        if (match(nextChar))
+            return new Token(doubleCharacter, lexeme, defaultColumnAndRow());
+        return match(alternateNextChar) 
+        ? new Token(doubleCharacterAlternate, lexeme, defaultColumnAndRow())
+        : new Token(singleCharacter, lexeme, defaultColumnAndRow());
+
     }
 
     // skips over every piece of whitespace

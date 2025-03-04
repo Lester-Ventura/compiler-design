@@ -8,45 +8,32 @@ public class Parser {
         this.source = source;
     }
 
-    public void parse() {
+    public void parse(int delay_in_ms) {
         Lexer lexer = new Lexer(source);
         Token nextToken = null;
 
         while (nextToken == null || nextToken.token != TokenType.EOF) {
             try {
                 nextToken = lexer.getNextToken();
+
+                if (delay_in_ms > 0) {
+                    try {
+                        Thread.sleep(delay_in_ms);
+                    } catch (Exception e) {
+                        System.out.println("Error has occured while sleeping: " + e.getMessage());
+                    }
+                }
+
                 System.out.println(nextToken.toString());
                 if (nextToken.token == TokenType.ID) {
-                    if(!symbolTable.containsKey(nextToken.lexeme))
+                    if (!symbolTable.containsKey(nextToken.lexeme))
                         symbolTable.put(nextToken.lexeme, nextToken);
                 }
             } catch (ScannerError e) {
-                Main.handleError(e);
-            }
-
-        }
-
-        System.out.println("\n|| Symbol table || \n");
-        for (Map.Entry<String, Token> entry : symbolTable.entrySet()) {
-            System.out.println(entry);
-        }
-    }
-
-    public void parseDelayed(int mili) throws InterruptedException {
-        Lexer lexer = new Lexer(source);
-        Token nextToken = null;
-        while (nextToken == null || nextToken.token != TokenType.EOF) {
-            try {
-                nextToken = lexer.getNextToken();
-                Thread.sleep(mili);
-                System.out.println(nextToken.toString());
-                if (nextToken.token == TokenType.ID) {
-                    symbolTable.put(nextToken.lexeme, nextToken);
-                }
-            } catch (ScannerError e) {
-                Main.handleError(e);
+                System.out.println("Error has occured while scanning token: " + e.getMessage());
             }
         }
+
         System.out.println("\n|| Symbol table || \n");
         for (Map.Entry<String, Token> entry : symbolTable.entrySet()) {
             System.out.println(entry);

@@ -1,96 +1,79 @@
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
+
 public class CodeReader {
-    String folderLocation;
+    Scanner scanner = new Scanner(System.in);
 
-    // Automatically adds the .lol extension. Returns a string representation of the code including the \n
-    CodeReader() {
-        this.folderLocation = "ExampleCodes\\";
+    public void run() {
+        while (true) {
+            File[] files = getFiles();
+
+            for (int i = 0; i < files.length; i++) {
+                System.out.println(String.format("[%d]: %s", i + 1, files[i].getName()));
+            }
+            System.out.println(String.format("[%d]: %s", files.length, "Exit"));
+
+            System.out.println("===============================================");
+            System.out.print("Enter the file number to read: ");
+
+            int fileNumber = scanner.nextInt();
+            scanner.nextLine(); // consume the newline
+
+            int index = fileNumber - 1;
+            if (fileNumber == files.length) {
+                System.out.println("Exiting...");
+                break;
+            } else if (index < 0 || index >= files.length) {
+                System.out.println("Invalid file number, restarting...");
+                continue;
+            }
+
+            File file = files[fileNumber - 1];
+            System.out.println("Scanning " + file.getName());
+
+            try {
+                parseFile(file, 20);
+                System.out.println("===============================================");
+                System.out.println("Scanning complete! Enter any key to continue...");
+                scanner.nextLine(); // consume the newline
+            } catch (IOException e) {
+                System.out.println("Error has occured while scanning file: " + e.getMessage());
+            }
+        }
     }
 
-    CodeReader(String folderLocation) {
-        this.folderLocation = folderLocation;
+    public void destroy() {
+        scanner.close();
     }
-    //Predefined list for easy access
-    public static String[] demoList = {
-            "Demo_Arrays", "Demo_Loop_Var",
-            "Demo_Object_Record", "Demo_Recursion",
-            "Demo_Try_Catch", "Demo_Variable_Operation"
-    };
-    public static String[] validList = {
-            "Ex_Valid_Array", "Ex_Valid_Catch_Block",
-            "Ex_Valid_Exit", "Ex_Valid_For",
-            "Ex_Valid_Function", "Ex_Valid_If",
-            "Ex_Valid_Output", "Ex_Valid_Switch",
-            "Ex_Valid_While_Loop", "Ex_Variable_Dec",
-            "Ex_Lexical_Scoping"
-    };
-    public static String[] invalidList = {
-            "Ex_Invalid_Array", "Ex_Invalid_Catch_Block",
-            "Ex_Invalid_Dec", "Ex_Invalid_For",
-            "Ex_Invalid_If", "Ex_Invalid_Output",
-            "Ex_Invalid_Switch", "Ex_Invalid_While"
-    };
-    public static String[] longList = {
-            "Long_Demo", "Long_Demo_2", "Long_Demo_3"
-    };
-    public static String[] allList = {
-        "Demo_Arrays", "Demo_Loop_Var",
-        "Demo_Object_Record", "Demo_Recursion",
-        "Demo_Try_Catch", "Demo_Variable_Operation",
-        "Ex_Valid_Array", "Ex_Valid_Catch_Block",
-        "Ex_Valid_Exit", "Ex_Valid_For",
-        "Ex_Valid_Function", "Ex_Valid_If",
-        "Ex_Valid_Output", "Ex_Valid_Switch",
-        "Ex_Valid_While_Loop", "Ex_Variable_Dec",
-        "Ex_Lexical_Scoping", "Ex_Invalid_Array", "Ex_Invalid_Catch_Block",
-        "Ex_Invalid_Dec", "Ex_Invalid_For",
-        "Ex_Invalid_If", "Ex_Invalid_Output",
-        "Ex_Invalid_Switch", "Ex_Invalid_While",
-         "Long_Demo", "Long_Demo_2", "Long_Demo_3"
-    };
-    /**
-     * Returns a list of codes from a list of files. Automatically appends .lol 
-     * @param fileList The list of file names.
-     * @return List of Code Strings.
-     * @throws IOException No File Found.
-     */
-    public ArrayList<String> retrieveDefinedFiles(String[] fileList) throws IOException{
-        ArrayList<String> codes = new ArrayList<>();
-            for (String fileName : fileList) {
-                File codeFile = new File(folderLocation + fileName + ".lol");
-                if (!codeFile.exists())
-                    throw new IOException(fileName + " does not exist!");
-                Scanner scanner = new Scanner(codeFile,"UTF-8");
-                if(scanner.hasNext())
-                    codes.add(scanner.useDelimiter("\\Z").next() + "\n");
-                else{
-                    scanner.close();
-                    throw new IOException(fileName + " is empty!");
-                }
-                scanner.close();
+
+    public static File[] getFiles() {
+        FilenameFilter filter = new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".lol");
             }
-        return codes;
+        };
+
+        // get the list of files containing the .lol extension, trying in the current
+        // directory first, then in the parent directory
+        File[] files = new File("./ExampleCodes").listFiles(filter);
+        if (files == null || files.length == 0)
+            files = new File("../ExampleCodes").listFiles(filter);
+
+        return files;
     }
-    /**
-     * Returns string of code from a list of files. Automatically appends .lol 
-     * @param fileList The list of file names.
-     * @return List of Code Strings.
-     * @throws IOException No File Found.
-     */
-    public String retrieveFile(String fileName) throws IOException{
-            File codeFile = new File(folderLocation + fileName + ".lol");
-            if (!codeFile.exists())
-                throw new IOException(fileName + " does not exist!");
-            Scanner scanner = new Scanner(codeFile,"ASCII");
-            if(scanner.hasNext()){
-                String code = scanner.useDelimiter("\\Z").next() + "\n";
-                scanner.close();
-                return code;
-            }
-            scanner.close();
-            throw new IOException(fileName +" is empty!");
+
+    public void parseFile(File file, int delay_in_ms) throws IOException {
+        Scanner scanner = new Scanner(file, "UTF-8");
+
+        // need to check if there is a next line,
+        // otherwise the scanner will throw an error
+        String source = scanner.hasNext() ? scanner.useDelimiter("\\Z").next() + "\n" : "\n";
+        Parser parser = new Parser(source);
+        parser.parse(delay_in_ms);
+        scanner.close();
     }
 }

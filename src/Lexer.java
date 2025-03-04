@@ -44,36 +44,63 @@ public class Lexer {
     public Token lexOperator() {
         String lexeme = peek() + "";
         switch (peek()) {
-            case '+': return doubleCharacterCase(lexeme,'+', TokenType.PLUS, '+', TokenType.DOUBLE_PLUS);
-            case '-': return twoDoubleCharacterCase(lexeme,'-', TokenType.MINUS, '-', TokenType.DOUBLE_MINUS, '>', TokenType.MINUS_R_ANGLE_BAR);
-            case '*': return doubleCharacterCase(lexeme,'*', TokenType.STAR, '*', TokenType.DOUBLE_STAR);
-            case '/': return singleCharacterCase(lexeme, '/', TokenType.FORWARD_SLASH);
-            case '%': return singleCharacterCase(lexeme, '%',TokenType.PERCENT);
-            case '<': return twoDoubleCharacterCase(lexeme,'<', TokenType.R_ANGLE_BAR, '<', TokenType.DOUBLE_R_ANGLE_BAR , '=', TokenType.R_ANGLE_BAR_EQUALS);
-            case '>': return twoDoubleCharacterCase(lexeme,'>', TokenType.L_ANGLE_BAR, '>', TokenType.DOUBLE_L_ANGLE_BAR , '=', TokenType.L_ANGLE_BAR_EQUALS);
-            case '|': return doubleCharacterCase(lexeme, '|',TokenType.PIPE, '|', TokenType.DOUBLE_PIPE);
-            case '&': return doubleCharacterCase(lexeme, '&',TokenType.AMPERSAND, '&', TokenType.DOUBLE_AMPERSAND);
-            case '!': return doubleCharacterCase(lexeme, '!',TokenType.EXCLAMATION, '=', TokenType.EXCLAMATION_EQUALS);
-            case '=': return doubleCharacterCase(lexeme, '=',TokenType.EQUALS, '=', TokenType.DOUBLE_EQUALS);
-            case '^': return singleCharacterCase(lexeme, '^', TokenType.CARAT);
-            default: return null;
+            case '+':
+                return doubleCharacterCase(lexeme, '+', TokenType.PLUS, '+', TokenType.DOUBLE_PLUS);
+            case '-':
+                return twoDoubleCharacterCase(lexeme, '-', TokenType.MINUS, '-', TokenType.DOUBLE_MINUS, '>',
+                        TokenType.MINUS_R_ANGLE_BAR);
+            case '*':
+                return doubleCharacterCase(lexeme, '*', TokenType.STAR, '*', TokenType.DOUBLE_STAR);
+            case '/':
+                return singleCharacterCase(lexeme, '/', TokenType.FORWARD_SLASH);
+            case '%':
+                return singleCharacterCase(lexeme, '%', TokenType.PERCENT);
+            case '<':
+                return twoDoubleCharacterCase(lexeme, '<', TokenType.R_ANGLE_BAR, '<', TokenType.DOUBLE_R_ANGLE_BAR,
+                        '=', TokenType.R_ANGLE_BAR_EQUALS);
+            case '>':
+                return twoDoubleCharacterCase(lexeme, '>', TokenType.L_ANGLE_BAR, '>', TokenType.DOUBLE_L_ANGLE_BAR,
+                        '=', TokenType.L_ANGLE_BAR_EQUALS);
+            case '|':
+                return doubleCharacterCase(lexeme, '|', TokenType.PIPE, '|', TokenType.DOUBLE_PIPE);
+            case '&':
+                return doubleCharacterCase(lexeme, '&', TokenType.AMPERSAND, '&', TokenType.DOUBLE_AMPERSAND);
+            case '!':
+                return doubleCharacterCase(lexeme, '!', TokenType.EXCLAMATION, '=', TokenType.EXCLAMATION_EQUALS);
+            case '=':
+                return doubleCharacterCase(lexeme, '=', TokenType.EQUALS, '=', TokenType.DOUBLE_EQUALS);
+            case '^':
+                return singleCharacterCase(lexeme, '^', TokenType.CARAT);
+            default:
+                return null;
         }
     }
 
     public Token lexSymbols() {
         String lexeme = peek() + "";
-        switch(peek()){
-             case '(': return singleCharacterCase(lexeme, '(', TokenType.L_PAREN);
-            case ')': return singleCharacterCase(lexeme, ')', TokenType.R_PAREN);
-            case '[': return singleCharacterCase(lexeme, '[', TokenType.L_BRACE);
-            case ']': return singleCharacterCase(lexeme, ']', TokenType.R_BRACE);
-            case ':': return singleCharacterCase(lexeme, ':', TokenType.COLON);
-            case ';': return singleCharacterCase(lexeme, ';', TokenType.SEMICOLON);
-            case ',': return singleCharacterCase(lexeme, ',', TokenType.COMMA);
-            case '.': return singleCharacterCase(lexeme, '.', TokenType.DOT);
-            case '{': return singleCharacterCase(lexeme, '{', TokenType.L_CURLY_BRACE);
-            case '}': return singleCharacterCase(lexeme, '}', TokenType.R_CURLY_BRACE);
-            default: return null;
+        switch (peek()) {
+            case '(':
+                return singleCharacterCase(lexeme, '(', TokenType.L_PAREN);
+            case ')':
+                return singleCharacterCase(lexeme, ')', TokenType.R_PAREN);
+            case '[':
+                return singleCharacterCase(lexeme, '[', TokenType.L_BRACE);
+            case ']':
+                return singleCharacterCase(lexeme, ']', TokenType.R_BRACE);
+            case ':':
+                return singleCharacterCase(lexeme, ':', TokenType.COLON);
+            case ';':
+                return singleCharacterCase(lexeme, ';', TokenType.SEMICOLON);
+            case ',':
+                return singleCharacterCase(lexeme, ',', TokenType.COMMA);
+            case '.':
+                return singleCharacterCase(lexeme, '.', TokenType.DOT);
+            case '{':
+                return singleCharacterCase(lexeme, '{', TokenType.L_CURLY_BRACE);
+            case '}':
+                return singleCharacterCase(lexeme, '}', TokenType.R_CURLY_BRACE);
+            default:
+                return null;
         }
     }
 
@@ -177,13 +204,15 @@ public class Lexer {
     }
 
     public Token lexStringLiteral(char delimiter) {
-        advance(delimiter); // consume the opening "
+        advance(delimiter); // consume the opening delimiter
         String str = "";
 
         char currentCharacter = peek();
         while (currentCharacter != delimiter) {
             if (currentCharacter == '\n')
                 throw new ScannerError("Error: Unterminated string literal");
+            else if (currentCharacter == '\0')
+                throw new ScannerError("Error: Unexpected end of file");
 
             str += currentCharacter;
 
@@ -195,16 +224,17 @@ public class Lexer {
         advance(delimiter); // consume the ending "
         return new Token(TokenType.STRING_LITERAL, str, ColumnAndRow.calculate(startCharacterIndex, source));
     }
-    private boolean englishAlphabetCheck(char c){
+
+    private boolean englishAlphabetCheck(char c) {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
     }
+
     /**
      * Eats escape characters in string. Does not tokenize.
      * 
      * @return the escaped character as a string
      */
     private String escapeCharacter() {
-
         if (match('\\')) {
             char c = peek();
             switch (c) {
@@ -221,6 +251,7 @@ public class Lexer {
                     throw new ScannerError("Error: Invalid escape character");
             }
         }
+
         return "";
     }
 
@@ -252,25 +283,27 @@ public class Lexer {
         }
         return false;
     }
-    public Token singleCharacterCase(String lexeme,char singleChar, TokenType singleCharacter){
+
+    public Token singleCharacterCase(String lexeme, char singleChar, TokenType singleCharacter) {
         advance(singleChar);
-        return new Token(singleCharacter,lexeme,defaultColumnAndRow());
+        return new Token(singleCharacter, lexeme, defaultColumnAndRow());
     }
-    public Token doubleCharacterCase(String lexeme,char singleChar, TokenType singleCharacter, char nextChar,
+
+    public Token doubleCharacterCase(String lexeme, char singleChar, TokenType singleCharacter, char nextChar,
             TokenType doubleCharacter) {
         advance(singleChar);
         return (match(nextChar) ? new Token(doubleCharacter, lexeme + nextChar, defaultColumnAndRow())
-        : new Token(singleCharacter, lexeme, defaultColumnAndRow()));
+                : new Token(singleCharacter, lexeme, defaultColumnAndRow()));
     }
-    
-    public Token twoDoubleCharacterCase(String lexeme,char singleChar, TokenType singleCharacter, char nextChar,
+
+    public Token twoDoubleCharacterCase(String lexeme, char singleChar, TokenType singleCharacter, char nextChar,
             TokenType doubleCharacter, char alternateNextChar, TokenType doubleCharacterAlternate) {
         advance(singleChar);
         if (match(nextChar))
             return new Token(doubleCharacter, lexeme, defaultColumnAndRow());
-        return (match(alternateNextChar) 
-        ? new Token(singleCharacter, lexeme, defaultColumnAndRow()):
-        new Token(doubleCharacterAlternate, lexeme, defaultColumnAndRow()));
+        return (match(alternateNextChar)
+                ? new Token(singleCharacter, lexeme, defaultColumnAndRow())
+                : new Token(doubleCharacterAlternate, lexeme, defaultColumnAndRow()));
     }
 
     // skips over every piece of whitespace

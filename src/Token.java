@@ -34,7 +34,7 @@ public class Token {
             return String.format("Token: %s | Value: %10s | Line: %3d & Column: %d", tokenName, lexeme, line,
                     column);
         else
-            return String.format("Token: %s | Line: %3d & Column: %d\"", tokenName, line,
+            return String.format("Token: %s | Line: %3d & Column: %d", tokenName, line,
                     column);
     }
 }

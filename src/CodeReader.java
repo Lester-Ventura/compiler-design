@@ -13,7 +13,7 @@ public class CodeReader {
             for (int i = 0; i < files.length; i++) {
                 System.out.println(String.format("[%d]: %s", i + 1, files[i].getName()));
             }
-            System.out.println(String.format("[%d]: %s", files.length, "Exit"));
+            System.out.println(String.format("[%d]: %s", files.length+1, "Exit"));
 
             System.out.println("===============================================");
             System.out.print("Enter the file number to read: ");
@@ -22,7 +22,7 @@ public class CodeReader {
             scanner.nextLine(); // consume the newline
 
             int index = fileNumber - 1;
-            if (fileNumber == files.length) {
+            if (fileNumber == files.length+1) {
                 System.out.println("Exiting...");
                 break;
             } else if (index < 0 || index >= files.length) {

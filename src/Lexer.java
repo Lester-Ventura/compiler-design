@@ -209,6 +209,7 @@ public class Lexer {
 
         char currentCharacter = peek();
         while (currentCharacter != delimiter) {
+
             if (currentCharacter == '\n')
                 throw new ScannerError("Error: Unterminated string literal");
             else if (currentCharacter == '\0')
@@ -397,8 +398,8 @@ class Table {
 
         // I/O Operations
         reservedWords.put("steal", TokenType.IMPORT);
-        reservedWords.put("chat", TokenType.PRINT);
-        reservedWords.put("broadcast", TokenType.INPUT);
+        reservedWords.put("chat", TokenType.INPUT);
+        reservedWords.put("broadcast", TokenType.PRINT);
 
         return reservedWords;
     }

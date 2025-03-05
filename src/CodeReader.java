@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Scanner;
+import java.util.regex.Pattern;
 
 public class CodeReader {
     Scanner scanner = new Scanner(System.in);
@@ -32,7 +33,7 @@ public class CodeReader {
 
             File file = files[fileNumber - 1];
             System.out.println("Scanning " + file.getName());
-
+            
             try {
                 parseFile(file, 20);
                 System.out.println("===============================================");
@@ -52,7 +53,8 @@ public class CodeReader {
         FilenameFilter filter = new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return name.endsWith(".lol");
+                Pattern valid = Pattern.compile("[a-zA-Z0-9_]+.lol");
+                return valid.matcher(name).matches();
             }
         };
 

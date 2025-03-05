@@ -22,7 +22,7 @@ public enum TokenType {
     // Type | stats goat message passive cooldown
     NUMBER, BOOLEAN, STRING, VOID, NULL,
     // I/O Operation | steal broadcast chat
-    IMPORT, PRINT, INPUT,
+    IMPORT, PRINT, INPUT, EXIT,
     // Identifier
     ID,
     // String_Literal

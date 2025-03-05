@@ -400,6 +400,7 @@ class Table {
         reservedWords.put("steal", TokenType.IMPORT);
         reservedWords.put("chat", TokenType.INPUT);
         reservedWords.put("broadcast", TokenType.PRINT);
+        reservedWords.put("ff",TokenType.EXIT);
 
         return reservedWords;
     }

@@ -85,6 +85,7 @@ public class SLR1GrammarParser {
             currentCharacterIndex++;
             break switch_case;
           case ' ':
+          case '\r':
           case '\n':
             currentCharacterIndex++;
             break switch_case;

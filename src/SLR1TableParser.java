@@ -69,7 +69,7 @@ public class SLR1TableParser {
       do {
         lexeme += ch;
         ch = input.charAt(++currentCharacterIndex);
-      } while (currentCharacterIndex < input.length() && !(ch == ',' || ch == '\n'));
+      } while (currentCharacterIndex < input.length() && !(ch == ',' || ch == '\n'||ch == '\r'));
 
       tokens.add(new SLR1TableToken(SLR1TableTokenType.PROCESS, lexeme));
     }
@@ -158,17 +158,17 @@ public class SLR1TableParser {
 
     do {
       currentTokenIndex++;
-
       if (currentToken.type == SLR1TableTokenType.TERMINAL) {
         expectToken(SLR1TableTokenType.EQUAL);
         SLR1TableToken actionToken = expectToken(SLR1TableTokenType.PROCESS);
         int value = Integer.parseInt(actionToken.lexeme.substring(1));
-
+      
         newState.actions.put(currentToken.lexeme, new SLR1TableProcess(
             actionToken.lexeme.startsWith("r") ? SLR1TableProcessType.REDUCE : SLR1TableProcessType.SHIFT, value));
       } else if (currentToken.type == SLR1TableTokenType.VARIABLE) {
         expectToken(SLR1TableTokenType.EQUAL);
         SLR1TableToken gotoToken = expectToken(SLR1TableTokenType.PROCESS);
+        
         int value = Integer.parseInt(gotoToken.lexeme);
         newState.gotos.put(currentToken.lexeme, new SLR1TableProcess(SLR1TableProcessType.GOTO, value));
       }

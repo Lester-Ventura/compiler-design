@@ -12,7 +12,7 @@ public class Parser {
         Lexer lexer = new Lexer(source);
         Token nextToken = null;
 
-        while (nextToken == null || nextToken.token != TokenType.EOF) {
+        while (nextToken == null || nextToken.type != TokenType.EOF) {
             try {
                 nextToken = lexer.getNextToken();
 
@@ -25,7 +25,7 @@ public class Parser {
                 }
 
                 System.out.println(nextToken.toString());
-                if (nextToken.token == TokenType.ID) {
+                if (nextToken.type == TokenType.ID) {
                     if (!symbolTable.containsKey(nextToken.lexeme))
                         symbolTable.put(nextToken.lexeme, nextToken);
                 }

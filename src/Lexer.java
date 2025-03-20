@@ -11,7 +11,6 @@ public class Lexer {
     }
 
     public Token getNextToken() {
-
         do {
             ignoreWhitespace();
         } while (ignoreComment());
@@ -39,6 +38,13 @@ public class Lexer {
         advance(nextChar); // still moves the scanner despite the error to avoid looping infinitely
         throw new ScannerError("Error: Unexpected character '" + nextChar + "' at Line: " + position.getActualRow()
                 + ", Column: " + position.getActualColumn());
+    }
+
+    public Token peekNextToken() {
+        int save = currentCharacterIndex;
+        Token token = getNextToken();
+        currentCharacterIndex = save;
+        return token;
     }
 
     public Token lexOperator() {
@@ -400,7 +406,7 @@ class Table {
         reservedWords.put("steal", TokenType.IMPORT);
         reservedWords.put("chat", TokenType.INPUT);
         reservedWords.put("broadcast", TokenType.PRINT);
-        reservedWords.put("ff",TokenType.EXIT);
+        reservedWords.put("ff", TokenType.EXIT);
 
         return reservedWords;
     }

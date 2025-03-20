@@ -1,6 +1,19 @@
+import java.util.ArrayList;
+
 public class Main {
     public static void main(String[] args) {
-        CodeReader reader = new CodeReader();
-        reader.run();
+        // load the grammar file and list of productions
+        SLR1GrammarParser grammarParser = new SLR1GrammarParser(FileLoader.loadFile("grammar"));
+        ArrayList<SLR1GrammarParser.SLR1GrammarProduction> productions = grammarParser.parse();
+        SLR1TableParser tableParser = new SLR1TableParser(FileLoader.loadFile("slr1_table"));
+        ArrayList<SLR1TableParser.SLR1TableState> states = tableParser.parse();
+
+        String sourceCode = FileLoader.loadFile("./ExampleCodes/CustomExample.lol");
+        SLR1Parser parser = new SLR1Parser(productions, states, sourceCode);
+        Node node = parser.parse();
+
+        System.out.println(node);
+        // CodeReader reader = new CodeReader();
+        // reader.run();
     }
 }

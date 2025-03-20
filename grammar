@@ -1,0 +1,9 @@
+<S'> : <E>;
+<E> : <TERM>;
+<TERM> : <TERM> [plus] <FACTOR>;
+<TERM> : <TERM> [minus] <FACTOR>;
+<TERM> : <FACTOR>;
+<FACTOR> : <FACTOR> [star] <ENDPOINT>;
+<FACTOR> : <FACTOR> [forward_slash] <ENDPOINT>;
+<FACTOR> : <ENDPOINT>;
+<ENDPOINT> : [number];

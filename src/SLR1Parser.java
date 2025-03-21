@@ -78,13 +78,17 @@ public class SLR1Parser {
 
       Token token = lexer.peekNextToken();
       String converted = converter.get(token.type);
+      if (converted == null) {
+        // if you get this error, you need to add a new token type to the converter
+        throw new Error("Tried to convert " + token.type + ", received null");
+      }
 
       SLR1TableParser.SLR1TableProcess action = states.get(currentNode.stateIndex).actions.get(converted);
 
       if (action == null) {
         System.out.println("NULL ACTION FOUND");
         System.out.println("Current state: " + currentNode.stateIndex + " | Token: "
-            + token.type);
+            + token.type + " | Converted: " + converted);
       }
 
       if (action.type == SLR1TableParser.SLR1TableProcessType.SHIFT) {
@@ -111,7 +115,10 @@ public class SLR1Parser {
         // create the new node and add to symbols stack
         ReductionTable.Reduction reduction = reducers.get(action.value);
         if (reduction == null) {
-          throw new Error("Was not able to find a reducer for: " + action.value);
+          throw new Error(
+              "Was not able to find a reducer for production " + action.value + ".\nCurrent state: "
+                  + currentNode.stateIndex
+                  + ".\nCurrent input: " + token);
         }
 
         Collections.reverse(popped); // reverse the order of items being popped
@@ -127,7 +134,6 @@ public class SLR1Parser {
         statesStack.push(new StateNode(gotoAction.value));
         // done = true;
       }
-
     }
 
     SLR1StackSymbol top = (SLR1StackSymbol) symbolsStack.peek();
@@ -135,110 +141,5 @@ public class SLR1Parser {
       return ((SLR1StackInternalNode) top).node;
     else
       throw new Error("Top of stack was not a program node");
-  }
-}
-
-class ReductionTable {
-  interface Reducer {
-    Node run(ReductionInput input);
-  }
-
-  static class Reduction {
-    public Reducer reducer;
-
-    Reduction(Reducer reducer) {
-      this.reducer = reducer;
-    }
-  }
-
-  // This class wraps popped symbols and provides methods for easier access
-  static class ReductionInput {
-    ArrayList<SLR1Parser.SLR1StackSymbol> symbols;
-
-    ReductionInput(ArrayList<SLR1Parser.SLR1StackSymbol> symbols) {
-      this.symbols = symbols;
-    }
-
-    Token getToken(int index) {
-      SLR1Parser.SLR1StackSymbol symbol = symbols.get(index);
-      if (!(symbol instanceof SLR1Parser.SLR1StackToken))
-        throw new Error("Can't get a token from a non-token");
-
-      return ((SLR1Parser.SLR1StackToken) symbol).token;
-    }
-
-    SLR1Parser.SLR1StackInternalNode getInternalNode(int index) {
-      SLR1Parser.SLR1StackSymbol symbol = symbols.get(index);
-      if (!(symbol instanceof SLR1Parser.SLR1StackInternalNode))
-        throw new Error("Can't get an internal node from a non-internal node");
-
-      return (SLR1Parser.SLR1StackInternalNode) symbol;
-
-    }
-
-    Node.ExpressionNode getExpressionNode(int index) {
-      SLR1Parser.SLR1StackSymbol symbol = symbols.get(index);
-      if (!(symbol instanceof SLR1Parser.SLR1StackInternalNode))
-
-        throw new Error("Can't get an internal node from a non-internal node");
-      SLR1Parser.SLR1StackInternalNode node = (SLR1Parser.SLR1StackInternalNode) symbol;
-      if (!(node.node instanceof Node.ExpressionNode))
-        throw new Error("Can't get an expression node from a non-expression node");
-      return (Node.ExpressionNode) node.node;
-
-    }
-  }
-
-  static class PassthroughReducer extends Reduction {
-    PassthroughReducer() {
-      super((e) -> e.getInternalNode(0).node);
-    }
-  }
-
-  public static HashMap<Integer, Reduction> generateReductions() {
-    HashMap<Integer, Reduction> reductions = new HashMap<>();
-
-    Reduction binaryOperationReducer = new Reduction((input) -> {
-      Node.ExpressionNode left = input.getExpressionNode(0);
-      Token operation = input.getToken(1);
-      Node.ExpressionNode right = input.getExpressionNode(2);
-
-      return new Node.BinaryExpression(left, operation.lexeme, right);
-    });
-
-    reductions.put(1, new PassthroughReducer());
-    reductions.put(2, binaryOperationReducer);
-    reductions.put(3, binaryOperationReducer);
-    reductions.put(4, new PassthroughReducer());
-    reductions.put(5, binaryOperationReducer);
-    reductions.put(6, binaryOperationReducer);
-    reductions.put(7, new PassthroughReducer());
-
-    reductions.put(8, new Reduction((input) -> {
-      Token token = input.getToken(0);
-      // TODO: add octal and binary number support
-      if (token.type == TokenType.DECIMAL_NUMBER) {
-        double value = Double.parseDouble(token.lexeme);
-        return new Node.NumberLiteralExpression(value);
-      }
-
-      return null;
-    }));
-
-    return reductions;
-  }
-}
-
-class TokenTypeConverter {
-  public static HashMap<TokenType, String> generate() {
-    HashMap<TokenType, String> map = new HashMap<>();
-    map.put(TokenType.PLUS, "plus");
-    map.put(TokenType.MINUS, "minus");
-    map.put(TokenType.STAR, "star");
-    map.put(TokenType.FORWARD_SLASH, "forward_slash");
-    map.put(TokenType.DECIMAL_NUMBER, "number");
-    map.put(TokenType.EOF, "eof");
-
-    return map;
   }
 }

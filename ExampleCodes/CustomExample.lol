@@ -1,1 +1,2 @@
-3 * 3 + 2 * 4
+item testing: message = "this is just nice to know";
+item testingItem: stats = 3 * 5 + 2 * 4;

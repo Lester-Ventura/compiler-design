@@ -11,20 +11,22 @@ public enum TokenType {
     MINUS_R_ANGLE_BAR, EQUALS, COMMA, DOT, L_PAREN, R_PAREN, L_BRACE, R_BRACE, COLON, SEMICOLON, L_CURLY_BRACE,
     R_CURLY_BRACE,
     // Reserved Words
-    // Boolean Tokens| faker shaker
-    TRUE, FALSE,
     // Declaration Tokens| item rune skill recast build
     VARIABLE, CONSTANT, FUNCTION, RETURN, OBJECT,
     // Conditional Tokens| canwin remake lose channel teleport recall flash cancel
     IF, ELIF, ELSE, SWITCH, CASE, DEFAULT, S_GOTO, S_BREAK, WHILE, FOR, BREAK, CONTINUE, OF,
     // Error Handling | feed support carry
     THROW, TRY, CATCH,
-    // Type | stats goat message passive cooldown
-    NUMBER, BOOLEAN, STRING, VOID, NULL,
+    // Type | stats goat message passive
+    NUMBER, BOOLEAN, STRING, VOID,
     // I/O Operation | steal broadcast chat
     IMPORT, PRINT, INPUT, EXIT,
+    // null | cooldown
+    NULL,
     // Identifier
     ID,
+    // Boolean Literals | faker shaker
+    TRUE, FALSE,
     // String_Literal
     STRING_LITERAL,
     // Numbers

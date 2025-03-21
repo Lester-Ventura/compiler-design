@@ -309,8 +309,8 @@ public class Lexer {
         if (match(nextChar))
             return new Token(doubleCharacter, lexeme, defaultColumnAndRow());
         return (match(alternateNextChar)
-                ? new Token(singleCharacter, lexeme, defaultColumnAndRow())
-                : new Token(doubleCharacterAlternate, lexeme, defaultColumnAndRow()));
+                ? new Token(doubleCharacterAlternate, lexeme, defaultColumnAndRow())
+                : new Token(singleCharacter, lexeme, defaultColumnAndRow()));
     }
 
     // skips over every piece of whitespace

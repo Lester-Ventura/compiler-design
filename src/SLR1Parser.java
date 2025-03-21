@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.Stack;
 
 public class SLR1Parser {
@@ -86,9 +87,11 @@ public class SLR1Parser {
       SLR1TableParser.SLR1TableProcess action = states.get(currentNode.stateIndex).actions.get(converted);
 
       if (action == null) {
+        Set<String> expecteds = states.get(currentNode.stateIndex).actions.keySet();
         System.out.println("NULL ACTION FOUND");
         System.out.println("Current state: " + currentNode.stateIndex + " | Token: "
-            + token.type + " | Converted: " + converted);
+            + token.toString() + " | Converted: " + converted);
+        System.out.println("Expected: " + String.join(", ", (String[]) expecteds.toArray(new String[0])));
       }
 
       if (action.type == SLR1TableParser.SLR1TableProcessType.SHIFT) {

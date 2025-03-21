@@ -81,7 +81,7 @@ public class TokenTypeConverter {
     map.put(TokenType.NUMBER, "number_type");
     map.put(TokenType.BOOLEAN, "boolean_type");
     map.put(TokenType.STRING, "string_type");
-    map.put(TokenType.VOID, "void");
+    map.put(TokenType.VOID, "void_type");
 
     // literals
     map.put(TokenType.NULL, "null_literal");

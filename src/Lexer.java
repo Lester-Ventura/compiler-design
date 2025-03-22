@@ -139,7 +139,7 @@ public class Lexer {
             currentCharacterIndex++;
         } while (Character.isDigit(peek()) || (peek() == '.' && !hasHitDecimal));
 
-        return new Token(hasHitDecimal ? TokenType.FLOAT_NUMBER : TokenType.DECIMAL_NUMBER, number,
+        return new Token(hasHitDecimal ? TokenType.NUMBER_LITERAL : TokenType.NUMBER_LITERAL, number,
                 ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
@@ -152,7 +152,7 @@ public class Lexer {
             currentCharacterIndex++;
         }
 
-        return new Token(TokenType.HEXADECIMAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+        return new Token(TokenType.NUMBER_LITERAL, number, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
     public boolean isHexDigit(char c) {
@@ -168,7 +168,7 @@ public class Lexer {
             currentCharacterIndex++;
         }
 
-        return new Token(TokenType.OCTAL_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+        return new Token(TokenType.NUMBER_LITERAL, number, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
     public boolean isOctalDigit(char c) {
@@ -184,7 +184,7 @@ public class Lexer {
             currentCharacterIndex++;
         }
 
-        return new Token(TokenType.BINARY_NUMBER, number, ColumnAndRow.calculate(startCharacterIndex, source));
+        return new Token(TokenType.NUMBER_LITERAL, number, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
     public boolean isBinaryDigit(char c) {
@@ -206,7 +206,7 @@ public class Lexer {
                     ColumnAndRow.calculate(startCharacterIndex, source));
         }
 
-        return new Token(TokenType.ID, identifier, ColumnAndRow.calculate(startCharacterIndex, source));
+        return new Token(TokenType.IDENTIFIER, identifier, ColumnAndRow.calculate(startCharacterIndex, source));
     }
 
     public Token lexStringLiteral(char delimiter) {
@@ -362,8 +362,9 @@ class Table {
         HashMap<String, TokenType> reservedWords = new HashMap<>();
 
         // Boolean Tokens
-        reservedWords.put("faker", TokenType.TRUE);
-        reservedWords.put("shaker", TokenType.FALSE);
+        reservedWords.put("faker", TokenType.BOOLEAN_LITERAL);
+        reservedWords.put("shaker", TokenType.BOOLEAN_LITERAL);
+        reservedWords.put("cooldown", TokenType.NULL_LITERAL);
 
         // Declaration Tokens
         reservedWords.put("item", TokenType.VARIABLE);
@@ -379,14 +380,14 @@ class Table {
         reservedWords.put("channel", TokenType.SWITCH);
         reservedWords.put("teleport", TokenType.CASE);
         reservedWords.put("recall", TokenType.DEFAULT);
-        reservedWords.put("flash", TokenType.S_GOTO);
-        reservedWords.put("cancel", TokenType.S_BREAK);
+        reservedWords.put("flash", TokenType.SWITCH_GOTO);
+        reservedWords.put("cancel", TokenType.SWITCH_BREAK);
 
         // Looping Statements
         reservedWords.put("wave", TokenType.WHILE);
         reservedWords.put("cannon", TokenType.FOR);
-        reservedWords.put("clear", TokenType.BREAK);
-        reservedWords.put("next", TokenType.CONTINUE);
+        reservedWords.put("clear", TokenType.LOOP_BREAK);
+        reservedWords.put("next", TokenType.LOOP_CONTINUE);
         reservedWords.put("of", TokenType.OF);
 
         // Error Handling
@@ -395,18 +396,14 @@ class Table {
         reservedWords.put("carry", TokenType.CATCH);
 
         // Type Tokens
-        reservedWords.put("stats", TokenType.NUMBER);
-        reservedWords.put("goat", TokenType.BOOLEAN);
-        reservedWords.put("message", TokenType.STRING);
-        reservedWords.put("passive", TokenType.VOID);
+        reservedWords.put("stats", TokenType.NUMBER_TYPE);
+        reservedWords.put("goat", TokenType.BOOLEAN_TYPE);
+        reservedWords.put("message", TokenType.STRING_TYPE);
+        reservedWords.put("passive", TokenType.VOID_TYPE);
         reservedWords.put("build", TokenType.OBJECT);
-        reservedWords.put("cooldown", TokenType.NULL);
 
         // I/O Operations
         reservedWords.put("steal", TokenType.IMPORT);
-        // reservedWords.put("chat", TokenType.INPUT);
-        // reservedWords.put("broadcast", TokenType.PRINT);
-        // reservedWords.put("ff", TokenType.EXIT);
 
         return reservedWords;
     }

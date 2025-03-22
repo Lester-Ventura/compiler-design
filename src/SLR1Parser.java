@@ -47,27 +47,23 @@ public class SLR1Parser {
 
   ArrayList<SLR1GrammarParser.SLR1GrammarProduction> productions;
   ArrayList<SLR1TableParser.SLR1TableState> states;
-  String input;
 
   SLR1Parser(
       ArrayList<SLR1GrammarParser.SLR1GrammarProduction> productions,
-      ArrayList<SLR1TableParser.SLR1TableState> states,
-      String input) {
+      ArrayList<SLR1TableParser.SLR1TableState> states) {
     this.productions = productions;
     this.states = states;
-    this.input = input;
   }
 
   Stack<StateNode> statesStack = new Stack<>();
   Stack<SLR1StackSymbol> symbolsStack = new Stack<>();
 
-  Node parse() {
+  Node parse(String input) {
     // initialize the stacks with the start state
     statesStack = new Stack<>();
     symbolsStack = new Stack<>();
     statesStack.push(new StateNode(0));
 
-    HashMap<TokenType, String> converter = TokenTypeConverter.generate();
     HashMap<Integer, ReductionTable.Reduction> reducers = ReductionTable.generateReductions();
 
     Lexer lexer = new Lexer(input);
@@ -78,12 +74,7 @@ public class SLR1Parser {
       StateNode currentNode = statesStack.peek();
 
       Token token = lexer.peekNextToken();
-      String converted = converter.get(token.type);
-      if (converted == null) {
-        // if you get this error, you need to add a new token type to the converter
-        throw new Error("Tried to convert " + token.type + ", received null");
-      }
-
+      String converted = token.type.toString();
       SLR1TableParser.SLR1TableProcess action = states.get(currentNode.stateIndex).actions.get(converted);
 
       if (action == null) {

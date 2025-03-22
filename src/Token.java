@@ -17,17 +17,12 @@ public class Token {
     public String toString() {
         HashSet<TokenType> tokenConstantList = new HashSet<>();
         tokenConstantList.add(TokenType.STRING_LITERAL);
-        tokenConstantList.add(TokenType.TRUE);
-        tokenConstantList.add(TokenType.FALSE);
-        tokenConstantList.add(TokenType.NULL);
-        tokenConstantList.add(TokenType.DECIMAL_NUMBER);
-        tokenConstantList.add(TokenType.FLOAT_NUMBER);
-        tokenConstantList.add(TokenType.BINARY_NUMBER);
-        tokenConstantList.add(TokenType.HEXADECIMAL_NUMBER);
-        tokenConstantList.add(TokenType.OCTAL_NUMBER);
+        tokenConstantList.add(TokenType.BOOLEAN_LITERAL);
+        tokenConstantList.add(TokenType.NUMBER_LITERAL);
+        tokenConstantList.add(TokenType.NULL_LITERAL);
 
         String tokenName = String.format("%20s", "<" + type.toString() + ">");
-        if (this.type == TokenType.ID)
+        if (this.type == TokenType.IDENTIFIER)
             return String.format("Token: %s | Lexeme: %10s | Line: %3d & Column: %d", tokenName, lexeme, line,
                     column);
         else if (tokenConstantList.contains(type))

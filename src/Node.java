@@ -24,7 +24,7 @@ public abstract class Node {
     }
 
     public String toString() {
-      String statementsString = String.join("\n", this.statements.toString());
+      String statementsString = String.join(",", this.statements.toString());
       return String.format("[StatementList: %s]", statementsString);
     }
   }
@@ -96,7 +96,7 @@ public abstract class Node {
 
     public String toString() {
       String casesString = String.join("\n", this.namedCases.toString());
-      return String.format("[SwitchCaseList: \n%s]", casesString);
+      return String.format("[SwitchCaseList: %s]", casesString);
     }
 
     public SwitchCaseList addNamedCase(SwitchCase newCase) {
@@ -129,7 +129,7 @@ public abstract class Node {
 
     public String toString() {
       String declsString = String.join("\n", this.declarations.toString());
-      return String.format("[CounterLoopInit:\n%s]", declsString);
+      return String.format("[CounterLoopInit: %s]", declsString);
     }
   }
 
@@ -156,7 +156,7 @@ public abstract class Node {
 
     public String toString() {
       String exprsString = String.join("\n", this.expressions.toString());
-      return String.format("[ExpressionList:\n%s]", exprsString);
+      return String.format("[ExpressionList: %s]", exprsString);
     }
   }
 
@@ -183,7 +183,7 @@ public abstract class Node {
 
     public String toString() {
       String fieldsString = String.join("\n", this.fields.toString());
-      return String.format("[ObjectLiteralFieldList:\n%s]", fieldsString);
+      return String.format("[ObjectLiteralFieldList %s]", fieldsString);
     }
   }
 
@@ -224,7 +224,7 @@ public abstract class Node {
 
     public String toString() {
       String declsString = String.join("\n", this.declarations.toString());
-      return String.format("[ParameterList:\n%s]", declsString);
+      return String.format("[ParameterList: %s]", declsString);
     }
   }
 
@@ -291,7 +291,7 @@ public abstract class Node {
 
     public String toString() {
       String definitionsString = String.join("\n", this.definitions.toString());
-      return String.format("[PropertyList:\n%s]", definitionsString);
+      return String.format("[PropertyList: %s]", definitionsString);
     }
   }
 

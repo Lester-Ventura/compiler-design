@@ -148,7 +148,7 @@
 <PROPERTY_LIST> : <PROPERTY_LIST> <PROPERTY_DEFINITION>;
 <PROPERTY_LIST> : <PROPERTY_DEFINITION>;
 <PROPERTY_DEFINITION> : [identifier] [colon] <TYPE> [semicolon];
-<TYPE> : <TYPE>[];
+<TYPE> : <TYPE> [l_brace] [r_brace];
 <TYPE> : [number_type];
 <TYPE> : [boolean_type];
 <TYPE> : [string_type];

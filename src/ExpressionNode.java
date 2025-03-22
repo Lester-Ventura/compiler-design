@@ -1,5 +1,3 @@
-import java.util.ArrayList;
-
 public abstract class ExpressionNode extends Node {
   public static class FunctionExpression extends ExpressionNode {
     Node.ParameterList parameters;
@@ -37,7 +35,7 @@ public abstract class ExpressionNode extends Node {
 
     public String toString() {
       String expressionsString = String.join("\n", this.expressions.toString());
-      return String.format("[ArrayLiteral:\n%s]", expressionsString);
+      return String.format("[ArrayLiteral: %s]", expressionsString);
     }
   }
 
@@ -54,7 +52,7 @@ public abstract class ExpressionNode extends Node {
 
     public String toString() {
       String fieldsString = String.join("\n", this.fields.toString());
-      return String.format("[ObjectLiteral:\n%s]", fieldsString);
+      return String.format("[ObjectLiteral: %s]", fieldsString);
     }
   }
 
@@ -68,7 +66,7 @@ public abstract class ExpressionNode extends Node {
     }
 
     public String toString() {
-      return String.format("[DotAccess: %s.%s]", this.left.toString(), this.right);
+      return String.format("[DotAccess: %s %s]", this.left.toString(), this.right);
     }
   }
 
@@ -166,5 +164,4 @@ public abstract class ExpressionNode extends Node {
       return String.format("[Grouping: %s]", this.expression.toString());
     }
   }
-
 }

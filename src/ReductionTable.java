@@ -289,8 +289,8 @@ class ReductionTable {
     reductions.put(64, new Reduction((input) -> new Node.CounterLoopInit((StatementNode.VariableDeclaration) input
         .getInternalNode(0))));
     reductions.put(65,
-        new Reduction((input) -> ((Node.ExpressionList) input.getInternalNode(1)).add(input.getExpressionNode(0))));
-    reductions.put(66, new Reduction((input) -> new Node.ExpressionList(input.getExpressionNode(1))));
+        new Reduction((input) -> ((Node.ExpressionList) input.getInternalNode(2)).add(input.getExpressionNode(0))));
+    reductions.put(66, new Reduction((input) -> new Node.ExpressionList(input.getExpressionNode(0))));
     reductions.put(67,
         new Reduction((input) -> new StatementNode.WhileLoop(input.getExpressionNode(1),
             (Node.StatementList) input.getInternalNode(3))));
@@ -431,8 +431,7 @@ class ReductionTable {
     // HANDLE TYPES
     reductions.put(145,
         new Reduction(
-            (input) -> ((Node.PropertyList) input.getInternalNode(0))
-                .add((Node.PropertyDefinition) input.getInternalNode(1))));
+            (input) -> new StatementNode.ObjectTypeDeclaration((Node.PropertyList) input.getInternalNode(3))));
     reductions.put(146,
         new Reduction(
             (input) -> new StatementNode.ObjectTypeDeclaration()));

@@ -92,6 +92,8 @@ public class SLR1Parser {
         System.out.println("Current state: " + currentNode.stateIndex + " | Token: "
             + token.toString() + " | Converted: " + converted);
         System.out.println("Expected: " + String.join(", ", (String[]) expecteds.toArray(new String[0])));
+        System.out.println("States Stack: " + statesStack.toString());
+        System.out.println("Symbols Stack: " + symbolsStack.toString());
       }
 
       if (action.type == SLR1TableParser.SLR1TableProcessType.SHIFT) {

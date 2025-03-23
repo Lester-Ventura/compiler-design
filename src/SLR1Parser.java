@@ -66,7 +66,8 @@ public class SLR1Parser {
 
     HashMap<Integer, ReductionTable.Reduction> reducers = ReductionTable.generateReductions();
 
-    Lexer lexer = new Lexer(input);
+    // Lexer lexer = new Lexer(input);
+    RegexEngine lexer = RegexEngine.createRegexEngine(input);
 
     // actual LL1 driver goes here
     boolean done = false;

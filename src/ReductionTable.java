@@ -402,62 +402,74 @@ class ReductionTable {
                 input.getToken(5).lexeme)));
     reductions.put(134,
         new Reduction(
-            (input) -> new ExpressionNode.IndexAccess(input.getExpressionNode(0), input.getExpressionNode(2))));
+            (input) -> new ExpressionNode.DotAccess(new ExpressionNode.FunctionCall(input.getExpressionNode(0)),
+                input.getToken(4).lexeme)));
+
     reductions.put(135,
+        new Reduction(
+            (input) -> new ExpressionNode.IndexAccess(input.getExpressionNode(0), input.getExpressionNode(2))));
+    reductions.put(136,
         new Reduction(
             (input) -> new ExpressionNode.IndexAccess(new ExpressionNode.FunctionCall(input.getExpressionNode(0),
                 (Node.ExpressionList) input.getInternalNode(2)),
                 input.getExpressionNode(5))));
+    reductions.put(137,
+        new Reduction(
+            (input) -> new ExpressionNode.IndexAccess(new ExpressionNode.FunctionCall(input.getExpressionNode(0)),
+                input.getExpressionNode(4))));
 
     // HANDLE IDENTIFIER STACK EXPRESSIONS
-    reductions.put(136, new Reduction((input) -> new ExpressionNode.Identifier(input.getToken(0).lexeme)));
-    reductions.put(137,
+    reductions.put(138, new Reduction((input) -> new ExpressionNode.Identifier(input.getToken(0).lexeme)));
+    reductions.put(139,
         new Reduction((input) -> new ExpressionNode.DotAccess(input.getExpressionNode(0), input.getToken(2).lexeme)));
-    reductions.put(138,
+    reductions.put(140,
         new Reduction(
             (input) -> new ExpressionNode.IndexAccess(input.getExpressionNode(0), input.getExpressionNode(2))));
-    reductions.put(139,
+    reductions.put(141,
         new Reduction(
             (input) -> new ExpressionNode.FunctionCall(input.getExpressionNode(0),
                 (Node.ExpressionList) input.getInternalNode(2))));
+    reductions.put(142,
+        new Reduction(
+            (input) -> new ExpressionNode.FunctionCall(input.getExpressionNode(0))));
 
     // HANDLE LITERALS AND GROUPING EXPRESSION
-    addALotOfSameReduction(140, 143, new Reduction((input) -> new ExpressionNode.Literal(input.getToken(0))),
+    addALotOfSameReduction(143, 146, new Reduction((input) -> new ExpressionNode.Literal(input.getToken(0))),
         reductions);
     reductions.put(144,
         new Reduction(
             (input) -> new ExpressionNode.Grouping(input.getExpressionNode(2))));
 
     // HANDLE TYPES
-    reductions.put(145,
+    reductions.put(148,
         new Reduction(
             (input) -> new StatementNode.ObjectTypeDeclaration((Node.PropertyList) input.getInternalNode(3))));
-    reductions.put(146,
+    reductions.put(149,
         new Reduction(
             (input) -> new StatementNode.ObjectTypeDeclaration()));
-    reductions.put(147, new Reduction((input) -> ((Node.PropertyList) input.getInternalNode(0))
+    reductions.put(150, new Reduction((input) -> ((Node.PropertyList) input.getInternalNode(0))
         .add((Node.PropertyDefinition) input.getInternalNode(1))));
-    reductions.put(148,
+    reductions.put(151,
         new Reduction((input) -> new Node.PropertyList((Node.PropertyDefinition) input.getInternalNode(0))));
-    reductions.put(149, new Reduction(
+    reductions.put(152, new Reduction(
         (input) -> new Node.PropertyDefinition(input.getToken(0).lexeme, input.getTypeExpressionNode(2))));
-    reductions.put(150, new Reduction((input) -> new TypeExpressionNode.Array(input.getTypeExpressionNode(0))));
+    reductions.put(153, new Reduction((input) -> new TypeExpressionNode.Array(input.getTypeExpressionNode(0))));
 
     Reduction typeReductionEndpoint = new Reduction(
         (input) -> new TypeExpressionNode.Identifier(input.getToken(0).lexeme));
-    addALotOfSameReduction(151, 154, typeReductionEndpoint, reductions);
-    reductions.put(155, new Reduction((input) -> new TypeExpressionNode.Identifier(input.getToken(1).lexeme)));
-    reductions.put(156, passthroughReducer);
+    addALotOfSameReduction(154, 157, typeReductionEndpoint, reductions);
+    reductions.put(158, new Reduction((input) -> new TypeExpressionNode.Identifier(input.getToken(1).lexeme)));
+    reductions.put(159, passthroughReducer);
 
     // HANDLE LAMBDA TYPES
 
-    reductions.put(157,
+    reductions.put(160,
         new Reduction((input) -> new TypeExpressionNode.Lambda((Node.LambdaParamterList) input.getInternalNode(2),
             input.getTypeExpressionNode(4))));
-    reductions.put(158, new Reduction((input) -> new TypeExpressionNode.Lambda(input.getTypeExpressionNode(4))));
-    reductions.put(159, new Reduction(
+    reductions.put(161, new Reduction((input) -> new TypeExpressionNode.Lambda(input.getTypeExpressionNode(4))));
+    reductions.put(162, new Reduction(
         (input) -> ((Node.LambdaParamterList) input.getInternalNode(2)).add(input.getTypeExpressionNode(0))));
-    reductions.put(160, new Reduction((input) -> new Node.LambdaParamterList(input.getTypeExpressionNode(0))));
+    reductions.put(163, new Reduction((input) -> new Node.LambdaParamterList(input.getTypeExpressionNode(0))));
 
     return reductions;
   }

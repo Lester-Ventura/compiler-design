@@ -12,7 +12,7 @@ public class ColumnAndRow {
   }
 
   public int getActualColumn() {
-      return column + 1; 
+      return column; 
   }
 
   public static ColumnAndRow calculate(int index, String source) {

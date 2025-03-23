@@ -45,6 +45,31 @@ public abstract class Node {
     }
   }
 
+  public static class VariableDeclaration extends Node {
+    String lexeme;
+    TypeExpressionNode type;
+    ExpressionNode expression = null;
+
+    VariableDeclaration(String lexeme, TypeExpressionNode type) {
+      this.lexeme = lexeme;
+      this.type = type;
+    }
+
+    VariableDeclaration(String lexeme, TypeExpressionNode type, ExpressionNode expression) {
+      this.lexeme = lexeme;
+      this.type = type;
+      this.expression = expression;
+    }
+
+    public String toString() {
+      return this.expression != null
+          ? String.format("[VariableDeclaration: %s %s %s]", this.lexeme,
+              this.type.toString(),
+              this.expression.toString())
+          : String.format("[VariableDeclaration: %s %s]", this.lexeme, this.type.toString());
+    }
+  }
+
   public static class SwitchCaseList extends Node {
     public static class SwitchCase extends Node {
       Token literal;
@@ -114,18 +139,18 @@ public abstract class Node {
   }
 
   public static class CounterLoopInit extends Node {
-    ArrayList<StatementNode.VariableDeclaration> declarations;
+    ArrayList<Node.VariableDeclaration> declarations;
 
-    CounterLoopInit(ArrayList<StatementNode.VariableDeclaration> declarations) {
+    CounterLoopInit(ArrayList<Node.VariableDeclaration> declarations) {
       this.declarations = declarations;
     }
 
-    CounterLoopInit(StatementNode.VariableDeclaration decl) {
+    CounterLoopInit(Node.VariableDeclaration decl) {
       this.declarations = new ArrayList<>();
       this.declarations.add(decl);
     }
 
-    public CounterLoopInit add(StatementNode.VariableDeclaration decl) {
+    public CounterLoopInit add(Node.VariableDeclaration decl) {
       this.declarations.add(decl);
       return this;
     }

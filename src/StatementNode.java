@@ -60,15 +60,10 @@ public abstract class StatementNode extends Node {
     TypeExpressionNode type;
     ExpressionNode expression = null;
 
-    VariableDeclaration(String lexeme, TypeExpressionNode type) {
-      this.lexeme = lexeme;
-      this.type = type;
-    }
-
-    VariableDeclaration(String lexeme, TypeExpressionNode type, ExpressionNode expression) {
-      this.lexeme = lexeme;
-      this.type = type;
-      this.expression = expression;
+    VariableDeclaration(Node.VariableDeclaration declaration) {
+      this.lexeme = declaration.lexeme;
+      this.type = declaration.type;
+      this.expression = declaration.expression;
     }
 
     public String toString() {
@@ -261,8 +256,20 @@ public abstract class StatementNode extends Node {
     }
 
     public String toString() {
-      return String.format("[CounterControlledLoop: [Init: %s] [Condition: %s] [Increment: %s] [Body: %s]]",
-          this.init.toString(), this.condition.toString(), this.increment.toString(), this.stmt.toString());
+      String ret = "[CounterControlledLoop: ";
+
+      if (this.init != null)
+        ret += String.format("[Init: %s] ", this.init.toString());
+
+      if (this.condition != null)
+        ret += String.format("[Condition: %s] ", this.condition.toString());
+
+      if (this.increment != null)
+        ret += String.format("[Increment: %s] ", this.increment.toString());
+
+      ret += String.format("[Body: %s]]", this.stmt.toString());
+
+      return ret + " ]";
     }
   }
 
@@ -280,21 +287,24 @@ public abstract class StatementNode extends Node {
 
   public static class WhileLoop extends StatementNode {
     ExpressionNode condition;
-    StatementList statements;
+    StatementNode statement;
 
-    WhileLoop(ExpressionNode condition, StatementList statements) {
+    WhileLoop(ExpressionNode condition, StatementNode statement) {
       this.condition = condition;
-      this.statements = statements;
+      this.statement = statement;
     }
 
-    WhileLoop(StatementList statements) {
+    WhileLoop(StatementNode statement) {
       this.condition = null;
-      this.statements = statements;
+      this.statement = statement;
     }
 
     public String toString() {
-      return String.format("[WhileLoop: [Condition: %s] [Body: %s]]", this.condition.toString(),
-          this.statements.toString());
+      if (this.condition == null)
+        return String.format("[WhileLoop: %s]", this.statement.toString());
+      else
+        return String.format("[WhileLoop: [Condition: %s] %s]", this.condition.toString(),
+            this.statement.toString());
     }
   }
 

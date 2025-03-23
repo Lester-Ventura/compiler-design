@@ -24,8 +24,14 @@ public class CodeReader {
       System.out.println("===============================================");
       System.out.print("Enter the file number to read: ");
 
-      int fileNumber = scanner.nextInt();
-      scanner.nextLine(); // consume the newline
+      int fileNumber = 0;
+
+      try {
+        fileNumber = scanner.nextInt();
+        scanner.nextLine(); // consume the newline
+      } catch (Exception e) {
+        continue;
+      }
 
       int index = fileNumber - 1;
       if (index == files.length) {

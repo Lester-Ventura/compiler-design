@@ -85,7 +85,7 @@ public abstract class ExpressionNode extends Node {
     }
 
     public String toString() {
-      String parametersString = String.join(", ", this.parameters.toString());
+      String parametersString = this.parameters != null ? String.join(", ", this.parameters.toString()) : "";
       return String.format("[FunctionCall: %s(%s)]", this.left.toString(), parametersString);
     }
   }

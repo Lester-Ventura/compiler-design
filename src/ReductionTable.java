@@ -22,6 +22,11 @@ class ReductionTable {
       this.symbols = symbols;
     }
 
+    public String toString() {
+      String symbolsString = String.join(", ", this.symbols.toString());
+      return String.format("[ReductionInput: %s]", symbolsString);
+    }
+
     Token getToken(int index) {
       SLR1Parser.SLR1StackSymbol symbol = symbols.get(index);
       if (!(symbol instanceof SLR1Parser.SLR1StackToken))
@@ -431,14 +436,16 @@ class ReductionTable {
                 (Node.ExpressionList) input.getInternalNode(2))));
     reductions.put(142,
         new Reduction(
-            (input) -> new ExpressionNode.FunctionCall(input.getExpressionNode(0))));
+            (input) ->
+
+            new ExpressionNode.FunctionCall(input.getExpressionNode(0))));
 
     // HANDLE LITERALS AND GROUPING EXPRESSION
     addALotOfSameReduction(143, 146, new Reduction((input) -> new ExpressionNode.Literal(input.getToken(0))),
         reductions);
-    reductions.put(144,
+    reductions.put(147,
         new Reduction(
-            (input) -> new ExpressionNode.Grouping(input.getExpressionNode(2))));
+            (input) -> new ExpressionNode.Grouping(input.getExpressionNode(1))));
 
     // HANDLE TYPES
     reductions.put(148,

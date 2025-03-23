@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 public class RegexEngine {
-  public HashMap<String, RegexNode> environment = new HashMap<>();
+  private HashMap<String, RegexNode> environment = new HashMap<>();
   String input;
   int currentCharacterIndex;
   int startCharacterIndex;
@@ -14,35 +14,18 @@ public class RegexEngine {
     this.input = input;
   }
 
-  public void addRule(String name, String expression) {
-    addRule(name, expression, null);
-  }
-
-  public void addRule(String name, String expression, TokenType emit) {
-    // need to lex the expression
-    RegexLexer lexer = new RegexLexer(expression);
-    ArrayList<RegexToken> tokens = lexer.lex();
-
-    RegexParser parser = new RegexParser(tokens);
-    RegexNode root = parser.parse();
-
-    root.setTokenType(emit);
-
-    environment.put(name, root);
-  }
-
-  public char peek() {
+  private char peek() {
     return currentCharacterIndex >= this.input.length() ? '\0' : this.input.charAt(currentCharacterIndex);
   }
 
   // returns the character stored in currentCharacterIndex + 1
-  public char peekNext() {
+  private char peekNext() {
     return currentCharacterIndex + 1 >= this.input.length() ? '\0' : this.input.charAt(currentCharacterIndex + 1);
   }
 
   // eats all the comments
   // need to loop due to the possibility of chained comments like this one
-  public boolean ignoreComment() {
+  private boolean ignoreComment() {
     if (currentCharacterIndex < input.length() - 2 && peek() == '/') {
       if (peekNext() == '/') {
         currentCharacterIndex += 2;
@@ -70,7 +53,7 @@ public class RegexEngine {
   }
 
   // Just a boolean check for the next character
-  public boolean match(char c) {
+  private boolean match(char c) {
     if (peek() != c)
       return false;
     currentCharacterIndex++;
@@ -78,10 +61,27 @@ public class RegexEngine {
   }
 
   // skips over every piece of whitespace
-  public void ignoreWhitespace() {
+  private void ignoreWhitespace() {
     while (currentCharacterIndex < this.input.length() + 1 && Character.isWhitespace(peek())) {
       currentCharacterIndex++;
     }
+  }
+
+  public void addRule(String name, String expression) {
+    addRule(name, expression, null);
+  }
+
+  public void addRule(String name, String expression, TokenType emit) {
+    // need to lex the expression
+    RegexLexer lexer = new RegexLexer(expression);
+    ArrayList<RegexToken> tokens = lexer.lex();
+
+    RegexParser parser = new RegexParser(tokens);
+    RegexNode root = parser.parse();
+
+    root.setTokenType(emit);
+
+    environment.put(name, root);
   }
 
   public Token peekNextToken() {
@@ -187,8 +187,9 @@ public class RegexEngine {
     lexer.addRule("letter", "${lowercase}|${uppercase}");
     lexer.addRule("symbols",
         "$ | $! | $@ | $# | $$ | $% | $^ | $& | $* | $( | $) | ${ | $[ | $} | $] | $; | $: | $< | $, | $. | $> | $? | $/ | $` | $~ | $- | $_ | $+ | $=");
+    lexer.addRule("escape_character", "$\\ | $\n | $\t | $\r | $\\$\" | $\\$\'");
     lexer.addRule("digit", "0|1|2|3|4|5|6|7|8|9");
-    lexer.addRule("character", "${letter}|${digit}|${symbols}");
+    lexer.addRule("character", "${letter}|${digit}|${symbols}|${escape_character}");
 
     lexer.addRule("float_number", "(${digit})+$.(${digit})+");
     lexer.addRule("decimal_number", "(${digit})+");
@@ -426,7 +427,7 @@ class RegexGroupingNode extends RegexNode {
         return initialMatch;
 
       // handle matching for NONE_OR_MORE or ONE_OR_MORE
-      String nextRestString = restString.replaceFirst(initialMatch.matched, "");
+      String nextRestString = restString.replaceFirst(Pattern.quote(initialMatch.matched), "");
       RegexMatch latestMatch = initialMatch;
 
       while (true) {
@@ -437,7 +438,7 @@ class RegexGroupingNode extends RegexNode {
         if (!nextMatch.success)
           break;
 
-        nextRestString = nextRestString.replaceFirst(nextMatch.matched, "");
+        nextRestString = nextRestString.replaceFirst(Pattern.quote(nextMatch.matched), "");
         latestMatch = new RegexMatch(true, latestMatch.matched + nextMatch.matched);
       }
 

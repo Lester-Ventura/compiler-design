@@ -46,6 +46,10 @@ public abstract class StatementNode extends Node {
     }
 
     public String toString() {
+      if (this.elseBody == null) {
+        return String.format("[If: %s]", this.branches.toString());
+      }
+
       return String.format("[If: %s %s]", this.branches.toString(),
           this.elseBody.toString());
     }
@@ -166,6 +170,10 @@ public abstract class StatementNode extends Node {
     Switch(ExpressionNode expr) {
       this.expr = expr;
       this.cases = new SwitchCaseList();
+    }
+
+    public String toString() {
+      return String.format("[Switch: %s %s]", this.expr.toString(), this.cases.toString());
     }
   }
 

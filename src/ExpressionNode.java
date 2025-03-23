@@ -102,6 +102,38 @@ public abstract class ExpressionNode extends Node {
     }
   }
 
+  public static class Incrementation extends ExpressionNode {
+    ExpressionNode left;
+    Token token;
+    boolean isPostfix;
+
+    Incrementation(ExpressionNode left, Token token, boolean isPostfix) {
+      this.left = left;
+      this.token = token;
+      this.isPostfix = isPostfix;
+    }
+
+    public String toString() {
+      return String.format("[Incrementation: %s%s]",
+          this.isPostfix ? this.left.toString() : this.token.toString(),
+          !this.isPostfix ? this.left.toString() : this.token.toString());
+    }
+  }
+
+  public static class Assignment extends ExpressionNode {
+    ExpressionNode left;
+    ExpressionNode right;
+
+    Assignment(ExpressionNode left, ExpressionNode right) {
+      this.left = left;
+      this.right = right;
+    }
+
+    public String toString() {
+      return String.format("[Assignment: %s = %s]", this.left.toString(), this.right.toString());
+    }
+  }
+
   public static class IndexAccess extends ExpressionNode {
     ExpressionNode left;
     ExpressionNode right;

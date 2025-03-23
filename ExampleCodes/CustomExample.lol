@@ -1,1 +1,1 @@
-item champions: message[] = ["Caps", "Uzi", "Pewdiepie", "Bengi", "Perkz"];
+item champions: message[] = this.testing() + 120;

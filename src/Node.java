@@ -2,6 +2,8 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 
 public abstract class Node {
+  abstract public String toString();
+
   public static class StatementList extends Node {
     ArrayList<StatementNode> statements;
 
@@ -65,7 +67,8 @@ public abstract class Node {
 
       public String toString() {
         String statementsString = String.join("\n", this.statements.toString());
-        return String.format("[SwitchCase: %s %s]", this.literal.toString(), statementsString);
+        return String.format("[SwitchCase: %s %s]", this.literal == null ? "default" : this.literal.toString(),
+            statementsString);
       }
     }
 
@@ -245,7 +248,7 @@ public abstract class Node {
     }
 
     IfStatementBranches add(IfStatementBranch newClause) {
-      this.add(newClause);
+      clauses.add(newClause);
       return this;
     }
 

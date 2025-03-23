@@ -228,13 +228,13 @@ public class RegexEngine {
     lexer.addRule("carry", "carry", TokenType.CATCH);
     lexer.addRule("feed", "feed", TokenType.THROW);
     lexer.addRule("recast", "recast", TokenType.RETURN);
-    lexer.addRule("identifier", "(${letter}|$_)(${letter}|${digit}|$_)*", TokenType.IDENTIFIER);
 
     // handle type tokens
     lexer.addRule("number_type", "message", TokenType.NUMBER_TYPE);
     lexer.addRule("boolean_type", "stats", TokenType.BOOLEAN_TYPE);
     lexer.addRule("string_type", "goat", TokenType.STRING_TYPE);
     lexer.addRule("void_type", "passive", TokenType.VOID_TYPE);
+    lexer.addRule("identifier", "(${letter}|$_)(${letter}|${digit}|$_)*", TokenType.IDENTIFIER);
 
     return lexer;
   }

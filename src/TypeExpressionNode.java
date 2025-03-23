@@ -9,7 +9,7 @@ public abstract class TypeExpressionNode extends Node {
     }
 
     public String toString() {
-      return String.format("[Identifier: %s]", this.lexeme);
+      return String.format("[TypeIdentifier: %s]", this.lexeme);
     }
   }
 

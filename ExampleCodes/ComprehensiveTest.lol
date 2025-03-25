@@ -112,7 +112,7 @@ cannon(item i:stats = 0; identifier < i; i = testing()){
   broadcast(testing);
 }
 
-cannon(item i: stats = 0; identifier < i; i = testing()){
+cannon(item i: stats = 0; identifier < i; i.gaming[1] = testing()){
 }
 
 cannon(;identifier < i;i = testing()){

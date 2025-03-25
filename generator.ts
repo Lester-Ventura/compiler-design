@@ -1,12 +1,12 @@
 /**
  * TO USE THIS FILE:
- * - create a file called "example.txt" with the grammar, copy to a file called grammar
+ * - create a file called "example.txt" with the grammar, copy to a file called grammar.txt
  * - run tsx generator.ts to generate the table.txt file
- * - copy the table.txt file to slr1_table
+ * - copy the table.txt file to slr1_table.txt
  */
 
 import fs from "fs";
-const grammar = fs.readFileSync("example.txt", "utf8");
+const grammar: string = fs.readFileSync("example.txt", "utf8");
 
 type Token =
   | { type: "variable"; name: string }
@@ -216,6 +216,10 @@ function expandItemSet(items: Item[], allProductions: Production[]) {
   const { followSets, firstSets } = computeFollowSets(allProductions);
   const itemSet: Item[] = [...items];
   const unprocesssedItems: Item[] = [...items];
+  const determineNextSequence = ([next]: Token[]) => {
+    if (next.type === "terminal") return [next.name];
+    else if (next.type === "variable") return [...firstSets.get(next.name)!];
+  };
 
   while (unprocesssedItems.length > 0) {
     const currentItem = unprocesssedItems.shift()!;
@@ -226,7 +230,9 @@ function expandItemSet(items: Item[], allProductions: Production[]) {
     if (after.type === "variable") {
       // we need to expand this
       const newProductions = allProductions.filter((p) => p.name === after.name);
-      const lookahead = [...followSets.get(after.name)!]; // use of followset here makes the grammar SLR1
+      const rest = currentItem.rhs.slice(currentItem.dot + 1);
+      // determine the set of first tokens for rest (LL1 GRAMMAR!)
+      const lookahead = rest.length === 0 ? [...followSets.get(currentItem.lhs)!] : determineNextSequence(rest);
 
       for (const newProduction of newProductions) {
         const newItem = { lhs: newProduction.name, rhs: newProduction.rhs, dot: 0, lookahead } as Item;

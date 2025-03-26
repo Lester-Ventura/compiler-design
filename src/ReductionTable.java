@@ -78,7 +78,7 @@ class ReductionTable {
 
     Reduction passthroughReducer = new Reduction((e) -> e.getInternalNode(0));
     Reduction binaryOperationReducer = new Reduction(
-        (input) -> new ExpressionNode.Binary(input.getExpressionNode(0), input.getToken(1).lexeme,
+        (input) -> new ExpressionNode.Binary(input.getExpressionNode(0), input.getToken(1),
             input.getExpressionNode(2)));
     Reduction unaryOperationReducer = new Reduction(
         (input) -> new ExpressionNode.Unary(input.getToken(0).lexeme,
@@ -216,7 +216,7 @@ class ReductionTable {
         new Reduction((input) -> new Node.SwitchCaseList((Node.SwitchCaseList.SwitchCase) input.getInternalNode(0))));
 
     Reduction switchCaseReducer = new Reduction((input) -> new Node.SwitchCaseList.SwitchCase(
-        input.getToken(0),
+        input.getToken(2),
         ((Node.StatementList) input.getInternalNode(5))));
 
     reductions.put(43, switchCaseReducer);
@@ -244,7 +244,7 @@ class ReductionTable {
     reductions.put(55, passthroughReducer);
 
     reductions.put(56, new Reduction((input) -> {
-      Token identifier = input.getToken(4);
+      Token identifier = input.getToken(3);
       TypeExpressionNode type = input.getTypeExpressionNode(5);
       ExpressionNode expr = input.getExpressionNode(7);
       StatementNode body = input.getStatementNode(9);

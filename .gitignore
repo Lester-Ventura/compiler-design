@@ -27,4 +27,11 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
 *.class
+*.dot
+graph.png
+example.txt
+slr1_table copy.txt
+states.json
+table.txt

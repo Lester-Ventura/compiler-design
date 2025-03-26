@@ -4,6 +4,8 @@ import java.util.LinkedList;
 public abstract class Node {
   abstract public String toString();
 
+  abstract public void toDot(DOTGenerator builder);
+
   public static class StatementList extends Node {
     ArrayList<StatementNode> statements;
 
@@ -29,6 +31,14 @@ public abstract class Node {
       String statementsString = String.join(",", this.statements.toString());
       return String.format("[StatementList: %s]", statementsString);
     }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "StatementList");
+      for (StatementNode statement : this.statements) {
+        statement.toDot(builder);
+        builder.addEdge(this.hashCode(), statement.hashCode());
+      }
+    }
   }
 
   public static class VariableDeclarationHeader extends Node {
@@ -42,6 +52,12 @@ public abstract class Node {
 
     public String toString() {
       return String.format("[VariableDeclarationHeader: %s %s]", this.lexeme, this.type.toString());
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "VariableDeclarationHeader [lexeme=" + this.lexeme + "]");
+      this.type.toDot(builder);
+      builder.addEdge(this.hashCode(), this.type.hashCode());
     }
   }
 
@@ -67,6 +83,17 @@ public abstract class Node {
               this.type.toString(),
               this.expression.toString())
           : String.format("[VariableDeclaration: %s %s]", this.lexeme, this.type.toString());
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "VariableDeclaration [lexeme=" + this.lexeme + "]");
+      this.type.toDot(builder);
+      builder.addEdge(this.hashCode(), this.type.hashCode());
+
+      if (this.expression != null) {
+        this.expression.toDot(builder);
+        builder.addEdge(this.hashCode(), this.expression.hashCode());
+      }
     }
   }
 
@@ -95,6 +122,13 @@ public abstract class Node {
         return String.format("[SwitchCase: %s %s]", this.literal == null ? "default" : this.literal.toString(),
             statementsString);
       }
+
+      public void toDot(DOTGenerator builder) {
+        builder.addNode(this.hashCode(), String.format("SwitchCase [literal=%s]", this.literal == null ? "default"
+            : this.literal.lexeme.replace("\"", "\'")));
+        this.statements.toDot(builder);
+        builder.addEdge(this.hashCode(), this.statements.hashCode());
+      }
     }
 
     ArrayList<SwitchCase> namedCases;
@@ -122,11 +156,6 @@ public abstract class Node {
       this.defaultCase = defaultCase;
     }
 
-    public String toString() {
-      String casesString = String.join("\n", this.namedCases.toString());
-      return String.format("[SwitchCaseList: %s]", casesString);
-    }
-
     public SwitchCaseList addNamedCase(SwitchCase newCase) {
       this.namedCases.add(newCase);
       return this;
@@ -135,6 +164,25 @@ public abstract class Node {
     public SwitchCaseList setDefaultCase(StatementList statements) {
       this.defaultCase = new SwitchCase(null, statements);
       return this;
+    }
+
+    public String toString() {
+      String casesString = String.join("\n", this.namedCases.toString());
+      return String.format("[SwitchCaseList: %s]", casesString);
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "SwitchCaseList");
+
+      for (SwitchCase namedCase : this.namedCases) {
+        namedCase.toDot(builder);
+        builder.addEdge(this.hashCode(), namedCase.hashCode());
+      }
+
+      if (this.defaultCase != null) {
+        this.defaultCase.toDot(builder);
+        builder.addEdge(this.hashCode(), this.defaultCase.hashCode());
+      }
     }
   }
 
@@ -158,6 +206,14 @@ public abstract class Node {
     public String toString() {
       String declsString = String.join("\n", this.declarations.toString());
       return String.format("[CounterLoopInit: %s]", declsString);
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "CounterLoopInit");
+      for (Node.VariableDeclaration decl : this.declarations) {
+        decl.toDot(builder);
+        builder.addEdge(this.hashCode(), decl.hashCode());
+      }
     }
   }
 
@@ -186,6 +242,14 @@ public abstract class Node {
       String exprsString = String.join("\n", this.expressions.toString());
       return String.format("[ExpressionList: %s]", exprsString);
     }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "ExpressionList");
+      for (ExpressionNode expr : this.expressions) {
+        expr.toDot(builder);
+        builder.addEdge(this.hashCode(), expr.hashCode());
+      }
+    }
   }
 
   public static class ObjectLiteralFieldList extends Node {
@@ -213,6 +277,14 @@ public abstract class Node {
       String fieldsString = String.join("\n", this.fields.toString());
       return String.format("[ObjectLiteralFieldList %s]", fieldsString);
     }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "ObjectLiteralFieldList");
+      for (ObjectLiteralField field : this.fields) {
+        field.toDot(builder);
+        builder.addEdge(this.hashCode(), field.hashCode());
+      }
+    }
   }
 
   public static class ObjectLiteralField extends Node {
@@ -226,6 +298,12 @@ public abstract class Node {
 
     public String toString() {
       return String.format("[ObjectLiteralField: %s %s]", this.lexeme, this.expression.toString());
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "ObjectLiteralField [lexeme=" + this.lexeme + "]");
+      this.expression.toDot(builder);
+      builder.addEdge(this.hashCode(), this.expression.hashCode());
     }
   }
 
@@ -254,6 +332,14 @@ public abstract class Node {
       String declsString = String.join("\n", this.declarations.toString());
       return String.format("[ParameterList: %s]", declsString);
     }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "ParameterList");
+      for (StatementNode.VariableDeclarationHeader decl : this.declarations) {
+        decl.toDot(builder);
+        builder.addEdge(this.hashCode(), decl.hashCode());
+      }
+    }
   }
 
   public static class IfStatementBranches extends Node {
@@ -278,7 +364,16 @@ public abstract class Node {
     }
 
     public String toString() {
-      return String.format("[ElseIfStatementList: %s]", this.clauses.toString());
+      return String.format("[IfStatementBranches: %s]", this.clauses.toString());
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "IfStatementBranches");
+
+      for (IfStatementBranch clause : this.clauses) {
+        clause.toDot(builder);
+        builder.addEdge(this.hashCode(), clause.hashCode());
+      }
     }
   }
 
@@ -292,7 +387,15 @@ public abstract class Node {
     }
 
     public String toString() {
-      return String.format("[ElseIfClause: %s %s", this.condition.toString(), this.body.toString());
+      return String.format("[IfStatementBranch: %s %s", this.condition.toString(), this.body.toString());
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "IfStatementBranch");
+      this.condition.toDot(builder);
+      builder.addEdge(this.hashCode(), this.condition.hashCode());
+      this.body.toDot(builder);
+      builder.addEdge(this.hashCode(), this.body.hashCode());
     }
   }
 
@@ -321,6 +424,15 @@ public abstract class Node {
       String definitionsString = String.join("\n", this.definitions.toString());
       return String.format("[PropertyList: %s]", definitionsString);
     }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "PropertyList");
+
+      for (PropertyDefinition definition : definitions) {
+        definition.toDot(builder);
+        builder.addEdge(this.hashCode(), definition.hashCode());
+      }
+    }
   }
 
   public static class PropertyDefinition extends Node {
@@ -334,6 +446,12 @@ public abstract class Node {
 
     public String toString() {
       return String.format("[PropertyDefinition: %s %s]", this.lexeme, this.type.toString());
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "PropertyDefinition [lexeme=" + this.lexeme + "]");
+      this.type.toDot(builder);
+      builder.addEdge(this.hashCode(), this.type.hashCode());
     }
   }
 
@@ -360,6 +478,15 @@ public abstract class Node {
 
     public String toString() {
       return String.format("[LambdaParamterList: %s]", this.parameters.toString());
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "LambdaParamterList");
+
+      for (TypeExpressionNode parameter : this.parameters) {
+        parameter.toDot(builder);
+        builder.addEdge(this.hashCode(), parameter.hashCode());
+      }
     }
   }
 }

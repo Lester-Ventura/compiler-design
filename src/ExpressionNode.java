@@ -20,6 +20,18 @@ public abstract class ExpressionNode extends Node {
       String parametersString = String.join("\n", this.parameters.toString());
       return String.format("[FunctionExpression: (%s) -> %s]", parametersString, this.returnType.toString());
     }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "FunctionExpression");
+      this.parameters.toDot(builder);
+      builder.addEdge(this.hashCode(), this.parameters.hashCode());
+
+      this.returnType.toDot(builder);
+      builder.addEdge(this.hashCode(), this.returnType.hashCode());
+
+      this.body.toDot(builder);
+      builder.addEdge(this.hashCode(), this.body.hashCode());
+    }
   }
 
   public static class ArrayLiteral extends ExpressionNode {
@@ -36,6 +48,12 @@ public abstract class ExpressionNode extends Node {
     public String toString() {
       String expressionsString = String.join("\n", this.expressions.toString());
       return String.format("[ArrayLiteral: %s]", expressionsString);
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "ArrayLiteral");
+      this.expressions.toDot(builder);
+      builder.addEdge(this.hashCode(), this.expressions.hashCode());
     }
   }
 
@@ -54,6 +72,12 @@ public abstract class ExpressionNode extends Node {
       String fieldsString = String.join("\n", this.fields.toString());
       return String.format("[ObjectLiteral: %s]", fieldsString);
     }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "ObjectLiteral");
+      this.fields.toDot(builder);
+      builder.addEdge(this.hashCode(), this.fields.hashCode());
+    }
   }
 
   public static class DotAccess extends ExpressionNode {
@@ -66,7 +90,14 @@ public abstract class ExpressionNode extends Node {
     }
 
     public String toString() {
-      return String.format("[DotAccess: %s %s]", this.left.toString(), this.right);
+      return String.format("[DotAccess: %s %s]", this.left.toString(),
+          this.right.replace("\"", "\'"));
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "DotAccess [lexeme=" + this.right.replace("\"", "\'") + "]");
+      this.left.toDot(builder);
+      builder.addEdge(this.hashCode(), this.left.hashCode());
     }
   }
 
@@ -88,6 +119,17 @@ public abstract class ExpressionNode extends Node {
       String parametersString = this.parameters != null ? String.join(", ", this.parameters.toString()) : "";
       return String.format("[FunctionCall: %s(%s)]", this.left.toString(), parametersString);
     }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "FunctionCall");
+      this.left.toDot(builder);
+      builder.addEdge(this.hashCode(), this.left.hashCode());
+
+      if (this.parameters != null) {
+        this.parameters.toDot(builder);
+        builder.addEdge(this.hashCode(), this.parameters.hashCode());
+      }
+    }
   }
 
   public static class Identifier extends ExpressionNode {
@@ -99,6 +141,11 @@ public abstract class ExpressionNode extends Node {
 
     public String toString() {
       return String.format("[Identifier: %s]", this.lexeme);
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(),
+          "Identifier [lexeme=" + this.lexeme.replace("\"", "\'") + "]");
     }
   }
 
@@ -118,6 +165,15 @@ public abstract class ExpressionNode extends Node {
           this.isPostfix ? this.left.toString() : this.token.toString(),
           !this.isPostfix ? this.left.toString() : this.token.toString());
     }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), String.format("Incrementation [operation=%s] [order=%s]",
+          this.token.lexeme.replace("\"", "\'"),
+          this.isPostfix ? "postfix" : "prefix"));
+
+      this.left.toDot(builder);
+      builder.addEdge(this.hashCode(), this.left.hashCode());
+    }
   }
 
   public static class Assignment extends ExpressionNode {
@@ -131,6 +187,15 @@ public abstract class ExpressionNode extends Node {
 
     public String toString() {
       return String.format("[Assignment: %s = %s]", this.left.toString(), this.right.toString());
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "Assignment");
+      this.left.toDot(builder);
+      builder.addEdge(this.hashCode(), this.left.hashCode());
+
+      this.right.toDot(builder);
+      builder.addEdge(this.hashCode(), this.right.hashCode());
     }
   }
 
@@ -146,6 +211,15 @@ public abstract class ExpressionNode extends Node {
     public String toString() {
       return String.format("[IndexAccess: (%s)[%s]]", this.left.toString(), this.right.toString());
     }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "IndexAccess");
+      this.left.toDot(builder);
+      builder.addEdge(this.hashCode(), this.left.hashCode());
+
+      this.right.toDot(builder);
+      builder.addEdge(this.hashCode(), this.right.hashCode());
+    }
   }
 
   public static class Literal extends ExpressionNode {
@@ -156,16 +230,21 @@ public abstract class ExpressionNode extends Node {
     }
 
     public String toString() {
-      return String.format("[Literal: %s]", this.token.lexeme.toString());
+      return String.format("[Literal: %s]", this.token.lexeme.replace("\"", "\'"));
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(),
+          "Literal [lexeme=" + this.token.lexeme.replace("\"", "\'") + "]");
     }
   }
 
   public static class Binary extends ExpressionNode {
     ExpressionNode left;
     ExpressionNode right;
-    String operation;
+    Token operation;
 
-    Binary(ExpressionNode left, String operation, ExpressionNode right) {
+    Binary(ExpressionNode left, Token operation, ExpressionNode right) {
       this.left = left;
       this.right = right;
       this.operation = operation;
@@ -173,6 +252,15 @@ public abstract class ExpressionNode extends Node {
 
     public String toString() {
       return String.format("[Binary: %s %s %s]", this.left.toString(), this.operation, this.right.toString());
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "Binary [operation: " + this.operation.type.toString() + "]");
+      this.left.toDot(builder);
+      builder.addEdge(this.hashCode(), this.left.hashCode());
+
+      this.right.toDot(builder);
+      builder.addEdge(this.hashCode(), this.right.hashCode());
     }
   }
 
@@ -188,6 +276,12 @@ public abstract class ExpressionNode extends Node {
     public String toString() {
       return String.format("[Unary: %s %s]", this.operation, this.operand.toString());
     }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "Unary [operation: " + this.operation + "]");
+      this.operand.toDot(builder);
+      builder.addEdge(this.hashCode(), this.operand.hashCode());
+    }
   }
 
   public static class Grouping extends ExpressionNode {
@@ -199,6 +293,12 @@ public abstract class ExpressionNode extends Node {
 
     public String toString() {
       return String.format("[Grouping: %s]", this.expression.toString());
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "Grouping");
+      this.expression.toDot(builder);
+      builder.addEdge(this.hashCode(), this.expression.hashCode());
     }
   }
 }

@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Scanner;
@@ -10,7 +11,7 @@ public class CodeReader {
     this.parser = parser;
   }
 
-  public void run() {
+  public void run(boolean interactive) {
     Scanner scanner = new Scanner(System.in);
 
     while (true) {
@@ -40,7 +41,10 @@ public class CodeReader {
       System.out.println("Scanning " + file.getName());
 
       try {
-        parseFile(file, 20);
+        parseFile(file);
+        if (interactive == false)
+          System.exit(0);
+
         System.out.println("===============================================");
         System.out.println("Scanning complete! Enter any key to continue...");
         scanner.nextLine(); // consume the newline
@@ -68,7 +72,7 @@ public class CodeReader {
     return files;
   }
 
-  public void parseFile(File file, int delay_in_ms) throws IOException {
+  public void parseFile(File file) throws IOException {
     Scanner scanner = new Scanner(file, "UTF-8");
 
     // need to check if there is a next line,
@@ -76,6 +80,19 @@ public class CodeReader {
     String source = scanner.hasNext() ? scanner.useDelimiter("\\Z").next() + "\n" : "\n";
     Node node = parser.parse(source);
     System.out.println(node);
+
+    String output = DOTGenerator.generate(node);
+    String path = "output.dot";
+    FileWriter writer = new FileWriter(path);
+
+    try {
+      writer.write(output);
+      System.out.println("File written successfully to " + path);
+    } catch (IOException e) {
+      System.out.println("Error has occured while writing file: " + e.getMessage());
+    }
+
+    writer.close();
     scanner.close();
   }
 }

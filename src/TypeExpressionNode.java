@@ -9,7 +9,12 @@ public abstract class TypeExpressionNode extends Node {
     }
 
     public String toString() {
-      return String.format("[TypeIdentifier: %s]", this.lexeme);
+      return String.format("[TypeIdentifier: %s]", this.lexeme.replace("\"", "\'"));
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(),
+          "TypeIdentifier [lexeme=" + this.lexeme.replace("\"", "\'") + "]");
     }
   }
 
@@ -22,6 +27,12 @@ public abstract class TypeExpressionNode extends Node {
 
     public String toString() {
       return String.format("[Array: (%s)[]]", this.elementType.toString());
+    }
+
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "Array");
+      this.elementType.toDot(builder);
+      builder.addEdge(this.hashCode(), this.elementType.hashCode());
     }
   }
 
@@ -43,6 +54,14 @@ public abstract class TypeExpressionNode extends Node {
       String parameterTypesString = String.join(", ", this.parameterTypes.toString());
       return String.format("[Lambda: (%s) -> %s]", parameterTypesString, this.returnType.toString());
     }
-  }
 
+    public void toDot(DOTGenerator builder) {
+      builder.addNode(this.hashCode(), "Lambda");
+      this.parameterTypes.toDot(builder);
+      builder.addEdge(this.hashCode(), this.parameterTypes.hashCode());
+
+      this.returnType.toDot(builder);
+      builder.addEdge(this.hashCode(), this.returnType.hashCode());
+    }
+  }
 }

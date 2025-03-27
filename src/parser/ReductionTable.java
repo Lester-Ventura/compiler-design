@@ -1,5 +1,9 @@
+package parser;
+
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import lexer.Token;
 
 class ReductionTable {
   interface Reducer {
@@ -16,9 +20,9 @@ class ReductionTable {
 
   // This class wraps popped symbols and provides methods for easier access
   static class ReductionInput {
-    ArrayList<SLR1Parser.SLR1StackSymbol> symbols;
+    ArrayList<LR1Parser.SLR1StackSymbol> symbols;
 
-    ReductionInput(ArrayList<SLR1Parser.SLR1StackSymbol> symbols) {
+    ReductionInput(ArrayList<LR1Parser.SLR1StackSymbol> symbols) {
       this.symbols = symbols;
     }
 
@@ -28,19 +32,19 @@ class ReductionTable {
     }
 
     Token getToken(int index) {
-      SLR1Parser.SLR1StackSymbol symbol = symbols.get(index);
-      if (!(symbol instanceof SLR1Parser.SLR1StackToken))
+      LR1Parser.SLR1StackSymbol symbol = symbols.get(index);
+      if (!(symbol instanceof LR1Parser.SLR1StackToken))
         throw new Error("Can't get a token from a non-token");
 
-      return ((SLR1Parser.SLR1StackToken) symbol).token;
+      return ((LR1Parser.SLR1StackToken) symbol).token;
     }
 
     Node getInternalNode(int index) {
-      SLR1Parser.SLR1StackSymbol symbol = symbols.get(index);
-      if (!(symbol instanceof SLR1Parser.SLR1StackInternalNode))
+      LR1Parser.SLR1StackSymbol symbol = symbols.get(index);
+      if (!(symbol instanceof LR1Parser.SLR1StackInternalNode))
         throw new Error("Can't get an internal node from a non-internal node");
 
-      return ((SLR1Parser.SLR1StackInternalNode) symbol).node;
+      return ((LR1Parser.SLR1StackInternalNode) symbol).node;
     }
 
     StatementNode getStatementNode(int index) {

@@ -1,3 +1,4 @@
+package lexer;
 
 import java.util.ArrayList;
 import java.util.HashMap;

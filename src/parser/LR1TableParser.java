@@ -1,7 +1,9 @@
+package parser;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class SLR1TableParser {
+public class LR1TableParser {
   static enum SLR1TableTokenType {
     VARIABLE, TERMINAL, EQUAL, PROCESS, COMMA, NEWLINE
   }
@@ -69,7 +71,7 @@ public class SLR1TableParser {
       do {
         lexeme += ch;
         ch = input.charAt(++currentCharacterIndex);
-      } while (currentCharacterIndex < input.length() && !(ch == ',' || ch == '\n'||ch == '\r'));
+      } while (currentCharacterIndex < input.length() && !(ch == ',' || ch == '\n' || ch == '\r'));
 
       tokens.add(new SLR1TableToken(SLR1TableTokenType.PROCESS, lexeme));
     }
@@ -107,7 +109,7 @@ public class SLR1TableParser {
 
   String input;
 
-  SLR1TableParser(String input) {
+  public LR1TableParser(String input) {
     this.input = input;
   }
 
@@ -129,7 +131,7 @@ public class SLR1TableParser {
     }
   }
 
-  static class SLR1TableState {
+  public static class SLR1TableState {
     HashMap<String, SLR1TableProcess> actions = new HashMap<>();
     HashMap<String, SLR1TableProcess> gotos = new HashMap<>();
 
@@ -162,13 +164,13 @@ public class SLR1TableParser {
         expectToken(SLR1TableTokenType.EQUAL);
         SLR1TableToken actionToken = expectToken(SLR1TableTokenType.PROCESS);
         int value = Integer.parseInt(actionToken.lexeme.substring(1));
-      
+
         newState.actions.put(currentToken.lexeme, new SLR1TableProcess(
             actionToken.lexeme.startsWith("r") ? SLR1TableProcessType.REDUCE : SLR1TableProcessType.SHIFT, value));
       } else if (currentToken.type == SLR1TableTokenType.VARIABLE) {
         expectToken(SLR1TableTokenType.EQUAL);
         SLR1TableToken gotoToken = expectToken(SLR1TableTokenType.PROCESS);
-        
+
         int value = Integer.parseInt(gotoToken.lexeme);
         newState.gotos.put(currentToken.lexeme, new SLR1TableProcess(SLR1TableProcessType.GOTO, value));
       }
@@ -185,7 +187,7 @@ public class SLR1TableParser {
     return newState;
   }
 
-  ArrayList<SLR1TableState> parse() {
+  public ArrayList<SLR1TableState> parse() {
     SLR1TableLexer lexer = new SLR1TableLexer(input);
     this.tokens = lexer.lex();
 

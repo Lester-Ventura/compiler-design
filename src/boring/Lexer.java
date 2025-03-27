@@ -1,7 +1,10 @@
+package boring;
 
 /**
  * UNUSED LEXER IMPLEMENTATION
  */
+
+import lexer.*;
 import java.util.HashMap;
 
 public class Lexer {

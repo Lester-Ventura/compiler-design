@@ -1,17 +1,24 @@
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.Set;
+
+import utils.*;
+import parser.*;
 
 public class Main {
     public static void main(String[] args) {
         boolean isInteractive = args.length <= 0 || !args[0].equals("--no-interactive");
 
         // load the grammar file and list of productions
-        SLR1GrammarParser grammarParser = new SLR1GrammarParser(FileLoader.loadFile("grammar.txt"));
-        ArrayList<SLR1GrammarParser.SLR1GrammarProduction> productions = grammarParser.parse();
-        SLR1TableParser tableParser = new SLR1TableParser(FileLoader.loadFile("slr1_table.txt"));
-        ArrayList<SLR1TableParser.SLR1TableState> states = tableParser.parse();
+        LR1GrammarParser grammarParser = new LR1GrammarParser(FileLoader.loadFile("grammar.txt"));
+        ArrayList<LR1GrammarParser.SLR1GrammarProduction> productions = grammarParser.parse();
+        LR1TableParser tableParser = new LR1TableParser(FileLoader.loadFile("slr1_table.txt"));
+        ArrayList<LR1TableParser.SLR1TableState> states = tableParser.parse();
+        FollowSetParser followSetParser = new FollowSetParser(FileLoader.loadFile("followSets.txt"));
+        Map<String, Set<String>> followSets = followSetParser.parse();
 
-        SLR1Parser parser = new SLR1Parser(productions, states);
-        CodeReader codeReader = new CodeReader(parser);
+        CreateParser parserGenerator = (String input) -> new LR1Parser(input, productions, states, followSets);
+        CodeReader codeReader = new CodeReader(parserGenerator);
         codeReader.run(isInteractive);
 
         // String sourceCode = FileLoader.loadFile("./ExampleCodes/CustomExample.lol");

@@ -1,4 +1,8 @@
-class DOTGenerator {
+package utils;
+
+import parser.Node;
+
+public class DOTGenerator {
 	StringBuilder sb = new StringBuilder();
 
 	public static String generate(Node root) {

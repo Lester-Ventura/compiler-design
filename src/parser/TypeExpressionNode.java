@@ -1,3 +1,7 @@
+package parser;
+
+import utils.DOTGenerator;
+
 public abstract class TypeExpressionNode extends Node {
   // abstract void evaluate();
 

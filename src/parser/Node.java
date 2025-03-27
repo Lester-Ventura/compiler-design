@@ -1,5 +1,10 @@
+package parser;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
+
+import lexer.Token;
+import utils.DOTGenerator;
 
 public abstract class Node {
   abstract public String toString();

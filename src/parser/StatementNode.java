@@ -1,3 +1,8 @@
+package parser;
+
+import lexer.Token;
+import utils.DOTGenerator;
+
 public abstract class StatementNode extends Node {
   // Uncomment this line when it's time to implement execution
   // abstract void execute();

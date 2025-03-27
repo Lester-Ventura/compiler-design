@@ -1,14 +1,20 @@
+package utils;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Scanner;
 
-public class CodeReader {
-  SLR1Parser parser;
+import parser.ParserException;
+import parser.ParserResult;
+import parser.LR1Parser;
 
-  public CodeReader(SLR1Parser parser) {
-    this.parser = parser;
+public class CodeReader {
+  CreateParser parserCreator;
+
+  public CodeReader(CreateParser parserCreator) {
+    this.parserCreator = parserCreator;
   }
 
   public void run(boolean interactive) {
@@ -78,21 +84,34 @@ public class CodeReader {
     // need to check if there is a next line,
     // otherwise the scanner will throw an error
     String source = scanner.hasNext() ? scanner.useDelimiter("\\Z").next() + "\n" : "\n";
-    Node node = parser.parse(source);
-    System.out.println(node);
+    scanner.close();
 
-    String output = DOTGenerator.generate(node);
-    String path = "output.dot";
-    FileWriter writer = new FileWriter(path);
+    // create the parser with the input file and parse
+    LR1Parser parser = parserCreator.run(source);
+    ParserResult parsingResult = parser.parse();
 
-    try {
-      writer.write(output);
-      System.out.println("File written successfully to " + path);
-    } catch (IOException e) {
-      System.out.println("Error has occured while writing file: " + e.getMessage());
+    if (parsingResult.root != null) {
+      System.out.println(parsingResult.root);
+      String output = DOTGenerator.generate(parsingResult.root);
+      FileWriter writer = new FileWriter("output.dot");
+
+      try {
+        writer.write(output);
+        System.out.println("File written successfully to output.dot");
+      } catch (IOException e) {
+        System.out.println("Error has occured while writing file: " + e.getMessage());
+      }
+
+      writer.close();
+    } else {
+      System.out.println("Was unable to create a parse tree");
     }
 
-    writer.close();
-    scanner.close();
+    if (parsingResult.errors.size() != 0) {
+      System.out.println("The following errors were encountered: ");
+
+      for (ParserException exception : parsingResult.errors)
+        System.out.println(exception);
+    }
   }
 }

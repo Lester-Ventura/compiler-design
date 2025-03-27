@@ -1,3 +1,5 @@
+package utils;
+
 import java.io.File;
 import java.util.Scanner;
 
@@ -5,7 +7,7 @@ public class FileLoader {
   /**
    * Platform agnostic way of loading files
    */
-  static String loadFile(String path) {
+  public static String loadFile(String path) {
     try {
       File grammarFile = new File("../" + path);
       if (!grammarFile.exists())

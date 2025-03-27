@@ -1,3 +1,8 @@
+package parser;
+
+import lexer.Token;
+import utils.DOTGenerator;
+
 public abstract class ExpressionNode extends Node {
   public static class FunctionExpression extends ExpressionNode {
     Node.ParameterList parameters;

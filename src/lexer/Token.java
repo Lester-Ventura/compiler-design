@@ -1,12 +1,14 @@
+package lexer;
+
 import java.util.HashSet;
 
 public class Token {
-    final TokenType type;
-    final String lexeme;
+    public final TokenType type;
+    public final String lexeme;
     final int column;
     final int line;
 
-    Token(TokenType token, String lexeme, ColumnAndRow info) {
+    public Token(TokenType token, String lexeme, ColumnAndRow info) {
         this.type = token;
         this.lexeme = lexeme;
         this.column = info.getActualColumn();

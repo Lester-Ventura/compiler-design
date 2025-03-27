@@ -9,4 +9,4 @@ To setup the project
 
 To run and generate graphs inside WSL:
  - install graphviz using `sudo apt install graphviz`
- - `javac *.java && java Main --no-interactive && dot output.dot -T png -o graph.png && wslview graph.png`
+ - `javac $(find . -type f -name \*.java) && java Main --no-interactive && dot output.dot -T png -o graph.png && wslview graph.png`

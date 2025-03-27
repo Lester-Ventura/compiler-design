@@ -1,6 +1,8 @@
+package parser;
+
 import java.util.ArrayList;
 
-public class SLR1GrammarParser {
+public class LR1GrammarParser {
   static enum SLR1GrammarTokenType {
     VARIABLE, TERMINAL, COLON, SEMICOLON, EOF
   }
@@ -100,11 +102,11 @@ public class SLR1GrammarParser {
 
   String input;
 
-  SLR1GrammarParser(String input) {
+  public LR1GrammarParser(String input) {
     this.input = input;
   }
 
-  static class SLR1GrammarProduction {
+  public static class SLR1GrammarProduction {
     static enum SLR1GrammarProductionRHSSymbolType {
       TERMINAL, VARIABLE
     }
@@ -168,7 +170,7 @@ public class SLR1GrammarParser {
   /**
    * Generates the list of productions
    */
-  ArrayList<SLR1GrammarProduction> parse() {
+  public ArrayList<SLR1GrammarProduction> parse() {
     SLR1GrammarLexer lexer = new SLR1GrammarLexer(input);
     this.tokens = lexer.lex();
 

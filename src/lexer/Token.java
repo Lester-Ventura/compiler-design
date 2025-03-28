@@ -5,8 +5,8 @@ import java.util.HashSet;
 public class Token {
     public final TokenType type;
     public final String lexeme;
-    final int column;
-    final int line;
+    public final int column;
+    public final int line;
 
     public Token(TokenType token, String lexeme, ColumnAndRow info) {
         this.type = token;

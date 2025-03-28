@@ -1,6 +1,7 @@
 package parser;
 
 import lexer.Token;
+import lexer.TokenType;
 import utils.DOTGenerator;
 
 public abstract class ExpressionNode extends Node {
@@ -228,19 +229,21 @@ public abstract class ExpressionNode extends Node {
   }
 
   public static class Literal extends ExpressionNode {
-    Token token;
+    String lexeme;
+    TokenType type;
 
-    Literal(Token token) {
-      this.token = token;
+    Literal(String lexeme, TokenType type) {
+      this.lexeme = lexeme;
+      this.type = type;
     }
 
     public String toString() {
-      return String.format("[Literal: %s]", this.token.lexeme.replace("\"", "\'"));
+      return String.format("[Literal: %s (%s)]", this.lexeme.replace("\"", "\'"), this.type.toString());
     }
 
     public void toDot(DOTGenerator builder) {
       builder.addNode(this.hashCode(),
-          "Literal [lexeme=" + this.token.lexeme.replace("\"", "\'") + "]");
+          "Literal [lexeme=" + this.lexeme.replace("\"", "\'") + "] [type=" + this.type.toString() + "]");
     }
   }
 

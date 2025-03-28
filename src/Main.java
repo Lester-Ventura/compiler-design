@@ -1,6 +1,4 @@
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
 
 import utils.*;
 import parser.*;
@@ -14,10 +12,8 @@ public class Main {
         ArrayList<LR1GrammarParser.SLR1GrammarProduction> productions = grammarParser.parse();
         LR1TableParser tableParser = new LR1TableParser(FileLoader.loadFile("slr1_table.txt"));
         ArrayList<LR1TableParser.SLR1TableState> states = tableParser.parse();
-        FollowSetParser followSetParser = new FollowSetParser(FileLoader.loadFile("followSets.txt"));
-        Map<String, Set<String>> followSets = followSetParser.parse();
 
-        CreateParser parserGenerator = (String input) -> new LR1Parser(input, productions, states, followSets);
+        CreateParser parserGenerator = (String input) -> new LR1Parser(input, productions, states);
         CodeReader codeReader = new CodeReader(parserGenerator);
         codeReader.run(isInteractive);
 

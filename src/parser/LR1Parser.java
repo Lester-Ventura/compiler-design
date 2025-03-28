@@ -50,18 +50,15 @@ public class LR1Parser {
   ArrayList<LR1GrammarParser.SLR1GrammarProduction> productions;
   ArrayList<LR1TableParser.SLR1TableState> states;
   HashMap<Integer, ReductionTable.Reduction> reducers = ReductionTable.generateReductions();
-  Map<String, Set<String>> followsets;
   RegexEngine lexer;
 
   public LR1Parser(
       String input,
       ArrayList<LR1GrammarParser.SLR1GrammarProduction> productions,
-      ArrayList<LR1TableParser.SLR1TableState> states,
-      Map<String, Set<String>> followset) {
+      ArrayList<LR1TableParser.SLR1TableState> states) {
     this.productions = productions;
     this.states = states;
     this.input = input;
-    this.followsets = followset;
     lexer = RegexEngine.createRegexEngine(input);
   }
 
@@ -91,6 +88,7 @@ public class LR1Parser {
         }
 
         token = lexer.peekNextToken();
+        currentNode = statesStack.peek();
         action = states.get(currentNode.stateIndex).actions.get(token.type.toString());
       }
 
@@ -160,11 +158,22 @@ public class LR1Parser {
     HashMap<String, DefaultProduction> defaultProductions = DefaultProductions.createDefaultProductions();
 
     StateNode currentNode = statesStack.peek();
-    String action = null;
 
-    // pop the stack until the current node has atleast one of the items in
-    // defaultProductions as a GOTO node
-    while (action != null) {
+    // create a user error message by determining the possible next tokens
+    Set<String> expecteds = states.get(currentNode.stateIndex).actions.keySet();
+    String expectedString = String.join(", ", (String[]) expecteds.toArray(new String[0]));
+
+    Token currentToken = lexer.peekNextToken();
+    String userErrorMessage = String.format(
+        "Error in line %d column %d\nExpected one of the following tokens: %s but got %s",
+        currentToken.line, currentToken.column, expectedString, currentToken.type.toString());
+    exceptions.add(new ParserException(userErrorMessage));
+
+    String productionToSkip = null;
+
+    // keep popping the stack until the current node has atleast one transition to
+    // another GOTO action that has a default production
+    outer: while (productionToSkip == null) {
       HashMap<String, SLR1TableProcess> currentStateGotos = states.get(currentNode.stateIndex).gotos;
 
       if (currentStateGotos.size() != 0) {
@@ -172,8 +181,8 @@ public class LR1Parser {
           if (defaultProductions.containsKey(gotoName)) {
             // If the current state has atleast one goto and one of those gotos has a
             // default production, then set the action to that current variable and break
-            action = gotoName;
-            break;
+            productionToSkip = gotoName;
+            break outer;
           }
         }
       }
@@ -181,28 +190,29 @@ public class LR1Parser {
       try {
         statesStack.pop();
         symbolsStack.pop();
+
         currentNode = statesStack.peek();
       } catch (Exception e) {
         throw new ParserException("No more items in the stacks to pop");
       }
     }
 
-    // generate the combined followset for the gotos of currentNode
-    Set<String> actionFollowSet = followsets.get(action);
+    int nextState = states.get(currentNode.stateIndex).gotos.get(productionToSkip).value;
 
-    // pop input symbols until the next thing the lexer peeks is in the followset
+    // determine tokens that can appear the production using the states table
+    Set<String> actionFollowSet = states.get(nextState).actions.keySet();
+
     while (!actionFollowSet.contains(lexer.peekNextToken().type.toString())) {
       Token nextToken = lexer.getNextToken();
 
       if (nextToken.type == TokenType.EOF) {
-        System.out.println("Unexpected end of file");
         throw new ParserException("Unexpected end of file");
       }
     }
 
-    // add default production to symbols stack by creating the default production
-    // for action
-    symbolsStack.push(new SLR1StackInternalNode(defaultProductions.get(action).run()));
+    // instantiate and add to the symbols stack, add next state to states stack
+    symbolsStack.push(new SLR1StackInternalNode(defaultProductions.get(productionToSkip).run()));
+    statesStack.push(new StateNode(nextState));
   }
 
   // this function should be called when there is an error with the way that the

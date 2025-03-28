@@ -468,7 +468,8 @@ class ReductionTable {
             (input) -> new ExpressionNode.FunctionCall(input.getExpressionNode(0))));
 
     // HANDLE LITERALS AND GROUPING EXPRESSION
-    addALotOfSameReduction(144, 147, new Reduction((input) -> new ExpressionNode.Literal(input.getToken(0))),
+    addALotOfSameReduction(144, 147,
+        new Reduction((input) -> new ExpressionNode.Literal(input.getToken(0).lexeme, input.getToken(0).type)),
         reductions);
     reductions.put(148,
         new Reduction(

@@ -108,10 +108,10 @@ public class CodeReader {
     }
 
     if (parsingResult.errors.size() != 0) {
-      System.out.println("The following errors were encountered: ");
+      System.out.println("\nThe following errors were encountered: \n");
 
       for (ParserException exception : parsingResult.errors)
-        System.out.println(exception);
+        System.out.println(exception.getMessage() + "\n");
     }
   }
 }

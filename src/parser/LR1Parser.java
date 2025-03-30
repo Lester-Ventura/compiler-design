@@ -152,6 +152,30 @@ public class LR1Parser {
     return new ParserResult(null, exceptions);
   }
 
+  String buildErrorWindow(Token currentToken) {
+    // Point to the area of the file that caused the error
+    String[] lines = input.split("\n");
+    int length = Math.max(
+        String.format("%d", currentToken.line).length(),
+        currentToken.line < lines.length ? String.format("%d", currentToken.line + 1).length() : 0);
+
+    String second = "", third = "";
+
+    for (int i = 0; i < currentToken.column + length + 3; i++) {
+      second += " ";
+      third += "─";
+    }
+    second += "│";
+    third += "┘";
+
+    String window = String.format("%" + length + "d | %s\n%s\n%s\n", currentToken.line, lines[currentToken.line - 1],
+        second, third);
+    if (currentToken.line < lines.length)
+      window += String.format("%" + length + "d | %s\n", currentToken.line + 1, lines[currentToken.line]);
+
+    return window;
+  }
+
   // performs panic mode error handling and leaves the parser in a safe state
   // TO DO: check if this works
   private void sync() throws ParserException {
@@ -159,14 +183,17 @@ public class LR1Parser {
 
     StateNode currentNode = statesStack.peek();
 
+    // Build error message
+    Token currentToken = lexer.peekNextToken();
+    String window = buildErrorWindow(currentToken);
+
     // create a user error message by determining the possible next tokens
     Set<String> expecteds = states.get(currentNode.stateIndex).actions.keySet();
     String expectedString = String.join(", ", (String[]) expecteds.toArray(new String[0]));
 
-    Token currentToken = lexer.peekNextToken();
     String userErrorMessage = String.format(
-        "Error in line %d column %d\nExpected one of the following tokens: %s but got %s",
-        currentToken.line, currentToken.column, expectedString, currentToken.type.toString());
+        "Error in line %d column %d\n%s\nExpected one of the following tokens: %s but got %s",
+        currentToken.line, currentToken.column, window, expectedString, currentToken.type.toString());
     exceptions.add(new ParserException(userErrorMessage));
 
     String productionToSkip = null;

@@ -97,7 +97,7 @@ public class CodeReader {
 
       try {
         writer.write(output);
-        System.out.println("File written successfully to output.dot");
+        System.out.println("DOT file successfully generated to output.dot");
       } catch (IOException e) {
         System.out.println("Error has occured while writing file: " + e.getMessage());
       }

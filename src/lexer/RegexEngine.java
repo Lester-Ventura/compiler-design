@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class RegexEngine {
   private HashMap<String, RegexNode> environment = new HashMap<>();
@@ -111,12 +112,17 @@ public class RegexEngine {
       if (attemptNode.getTokenType() == null)
         continue;
 
-      RegexMatch match = attemptNode.getLongestMatch(input.substring(currentCharacterIndex), environment);
+      ArrayList<String> matches = attemptNode.getMatches(input.substring(currentCharacterIndex), environment);
 
-      if (match.success) {
-        if (!ret.success || ret.lexeme.length() < match.matched.length()
-            || (ret.lexeme.length() == match.matched.length() && node.getTokenType() == TokenType.IDENTIFIER)) {
-          ret = new RegexEngineParsingResult(true, match.matched, entry.getKey());
+      if (matches.size() > 0) {
+        String longest = "";
+        for (String match : matches)
+          if (match.length() > longest.length())
+            longest = match;
+
+        if (!ret.success || ret.lexeme.length() < longest.length()
+            || (ret.lexeme.length() == longest.length() && node.getTokenType() == TokenType.IDENTIFIER)) {
+          ret = new RegexEngineParsingResult(true, longest, entry.getKey());
           node = attemptNode;
         }
       }
@@ -124,7 +130,9 @@ public class RegexEngine {
 
     if (node != null && node.getTokenType() != null) {
       currentCharacterIndex += ret.lexeme.length();
-      return new Token(node.getTokenType(), ret.lexeme, ColumnAndRow.calculate(startCharacterIndex, input));
+      Token returnedToken = new Token(node.getTokenType(), ret.lexeme,
+          ColumnAndRow.calculate(startCharacterIndex, input));
+      return returnedToken;
     }
 
     char nextChar = input.charAt(startCharacterIndex);
@@ -253,20 +261,7 @@ class RegexEngineParsingResult {
   }
 
   public String toString() {
-    if (success)
-      return "From: " + from + ". Lexeme: " + lexeme;
-    else
-      return "No token found";
-  }
-}
-
-class RegexMatch {
-  public boolean success;
-  public String matched;
-
-  public RegexMatch(boolean success, String matched) {
-    this.success = success;
-    this.matched = matched;
+    return success ? "From: " + from + ". Lexeme: " + lexeme : "No token found";
   }
 }
 
@@ -283,7 +278,7 @@ abstract class RegexNode {
 
   abstract public String toString();
 
-  abstract public RegexMatch getLongestMatch(String restString, HashMap<String, RegexNode> environment);
+  abstract public ArrayList<String> getMatches(String restString, HashMap<String, RegexNode> environment);
 }
 
 class RegexConcatenationNode extends RegexNode {
@@ -301,19 +296,23 @@ class RegexConcatenationNode extends RegexNode {
     return ret;
   }
 
-  public RegexMatch getLongestMatch(String restString, HashMap<String, RegexNode> environment) {
-    RegexMatch currentMatch = new RegexMatch(false, "");
+  public ArrayList<String> getMatches(String restString, HashMap<String, RegexNode> environment) {
+    ArrayList<String> caches = new ArrayList<>();
+    caches.add("");
 
     for (RegexNode node : nodes) {
-      RegexMatch nextMatch = node.getLongestMatch(restString, environment);
-      if (nextMatch.success == false)
-        return nextMatch;
+      ArrayList<String> nextCaches = new ArrayList<>();
 
-      currentMatch = new RegexMatch(true, currentMatch.matched + nextMatch.matched);
-      restString = restString.replaceFirst(Pattern.quote(nextMatch.matched), "");
+      for (String cache : caches) {
+        String rest = restString.replaceFirst(Pattern.quote(cache), "");
+        ArrayList<String> nextMatches = node.getMatches(rest, environment);
+        nextCaches.addAll(nextMatches.stream().map(m -> cache + m).collect(Collectors.toList()));
+      }
+
+      caches = nextCaches;
     }
 
-    return currentMatch;
+    return caches;
   }
 }
 
@@ -334,20 +333,11 @@ class RegexEitherNode extends RegexNode {
     return ret;
   }
 
-  public RegexMatch getLongestMatch(String restString, HashMap<String, RegexNode> environment) {
-    RegexMatch currentMatch = new RegexMatch(false, "");
-
-    for (RegexNode node : nodes) {
-      RegexMatch nextMatch = node.getLongestMatch(restString, environment);
-      if (nextMatch.success == false)
-        continue;
-
-      if (!currentMatch.success ||
-          currentMatch.matched.length() < nextMatch.matched.length())
-        currentMatch = nextMatch;
-    }
-
-    return currentMatch;
+  public ArrayList<String> getMatches(String restString, HashMap<String, RegexNode> environment) {
+    ArrayList<String> matches = new ArrayList<>();
+    for (RegexNode node : nodes)
+      matches.addAll(node.getMatches(restString, environment));
+    return matches;
   }
 }
 
@@ -362,12 +352,12 @@ class RegexLiteralNode extends RegexNode {
     return "" + ch;
   }
 
-  public RegexMatch getLongestMatch(String restString, HashMap<String, RegexNode> environment) {
+  public ArrayList<String> getMatches(String restString, HashMap<String, RegexNode> environment) {
+    ArrayList<String> matches = new ArrayList<>();
     char starting = restString.charAt(0);
-    if (starting != ch)
-      return new RegexMatch(false, null);
-    else
-      return new RegexMatch(true, "" + starting);
+    if (starting == ch)
+      matches.add("" + starting);
+    return matches;
   }
 }
 
@@ -382,12 +372,12 @@ class RegexVariableNode extends RegexNode {
     return "<" + variableName + ">";
   }
 
-  public RegexMatch getLongestMatch(String restString, HashMap<String, RegexNode> environment) {
+  public ArrayList<String> getMatches(String restString, HashMap<String, RegexNode> environment) {
     if (!environment.containsKey(this.variableName))
-      return new RegexMatch(false, null);
+      return new ArrayList<>();
 
-    RegexNode rootHole = environment.get(this.variableName);
-    return rootHole.getLongestMatch(restString, environment);
+    RegexNode roolNode = environment.get(this.variableName);
+    return roolNode.getMatches(restString, environment);
   }
 }
 
@@ -416,35 +406,39 @@ class RegexGroupingNode extends RegexNode {
             : "");
   }
 
-  public RegexMatch getLongestMatch(String restString, HashMap<String, RegexNode> environment) {
-    RegexMatch initialMatch = internalNode.getLongestMatch(restString, environment);
-    if (!initialMatch.success) {
+  public ArrayList<String> getMatches(String restString, HashMap<String, RegexNode> environment) {
+
+    ArrayList<String> initialMatches = internalNode.getMatches(restString, environment);
+
+    if (initialMatches.size() == 0) {
       if (modifier == RegexGroupingNodeModifiers.NONE_OR_MORE)
-        return new RegexMatch(true, "");
-      else
-        return new RegexMatch(false, "");
-    } else {
-      if (modifier == RegexGroupingNodeModifiers.NONE)
-        return initialMatch;
+        initialMatches.add("");
+      return initialMatches;
+    } else if (modifier == RegexGroupingNodeModifiers.NONE)
+      return initialMatches;
 
-      // handle matching for NONE_OR_MORE or ONE_OR_MORE
-      String nextRestString = restString.replaceFirst(Pattern.quote(initialMatch.matched), "");
-      RegexMatch latestMatch = initialMatch;
+    ArrayList<String> matches = initialMatches;
 
-      while (true) {
-        if (nextRestString.length() == 0)
-          break;
+    // handle matching for NONE_OR_MORE or ONE_OR_MORE
+    while (true) {
+      ArrayList<String> nextMatches = new ArrayList<>();
 
-        RegexMatch nextMatch = internalNode.getLongestMatch(nextRestString, environment);
-        if (!nextMatch.success)
-          break;
+      for (String match : matches) {
+        String rest = restString.replaceFirst(Pattern.quote(match), "");
+        if (rest.length() == 0)
+          continue;
 
-        nextRestString = nextRestString.replaceFirst(Pattern.quote(nextMatch.matched), "");
-        latestMatch = new RegexMatch(true, latestMatch.matched + nextMatch.matched);
+        ArrayList<String> nextMatch = internalNode.getMatches(rest, environment);
+        nextMatches.addAll(nextMatch.stream().map(m -> match + m).collect(Collectors.toList()));
       }
 
-      return latestMatch;
+      if (nextMatches.size() == 0)
+        break;
+
+      matches = nextMatches;
     }
+
+    return matches;
   }
 }
 

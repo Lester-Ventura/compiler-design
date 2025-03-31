@@ -104,7 +104,7 @@ public class RegexEngine {
       return new Token(TokenType.EOF, "", ColumnAndRow.calculate(startCharacterIndex, input));
 
     RegexEngineParsingResult ret = new RegexEngineParsingResult(false, "", null);
-    RegexNode node = null;
+    RegexNode retNode = null;
 
     for (Map.Entry<String, RegexNode> entry : environment.entrySet()) {
       RegexNode attemptNode = entry.getValue();
@@ -121,16 +121,16 @@ public class RegexEngine {
             longest = match;
 
         if (!ret.success || ret.lexeme.length() < longest.length()
-            || (ret.lexeme.length() == longest.length() && node.getTokenType() == TokenType.IDENTIFIER)) {
+            || (ret.lexeme.length() == longest.length() && retNode.getTokenType() == TokenType.IDENTIFIER)) {
           ret = new RegexEngineParsingResult(true, longest, entry.getKey());
-          node = attemptNode;
+          retNode = attemptNode;
         }
       }
     }
 
-    if (node != null && node.getTokenType() != null) {
+    if (retNode != null && retNode.getTokenType() != null) {
       currentCharacterIndex += ret.lexeme.length();
-      Token returnedToken = new Token(node.getTokenType(), ret.lexeme,
+      Token returnedToken = new Token(retNode.getTokenType(), ret.lexeme,
           ColumnAndRow.calculate(startCharacterIndex, input));
       return returnedToken;
     }

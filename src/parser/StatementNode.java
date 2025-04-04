@@ -362,6 +362,10 @@ public abstract class StatementNode extends Node {
       return new CounterControlledLoop(null, null, increment, stmt);
     }
 
+    public static CounterControlledLoop none(StatementNode stmt) {
+      return new CounterControlledLoop(null, null, null, stmt);
+    }
+
     public String toString() {
       String ret = "[CounterControlledLoop: ";
 

@@ -500,7 +500,7 @@ class ReductionTable {
 
     reductions.put(161,
         new Reduction((input) -> new TypeExpressionNode.Lambda((Node.LambdaParamterList) input.getInternalNode(2),
-            input.getTypeExpressionNode(4))));
+            input.getTypeExpressionNode(5))));
     reductions.put(162, new Reduction((input) -> new TypeExpressionNode.Lambda(input.getTypeExpressionNode(4))));
     reductions.put(163, new Reduction(
         (input) -> ((Node.LambdaParamterList) input.getInternalNode(2)).add(input.getTypeExpressionNode(0))));

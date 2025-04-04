@@ -3,31 +3,31 @@ package parser;
 import java.util.ArrayList;
 
 public class LR1GrammarParser {
-  static enum SLR1GrammarTokenType {
+  static enum LR1GrammarTokenType {
     VARIABLE, TERMINAL, COLON, SEMICOLON, EOF
   }
 
-  static class SLR1GrammarToken {
-    SLR1GrammarTokenType type;
+  static class LR1GrammarToken {
+    LR1GrammarTokenType type;
     String lexeme = "";
 
-    SLR1GrammarToken(SLR1GrammarTokenType type, String lexeme) {
+    LR1GrammarToken(LR1GrammarTokenType type, String lexeme) {
       this.type = type;
       this.lexeme = lexeme;
     }
 
-    SLR1GrammarToken(SLR1GrammarTokenType type) {
+    LR1GrammarToken(LR1GrammarTokenType type) {
       this.type = type;
       this.lexeme = "";
     }
   }
 
-  static class SLR1GrammarLexer {
+  static class LR1GrammarLexer {
     String input;
     int currentCharacterIndex = 0;
-    ArrayList<SLR1GrammarToken> tokens = new ArrayList<>();
+    ArrayList<LR1GrammarToken> tokens = new ArrayList<>();
 
-    SLR1GrammarLexer(String input) {
+    LR1GrammarLexer(String input) {
       this.input = input;
     }
 
@@ -50,7 +50,7 @@ public class LR1GrammarParser {
       }
 
       expect('>');
-      this.tokens.add(new SLR1GrammarToken(SLR1GrammarTokenType.VARIABLE, lexeme));
+      this.tokens.add(new LR1GrammarToken(LR1GrammarTokenType.VARIABLE, lexeme));
     }
 
     void lexTerminal() {
@@ -64,10 +64,10 @@ public class LR1GrammarParser {
       }
 
       expect(']');
-      this.tokens.add(new SLR1GrammarToken(SLR1GrammarTokenType.VARIABLE, lexeme));
+      this.tokens.add(new LR1GrammarToken(LR1GrammarTokenType.VARIABLE, lexeme));
     }
 
-    ArrayList<SLR1GrammarToken> lex() {
+    ArrayList<LR1GrammarToken> lex() {
       while (this.currentCharacterIndex < this.input.length()) {
         char currentCharacter = this.input.charAt(this.currentCharacterIndex);
 
@@ -79,11 +79,11 @@ public class LR1GrammarParser {
             lexTerminal();
             break switch_case;
           case ':':
-            this.tokens.add(new SLR1GrammarToken(SLR1GrammarTokenType.COLON));
+            this.tokens.add(new LR1GrammarToken(LR1GrammarTokenType.COLON));
             currentCharacterIndex++;
             break switch_case;
           case ';':
-            this.tokens.add(new SLR1GrammarToken(SLR1GrammarTokenType.SEMICOLON));
+            this.tokens.add(new LR1GrammarToken(LR1GrammarTokenType.SEMICOLON));
             currentCharacterIndex++;
             break switch_case;
           case ' ':
@@ -106,7 +106,7 @@ public class LR1GrammarParser {
     this.input = input;
   }
 
-  public static class SLR1GrammarProduction {
+  public static class LR1GrammarProduction {
     static enum SLR1GrammarProductionRHSSymbolType {
       TERMINAL, VARIABLE
     }
@@ -124,18 +124,18 @@ public class LR1GrammarParser {
     String lhs;
     ArrayList<SLR1GrammarProductionRHSSymbol> rhs;
 
-    SLR1GrammarProduction(String lhs, ArrayList<SLR1GrammarProductionRHSSymbol> rhs) {
+    LR1GrammarProduction(String lhs, ArrayList<SLR1GrammarProductionRHSSymbol> rhs) {
       this.lhs = lhs;
       this.rhs = rhs;
     }
   }
 
   int currentTokenIndex = 0;
-  ArrayList<SLR1GrammarToken> tokens;
-  ArrayList<SLR1GrammarProduction> productions = new ArrayList<>();
+  ArrayList<LR1GrammarToken> tokens;
+  ArrayList<LR1GrammarProduction> productions = new ArrayList<>();
 
-  void expectToken(SLR1GrammarTokenType type) {
-    SLR1GrammarToken token = tokens.get(currentTokenIndex);
+  void expectToken(LR1GrammarTokenType type) {
+    LR1GrammarToken token = tokens.get(currentTokenIndex);
     if (token.type != type) {
       throw new RuntimeException("Unexpected token: " + token.type);
     }
@@ -143,35 +143,35 @@ public class LR1GrammarParser {
   }
 
   void parseProduction() {
-    SLR1GrammarToken lhs = tokens.get(currentTokenIndex);
+    LR1GrammarToken lhs = tokens.get(currentTokenIndex);
     currentTokenIndex++;
-    expectToken(SLR1GrammarTokenType.COLON);
+    expectToken(LR1GrammarTokenType.COLON);
 
-    ArrayList<SLR1GrammarProduction.SLR1GrammarProductionRHSSymbol> symbols = new ArrayList<SLR1GrammarProduction.SLR1GrammarProductionRHSSymbol>();
+    ArrayList<LR1GrammarProduction.SLR1GrammarProductionRHSSymbol> symbols = new ArrayList<LR1GrammarProduction.SLR1GrammarProductionRHSSymbol>();
 
-    SLR1GrammarToken currentToken = tokens.get(currentTokenIndex);
-    while (currentToken.type != SLR1GrammarTokenType.SEMICOLON) {
-      if (currentToken.type == SLR1GrammarTokenType.TERMINAL) {
-        symbols.add(new SLR1GrammarProduction.SLR1GrammarProductionRHSSymbol(
-            SLR1GrammarProduction.SLR1GrammarProductionRHSSymbolType.TERMINAL, currentToken.lexeme));
-      } else if (currentToken.type == SLR1GrammarTokenType.VARIABLE) {
-        symbols.add(new SLR1GrammarProduction.SLR1GrammarProductionRHSSymbol(
-            SLR1GrammarProduction.SLR1GrammarProductionRHSSymbolType.VARIABLE, currentToken.lexeme));
+    LR1GrammarToken currentToken = tokens.get(currentTokenIndex);
+    while (currentToken.type != LR1GrammarTokenType.SEMICOLON) {
+      if (currentToken.type == LR1GrammarTokenType.TERMINAL) {
+        symbols.add(new LR1GrammarProduction.SLR1GrammarProductionRHSSymbol(
+            LR1GrammarProduction.SLR1GrammarProductionRHSSymbolType.TERMINAL, currentToken.lexeme));
+      } else if (currentToken.type == LR1GrammarTokenType.VARIABLE) {
+        symbols.add(new LR1GrammarProduction.SLR1GrammarProductionRHSSymbol(
+            LR1GrammarProduction.SLR1GrammarProductionRHSSymbolType.VARIABLE, currentToken.lexeme));
       }
 
       currentTokenIndex++;
       currentToken = tokens.get(currentTokenIndex);
     }
 
-    expectToken(SLR1GrammarTokenType.SEMICOLON);
-    productions.add(new SLR1GrammarProduction(lhs.lexeme, symbols));
+    expectToken(LR1GrammarTokenType.SEMICOLON);
+    productions.add(new LR1GrammarProduction(lhs.lexeme, symbols));
   }
 
   /**
    * Generates the list of productions
    */
-  public ArrayList<SLR1GrammarProduction> parse() {
-    SLR1GrammarLexer lexer = new SLR1GrammarLexer(input);
+  public ArrayList<LR1GrammarProduction> parse() {
+    LR1GrammarLexer lexer = new LR1GrammarLexer(input);
     this.tokens = lexer.lex();
 
     while (currentTokenIndex < tokens.size())

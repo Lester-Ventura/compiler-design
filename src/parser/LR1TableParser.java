@@ -4,20 +4,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class LR1TableParser {
-  static enum SLR1TableTokenType {
+  static enum LR1TableTokenType {
     VARIABLE, TERMINAL, EQUAL, PROCESS, COMMA, NEWLINE
   }
 
-  static class SLR1TableToken {
-    SLR1TableTokenType type;
+  static class LR1TableToken {
+    LR1TableTokenType type;
     String lexeme = "";
 
-    SLR1TableToken(SLR1TableTokenType type, String lexeme) {
+    LR1TableToken(LR1TableTokenType type, String lexeme) {
       this.lexeme = lexeme;
       this.type = type;
     }
 
-    SLR1TableToken(SLR1TableTokenType type) {
+    LR1TableToken(LR1TableTokenType type) {
       this.lexeme = "";
       this.type = type;
     }
@@ -27,12 +27,12 @@ public class LR1TableParser {
     }
   }
 
-  static class SLR1TableLexer {
+  static class LR1TableLexer {
     String input;
     int currentCharacterIndex = 0;
-    ArrayList<SLR1TableToken> tokens = new ArrayList<SLR1TableToken>();
+    ArrayList<LR1TableToken> tokens = new ArrayList<LR1TableToken>();
 
-    SLR1TableLexer(String input) {
+    LR1TableLexer(String input) {
       this.input = input;
     }
 
@@ -51,7 +51,7 @@ public class LR1TableParser {
         lexeme += input.charAt(currentCharacterIndex++);
 
       expectCharacter(']');
-      tokens.add(new SLR1TableToken(SLR1TableTokenType.TERMINAL, lexeme));
+      tokens.add(new LR1TableToken(LR1TableTokenType.TERMINAL, lexeme));
     }
 
     void lexVariable() {
@@ -61,7 +61,7 @@ public class LR1TableParser {
         lexeme += input.charAt(currentCharacterIndex++);
 
       expectCharacter('>');
-      tokens.add(new SLR1TableToken(SLR1TableTokenType.VARIABLE, lexeme));
+      tokens.add(new LR1TableToken(LR1TableTokenType.VARIABLE, lexeme));
     }
 
     void lexAction() {
@@ -73,10 +73,10 @@ public class LR1TableParser {
         ch = input.charAt(++currentCharacterIndex);
       } while (currentCharacterIndex < input.length() && !(ch == ',' || ch == '\n' || ch == '\r'));
 
-      tokens.add(new SLR1TableToken(SLR1TableTokenType.PROCESS, lexeme));
+      tokens.add(new LR1TableToken(LR1TableTokenType.PROCESS, lexeme));
     }
 
-    ArrayList<SLR1TableToken> lex() {
+    ArrayList<LR1TableToken> lex() {
       while (currentCharacterIndex < input.length()) {
         char c = input.charAt(currentCharacterIndex);
 
@@ -84,7 +84,7 @@ public class LR1TableParser {
           currentCharacterIndex++;
           continue;
         } else if (c == '\n') {
-          tokens.add(new SLR1TableToken(SLR1TableTokenType.NEWLINE));
+          tokens.add(new LR1TableToken(LR1TableTokenType.NEWLINE));
           currentCharacterIndex++;
           continue;
         } else if (c == '[')
@@ -92,11 +92,11 @@ public class LR1TableParser {
         else if (c == '<')
           lexVariable();
         else if (c == '=') {
-          tokens.add(new SLR1TableToken(SLR1TableTokenType.EQUAL));
+          tokens.add(new LR1TableToken(LR1TableTokenType.EQUAL));
           currentCharacterIndex++;
           continue;
         } else if (c == ',') {
-          tokens.add(new SLR1TableToken(SLR1TableTokenType.COMMA));
+          tokens.add(new LR1TableToken(LR1TableTokenType.COMMA));
           currentCharacterIndex++;
           continue;
         } else
@@ -113,15 +113,15 @@ public class LR1TableParser {
     this.input = input;
   }
 
-  static enum SLR1TableProcessType {
+  static enum LR1TableProcessType {
     SHIFT, REDUCE, GOTO
   }
 
-  static class SLR1TableProcess {
-    SLR1TableProcessType type;
+  static class LR1TableProcess {
+    LR1TableProcessType type;
     int value;
 
-    SLR1TableProcess(SLR1TableProcessType type, int value) {
+    LR1TableProcess(LR1TableProcessType type, int value) {
       this.type = type;
       this.value = value;
     }
@@ -131,20 +131,20 @@ public class LR1TableParser {
     }
   }
 
-  public static class SLR1TableState {
-    HashMap<String, SLR1TableProcess> actions = new HashMap<>();
-    HashMap<String, SLR1TableProcess> gotos = new HashMap<>();
+  public static class LR1TableState {
+    HashMap<String, LR1TableProcess> actions = new HashMap<>();
+    HashMap<String, LR1TableProcess> gotos = new HashMap<>();
 
     public String toString() {
       return String.format("%s\n%s", this.actions.toString(), this.gotos.toString());
     }
   }
 
-  ArrayList<SLR1TableToken> tokens;
+  ArrayList<LR1TableToken> tokens;
   int currentTokenIndex = 0;
 
-  SLR1TableToken expectToken(SLR1TableTokenType type) {
-    SLR1TableToken token = tokens.get(currentTokenIndex);
+  LR1TableToken expectToken(LR1TableTokenType type) {
+    LR1TableToken token = tokens.get(currentTokenIndex);
     if (token.type != type) {
       throw new RuntimeException("Unexpected token: " + token.type);
     }
@@ -152,43 +152,43 @@ public class LR1TableParser {
     return token;
   }
 
-  ArrayList<SLR1TableState> states = new ArrayList<>();
+  ArrayList<LR1TableState> states = new ArrayList<>();
 
-  SLR1TableState parseState() {
-    SLR1TableState newState = new SLR1TableState();
-    SLR1TableToken currentToken = tokens.get(currentTokenIndex);
+  LR1TableState parseState() {
+    LR1TableState newState = new LR1TableState();
+    LR1TableToken currentToken = tokens.get(currentTokenIndex);
 
     do {
       currentTokenIndex++;
-      if (currentToken.type == SLR1TableTokenType.TERMINAL) {
-        expectToken(SLR1TableTokenType.EQUAL);
-        SLR1TableToken actionToken = expectToken(SLR1TableTokenType.PROCESS);
+      if (currentToken.type == LR1TableTokenType.TERMINAL) {
+        expectToken(LR1TableTokenType.EQUAL);
+        LR1TableToken actionToken = expectToken(LR1TableTokenType.PROCESS);
         int value = Integer.parseInt(actionToken.lexeme.substring(1));
 
-        newState.actions.put(currentToken.lexeme, new SLR1TableProcess(
-            actionToken.lexeme.startsWith("r") ? SLR1TableProcessType.REDUCE : SLR1TableProcessType.SHIFT, value));
-      } else if (currentToken.type == SLR1TableTokenType.VARIABLE) {
-        expectToken(SLR1TableTokenType.EQUAL);
-        SLR1TableToken gotoToken = expectToken(SLR1TableTokenType.PROCESS);
+        newState.actions.put(currentToken.lexeme, new LR1TableProcess(
+            actionToken.lexeme.startsWith("r") ? LR1TableProcessType.REDUCE : LR1TableProcessType.SHIFT, value));
+      } else if (currentToken.type == LR1TableTokenType.VARIABLE) {
+        expectToken(LR1TableTokenType.EQUAL);
+        LR1TableToken gotoToken = expectToken(LR1TableTokenType.PROCESS);
 
         int value = Integer.parseInt(gotoToken.lexeme);
-        newState.gotos.put(currentToken.lexeme, new SLR1TableProcess(SLR1TableProcessType.GOTO, value));
+        newState.gotos.put(currentToken.lexeme, new LR1TableProcess(LR1TableProcessType.GOTO, value));
       }
 
       currentToken = tokens.get(currentTokenIndex);
-      if (currentToken.type == SLR1TableTokenType.COMMA) {
+      if (currentToken.type == LR1TableTokenType.COMMA) {
         currentTokenIndex++;
         currentToken = tokens.get(currentTokenIndex);
       }
 
-    } while (currentToken.type != SLR1TableTokenType.NEWLINE);
+    } while (currentToken.type != LR1TableTokenType.NEWLINE);
 
     currentTokenIndex++; // consume newline token
     return newState;
   }
 
-  public ArrayList<SLR1TableState> parse() {
-    SLR1TableLexer lexer = new SLR1TableLexer(input);
+  public ArrayList<LR1TableState> parse() {
+    LR1TableLexer lexer = new LR1TableLexer(input);
     this.tokens = lexer.lex();
 
     while (currentTokenIndex < this.tokens.size())

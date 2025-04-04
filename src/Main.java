@@ -9,9 +9,9 @@ public class Main {
 
         // load the grammar file and list of productions
         LR1GrammarParser grammarParser = new LR1GrammarParser(FileLoader.loadFile("grammar.txt"));
-        ArrayList<LR1GrammarParser.SLR1GrammarProduction> productions = grammarParser.parse();
-        LR1TableParser tableParser = new LR1TableParser(FileLoader.loadFile("slr1_table.txt"));
-        ArrayList<LR1TableParser.SLR1TableState> states = tableParser.parse();
+        ArrayList<LR1GrammarParser.LR1GrammarProduction> productions = grammarParser.parse();
+        LR1TableParser tableParser = new LR1TableParser(FileLoader.loadFile("lr1_table.txt"));
+        ArrayList<LR1TableParser.LR1TableState> states = tableParser.parse();
 
         CreateParser parserGenerator = (String input) -> new LR1Parser(input, productions, states);
         CodeReader codeReader = new CodeReader(parserGenerator);

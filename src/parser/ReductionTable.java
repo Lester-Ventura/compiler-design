@@ -20,9 +20,9 @@ class ReductionTable {
 
   // This class wraps popped symbols and provides methods for easier access
   static class ReductionInput {
-    ArrayList<LR1Parser.SLR1StackSymbol> symbols;
+    ArrayList<LR1Parser.LR1StackSymbol> symbols;
 
-    ReductionInput(ArrayList<LR1Parser.SLR1StackSymbol> symbols) {
+    ReductionInput(ArrayList<LR1Parser.LR1StackSymbol> symbols) {
       this.symbols = symbols;
     }
 
@@ -32,19 +32,19 @@ class ReductionTable {
     }
 
     Token getToken(int index) {
-      LR1Parser.SLR1StackSymbol symbol = symbols.get(index);
-      if (!(symbol instanceof LR1Parser.SLR1StackToken))
+      LR1Parser.LR1StackSymbol symbol = symbols.get(index);
+      if (!(symbol instanceof LR1Parser.LR1StackToken))
         throw new Error("Can't get a token from a non-token");
 
-      return ((LR1Parser.SLR1StackToken) symbol).token;
+      return ((LR1Parser.LR1StackToken) symbol).token;
     }
 
     Node getInternalNode(int index) {
-      LR1Parser.SLR1StackSymbol symbol = symbols.get(index);
-      if (!(symbol instanceof LR1Parser.SLR1StackInternalNode))
+      LR1Parser.LR1StackSymbol symbol = symbols.get(index);
+      if (!(symbol instanceof LR1Parser.LR1StackInternalNode))
         throw new Error("Can't get an internal node from a non-internal node");
 
-      return ((LR1Parser.SLR1StackInternalNode) symbol).node;
+      return ((LR1Parser.LR1StackInternalNode) symbol).node;
     }
 
     StatementNode getStatementNode(int index) {

@@ -3,7 +3,7 @@ package parser;
 import java.util.*;
 import lexer.*;
 import parser.DefaultProductions.DefaultProduction;
-import parser.LR1TableParser.SLR1TableProcess;
+import parser.LR1TableParser.LR1TableProcess;
 
 public class LR1Parser {
   static class StateNode {
@@ -18,14 +18,14 @@ public class LR1Parser {
     }
   }
 
-  static abstract class SLR1StackSymbol {
+  static abstract class LR1StackSymbol {
 
   }
 
-  static class SLR1StackToken extends SLR1StackSymbol {
+  static class LR1StackToken extends LR1StackSymbol {
     Token token;
 
-    SLR1StackToken(Token token) {
+    LR1StackToken(Token token) {
       this.token = token;
     }
 
@@ -34,10 +34,10 @@ public class LR1Parser {
     }
   }
 
-  static class SLR1StackInternalNode extends SLR1StackSymbol {
+  static class LR1StackInternalNode extends LR1StackSymbol {
     Node node;
 
-    SLR1StackInternalNode(Node node) {
+    LR1StackInternalNode(Node node) {
       this.node = node;
     }
 
@@ -47,15 +47,15 @@ public class LR1Parser {
   }
 
   String input;
-  ArrayList<LR1GrammarParser.SLR1GrammarProduction> productions;
-  ArrayList<LR1TableParser.SLR1TableState> states;
+  ArrayList<LR1GrammarParser.LR1GrammarProduction> productions;
+  ArrayList<LR1TableParser.LR1TableState> states;
   HashMap<Integer, ReductionTable.Reduction> reducers = ReductionTable.generateReductions();
   RegexEngine lexer;
 
   public LR1Parser(
       String input,
-      ArrayList<LR1GrammarParser.SLR1GrammarProduction> productions,
-      ArrayList<LR1TableParser.SLR1TableState> states) {
+      ArrayList<LR1GrammarParser.LR1GrammarProduction> productions,
+      ArrayList<LR1TableParser.LR1TableState> states) {
     this.productions = productions;
     this.states = states;
     this.input = input;
@@ -63,7 +63,7 @@ public class LR1Parser {
   }
 
   Stack<StateNode> statesStack = new Stack<>();
-  Stack<SLR1StackSymbol> symbolsStack = new Stack<>();
+  Stack<LR1StackSymbol> symbolsStack = new Stack<>();
   ArrayList<ParserException> exceptions = new ArrayList<>();
 
   public ParserResult parse() {
@@ -77,7 +77,7 @@ public class LR1Parser {
       StateNode currentNode = statesStack.peek();
 
       Token token = lexer.peekNextToken();
-      LR1TableParser.SLR1TableProcess action = states.get(currentNode.stateIndex).actions.get(token.type.toString());
+      LR1TableParser.LR1TableProcess action = states.get(currentNode.stateIndex).actions.get(token.type.toString());
 
       if (action == null) {
         try {
@@ -92,22 +92,22 @@ public class LR1Parser {
         action = states.get(currentNode.stateIndex).actions.get(token.type.toString());
       }
 
-      if (action.type == LR1TableParser.SLR1TableProcessType.SHIFT) {
+      if (action.type == LR1TableParser.LR1TableProcessType.SHIFT) {
         // add current token to the stack and push the next state
         token = lexer.getNextToken();
 
         statesStack.push(new StateNode(action.value));
-        symbolsStack.push(new SLR1StackToken(token));
+        symbolsStack.push(new LR1StackToken(token));
       }
 
-      else if (action.type == LR1TableParser.SLR1TableProcessType.REDUCE) {
+      else if (action.type == LR1TableParser.LR1TableProcessType.REDUCE) {
         if (action.value == 0)
           break;
 
-        LR1GrammarParser.SLR1GrammarProduction production = productions.get(action.value);
+        LR1GrammarParser.LR1GrammarProduction production = productions.get(action.value);
 
         // pop the stack and reduce by this production
-        ArrayList<SLR1StackSymbol> popped = new ArrayList<SLR1StackSymbol>();
+        ArrayList<LR1StackSymbol> popped = new ArrayList<LR1StackSymbol>();
         for (int i = 0; i < production.rhs.size(); i++) {
           popped.add(symbolsStack.pop());
           statesStack.pop();
@@ -124,7 +124,7 @@ public class LR1Parser {
         // try to perform the reduction
         try {
           Node result = reduction.reducer.run(reductionInput);
-          SLR1StackInternalNode node = new SLR1StackInternalNode(result);
+          LR1StackInternalNode node = new LR1StackInternalNode(result);
           symbolsStack.add(node);
         } catch (Exception e) {
           crash("Error while performing reduction for production: " + action.value + ". Reduction input: "
@@ -133,21 +133,21 @@ public class LR1Parser {
 
         // get the top node and figure out what state to add to state stack
         StateNode topNode = statesStack.peek();
-        LR1TableParser.SLR1TableProcess gotoAction = states.get(topNode.stateIndex).gotos.get(production.lhs);
+        LR1TableParser.LR1TableProcess gotoAction = states.get(topNode.stateIndex).gotos.get(production.lhs);
 
         if (gotoAction == null)
           crash("No goto action found for state: " + topNode.stateIndex + " and production: " + production.lhs
               + ". Actions: Reduce by production " + action.value, token);
-        else if (gotoAction.type != LR1TableParser.SLR1TableProcessType.GOTO)
+        else if (gotoAction.type != LR1TableParser.LR1TableProcessType.GOTO)
           crash("Expected GOTO action, received: " + gotoAction.type, token);
 
         statesStack.push(new StateNode(gotoAction.value));
       }
     }
 
-    SLR1StackSymbol top = (SLR1StackSymbol) symbolsStack.peek();
-    if (top instanceof SLR1StackInternalNode)
-      return new ParserResult(((SLR1StackInternalNode) top).node, exceptions);
+    LR1StackSymbol top = (LR1StackSymbol) symbolsStack.peek();
+    if (top instanceof LR1StackInternalNode)
+      return new ParserResult(((LR1StackInternalNode) top).node, exceptions);
 
     return new ParserResult(null, exceptions);
   }
@@ -201,7 +201,7 @@ public class LR1Parser {
     // keep popping the stack until the current node has atleast one transition to
     // another GOTO action that has a default production
     outer: while (productionToSkip == null) {
-      HashMap<String, SLR1TableProcess> currentStateGotos = states.get(currentNode.stateIndex).gotos;
+      HashMap<String, LR1TableProcess> currentStateGotos = states.get(currentNode.stateIndex).gotos;
 
       if (currentStateGotos.size() != 0) {
         for (String gotoName : currentStateGotos.keySet()) {
@@ -238,7 +238,7 @@ public class LR1Parser {
     }
 
     // instantiate and add to the symbols stack, add next state to states stack
-    symbolsStack.push(new SLR1StackInternalNode(defaultProductions.get(productionToSkip).run()));
+    symbolsStack.push(new LR1StackInternalNode(defaultProductions.get(productionToSkip).run()));
     statesStack.push(new StateNode(nextState));
   }
 

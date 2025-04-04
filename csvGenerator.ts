@@ -1,6 +1,6 @@
 import fs from "fs";
 
-const grammar: string = fs.readFileSync("slr1_table.txt", "utf8");
+const grammar: string = fs.readFileSync("lr1_table.txt", "utf8");
 const terminals = new Set<string>();
 const variables = new Set<string>();
 const states = grammar.split("\n");

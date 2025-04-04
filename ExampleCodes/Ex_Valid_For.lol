@@ -6,9 +6,6 @@ cannon (item lvl : stats =0; lvl<18; lvl++) {
 }
 }
 
-cannon(item lvl: stats = 0; lvl < 18; lvl++)
-broadcast("\nOne liner");
-
 cannon(;;) {
 broadcast("200 years of experience.")
 }

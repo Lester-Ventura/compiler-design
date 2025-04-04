@@ -107,24 +107,24 @@ public class LR1GrammarParser {
   }
 
   public static class LR1GrammarProduction {
-    static enum SLR1GrammarProductionRHSSymbolType {
+    static enum LR1GrammarProductionRHSSymbolType {
       TERMINAL, VARIABLE
     }
 
-    static class SLR1GrammarProductionRHSSymbol {
-      SLR1GrammarProductionRHSSymbolType type;
+    static class LR1GrammarProductionRHSSymbol {
+      LR1GrammarProductionRHSSymbolType type;
       String lexeme;
 
-      SLR1GrammarProductionRHSSymbol(SLR1GrammarProductionRHSSymbolType type, String lexeme) {
+      LR1GrammarProductionRHSSymbol(LR1GrammarProductionRHSSymbolType type, String lexeme) {
         this.type = type;
         this.lexeme = lexeme;
       }
     }
 
     String lhs;
-    ArrayList<SLR1GrammarProductionRHSSymbol> rhs;
+    ArrayList<LR1GrammarProductionRHSSymbol> rhs;
 
-    LR1GrammarProduction(String lhs, ArrayList<SLR1GrammarProductionRHSSymbol> rhs) {
+    LR1GrammarProduction(String lhs, ArrayList<LR1GrammarProductionRHSSymbol> rhs) {
       this.lhs = lhs;
       this.rhs = rhs;
     }
@@ -147,16 +147,16 @@ public class LR1GrammarParser {
     currentTokenIndex++;
     expectToken(LR1GrammarTokenType.COLON);
 
-    ArrayList<LR1GrammarProduction.SLR1GrammarProductionRHSSymbol> symbols = new ArrayList<LR1GrammarProduction.SLR1GrammarProductionRHSSymbol>();
+    ArrayList<LR1GrammarProduction.LR1GrammarProductionRHSSymbol> symbols = new ArrayList<LR1GrammarProduction.LR1GrammarProductionRHSSymbol>();
 
     LR1GrammarToken currentToken = tokens.get(currentTokenIndex);
     while (currentToken.type != LR1GrammarTokenType.SEMICOLON) {
       if (currentToken.type == LR1GrammarTokenType.TERMINAL) {
-        symbols.add(new LR1GrammarProduction.SLR1GrammarProductionRHSSymbol(
-            LR1GrammarProduction.SLR1GrammarProductionRHSSymbolType.TERMINAL, currentToken.lexeme));
+        symbols.add(new LR1GrammarProduction.LR1GrammarProductionRHSSymbol(
+            LR1GrammarProduction.LR1GrammarProductionRHSSymbolType.TERMINAL, currentToken.lexeme));
       } else if (currentToken.type == LR1GrammarTokenType.VARIABLE) {
-        symbols.add(new LR1GrammarProduction.SLR1GrammarProductionRHSSymbol(
-            LR1GrammarProduction.SLR1GrammarProductionRHSSymbolType.VARIABLE, currentToken.lexeme));
+        symbols.add(new LR1GrammarProduction.LR1GrammarProductionRHSSymbol(
+            LR1GrammarProduction.LR1GrammarProductionRHSSymbolType.VARIABLE, currentToken.lexeme));
       }
 
       currentTokenIndex++;

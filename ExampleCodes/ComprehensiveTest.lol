@@ -1,5 +1,6 @@
 // this file manually tests all the possible productions 
 steal "lexer.lol";
+@
 
 canwin(faker == faker){ 
   broadcast("Hello World");

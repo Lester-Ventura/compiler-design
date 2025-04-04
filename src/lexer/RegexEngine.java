@@ -87,10 +87,16 @@ public class RegexEngine {
   }
 
   public Token peekNextToken() {
-    int save = currentCharacterIndex;
-    Token token = getNextToken();
-    currentCharacterIndex = save;
-    return token;
+    while (true) {
+      try {
+        int save = currentCharacterIndex;
+        Token token = getNextToken();
+        currentCharacterIndex = save;
+        return token;
+      } catch (Error scannerError) {
+        System.out.println(scannerError);
+      }
+    }
   }
 
   public Token getNextToken() {

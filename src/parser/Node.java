@@ -105,21 +105,21 @@ public abstract class Node {
   public static class SwitchCaseList extends Node {
     public static class SwitchCase extends Node {
       Token literal;
-      StatementList statements;
+      StatementNode.Block statements;
 
-      SwitchCase(Token literal, StatementList statements) {
+      SwitchCase(Token literal, StatementNode.Block statements) {
         this.literal = literal;
         this.statements = statements;
       }
 
-      SwitchCase(StatementList statements) {
+      SwitchCase(StatementNode.Block statements) {
         this.literal = null;
         this.statements = statements;
       }
 
       SwitchCase(Token literal) {
         this.literal = literal;
-        this.statements = new Node.StatementList();
+        this.statements = new StatementNode.Block();
       }
 
       public String toString() {
@@ -166,7 +166,7 @@ public abstract class Node {
       return this;
     }
 
-    public SwitchCaseList setDefaultCase(StatementList statements) {
+    public SwitchCaseList setDefaultCase(StatementNode.Block statements) {
       this.defaultCase = new SwitchCase(null, statements);
       return this;
     }

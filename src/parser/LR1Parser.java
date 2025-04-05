@@ -168,7 +168,7 @@ public class LR1Parser {
     second += "│";
     third += "┘";
 
-    String window = String.format("%" + length + "d | %s\n%s\n%s\n", currentToken.line, lines[currentToken.line - 1],
+    String window = String.format("%" + length + "d | %s\n%s\n%s\n", currentToken.line, lines.length <= currentToken.line -1 ? "" : lines[currentToken.line - 1],
         second, third);
     if (currentToken.line < lines.length)
       window += String.format("%" + length + "d | %s\n", currentToken.line + 1, lines[currentToken.line]);

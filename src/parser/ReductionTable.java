@@ -416,9 +416,9 @@ class ReductionTable {
     reductions.put(129, new Reduction(
         (input) -> new ExpressionNode.Incrementation(input.getExpressionNode(0), input.getToken(1), true)));
     reductions.put(130, new Reduction(
-        (input) -> new ExpressionNode.Incrementation(input.getExpressionNode(0), input.getToken(1), false)));
+        (input) -> new ExpressionNode.Incrementation(input.getExpressionNode(1), input.getToken(0), false)));
     reductions.put(131, new Reduction(
-        (input) -> new ExpressionNode.Incrementation(input.getExpressionNode(0), input.getToken(1), false)));
+        (input) -> new ExpressionNode.Incrementation(input.getExpressionNode(1), input.getToken(0), false)));
     reductions.put(132, new Reduction(
         (input) -> new ExpressionNode.Assignment(input.getExpressionNode(0), input.getExpressionNode(2))));
 

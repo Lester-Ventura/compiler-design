@@ -4,6 +4,7 @@ import java.util.*;
 import lexer.*;
 import parser.DefaultProductions.DefaultProduction;
 import parser.LR1TableParser.LR1TableProcess;
+import parser.LR1TableParser.LR1TableProcessType;
 
 public class LR1Parser {
   static class StateNode {
@@ -81,13 +82,13 @@ public class LR1Parser {
 
       if (action == null) {
         try {
-          sync();
+          token = sync();
         } catch (ParserException exception) {
           exceptions.add(exception);
           break;
         }
 
-        token = lexer.peekNextToken();
+        token = token != null ? token : lexer.peekNextToken();
         currentNode = statesStack.peek();
         action = states.get(currentNode.stateIndex).actions.get(token.type.toString());
       }
@@ -176,20 +177,53 @@ public class LR1Parser {
     return window;
   }
 
-  // performs panic mode error handling and leaves the parser in a safe state
-  // TO DO: check if this works
-  private void sync() throws ParserException {
-    HashMap<String, DefaultProduction> defaultProductions = DefaultProductions.createDefaultProductions();
+  private boolean isSafe() {
+    Token currentToken = lexer.peekNextToken();
+    StateNode currentNode = statesStack.peek();
+    return states.get(currentNode.stateIndex).actions.containsKey(currentToken.type.toString());
+  }
 
+  // performs panic mode error handling and leaves the parser in a safe state
+  private Token sync() throws ParserException {
+    Token currentToken = lexer.peekNextToken();
     StateNode currentNode = statesStack.peek();
 
+    // check for extra semicolons
+    if (currentToken.type == TokenType.SEMICOLON) {
+      while (lexer.peekNextToken().type == TokenType.SEMICOLON)
+        currentToken = lexer.getNextToken();
+      currentToken = lexer.peekNextToken();
+
+      if (isSafe())
+        return null;
+    }
+
+    // check for lackng semicolons
+    HashMap<String, LR1TableProcess> expecteds = states.get(currentNode.stateIndex).actions;
+    if (expecteds.containsKey("SEMICOLON")) {
+      LR1TableProcess action = expecteds.get("SEMICOLON");
+      Token newToken = new Token(TokenType.SEMICOLON, ";", new ColumnAndRow(currentToken.line, currentToken.column));
+      if (action.type == LR1TableProcessType.REDUCE)
+        return newToken;
+
+      symbolsStack.push(new LR1StackToken(
+          newToken));
+      statesStack.push(new StateNode(action.value));
+      exceptions.add(new ParserException(String.format(
+          "Expected SEMICOLON before line: %d, column: %d, but received %s, SEMICOLON was automatically inserted.",
+          currentToken.line, currentToken.column, currentToken.type.toString())));
+
+      if (isSafe())
+        return null;
+    }
+
+    HashMap<String, DefaultProduction> defaultProductions = DefaultProductions.createDefaultProductions();
+
     // Build error message
-    Token currentToken = lexer.peekNextToken();
     String window = buildErrorWindow(currentToken);
 
     // create a user error message by determining the possible next tokens
-    Set<String> expecteds = states.get(currentNode.stateIndex).actions.keySet();
-    String expectedString = String.join(", ", (String[]) expecteds.toArray(new String[0]));
+    String expectedString = String.join(", ", (String[]) expecteds.keySet().toArray(new String[0]));
 
     String userErrorMessage = String.format(
         "Error in line %d column %d\n%s\nExpected one of the following tokens: %s but got %s",
@@ -240,6 +274,7 @@ public class LR1Parser {
     // instantiate and add to the symbols stack, add next state to states stack
     symbolsStack.push(new LR1StackInternalNode(defaultProductions.get(productionToSkip).run()));
     statesStack.push(new StateNode(nextState));
+    return null;
   }
 
   // this function should be called when there is an error with the way that the

@@ -7,5 +7,5 @@ cannon (item lvl : stats =0; lvl<18; lvl++) {
 }
 
 cannon(;;) {
-broadcast("200 years of experience.")
+broadcast("200 years of experience.");
 }

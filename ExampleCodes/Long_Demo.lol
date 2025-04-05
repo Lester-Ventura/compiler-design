@@ -15,28 +15,23 @@ item floatNum: stats = 10.5;
 // arrays
 item damageValues: stats[] = [50, 75, 100, 125];
 
-// objects, NOT SURE WITH BUILD SAMPLE CODE
+// objects
 build Champion {
-    item name: message;
-    item level: stats;
-    item isActive: goat;
+    name: message;
+    level: stats;
+    isActive: goat;
 }
 
-item player1: Champion; 
-player1.name = "Zed"; 
-player1.level = 18; 
-player1.isActive = shaker;
-
-broadcast("Player 1: " + player1.name + " (Level " + player1.level + ")");
 
 // functions
-skill attack(item damage: stats, item crit: goat): stats -> {
+item attack: skill (stats, goat) -> stats =
+skill (item damage: stats, item crit: goat): stats -> {
     canwin (crit) {
         recast damage * 2;
     } lose {
         recast damage;
     }
-}
+};
 
 item totalDamage: stats = attack(100, shaker);
 broadcast("Total damage dealt: " + totalDamage);
@@ -72,12 +67,12 @@ canwin (playerLevel > 15) {
 
 // using teleport, and flash
 channel (playerLevel) {
-    teleport 10: {
+    teleport (10): {
         broadcast("\n\tChampion has reached level 10.");
         flash 18;  //sample usage of flash
         cancel;
     }
-    teleport 18: {
+    teleport (18): {
         broadcast("\n\tChampion has reached max level!");
         cancel;
     }
@@ -87,7 +82,7 @@ channel (playerLevel) {
 }
 
 // looping through an array
-cannon (item dmg of damageValues) {
+cannon (item dmg: stats of damageValues) {
     broadcast("Dealt " + dmg + " damage!");
 }
 
@@ -109,3 +104,4 @@ support {
 } carry (error) {
     broadcast("Caught error: " + error);
 }
+

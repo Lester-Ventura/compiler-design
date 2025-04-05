@@ -213,7 +213,8 @@ public class RegexEngine {
     lexer.addRule("binary_number", "0b(0|1)+");
 
     // handle literal tokens
-    lexer.addRule("string_literal", "$\"(${character})*$\" | $\'(${character})*$\'", TokenType.STRING_LITERAL);
+    lexer.addRule("string_literal", "$\"(${character} | $\')*$\" | $\'(${character} | $\")*$\'",
+        TokenType.STRING_LITERAL);
     lexer.addRule("number_literal",
         "${float_number}|${decimal_number}|${octal_number}|${binary_number}|${hexadecimal_number}",
         TokenType.NUMBER_LITERAL);

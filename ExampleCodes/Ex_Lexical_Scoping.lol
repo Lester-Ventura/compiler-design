@@ -1,5 +1,6 @@
 // This defines a function called `split_string` in the global scope
-item split_string = skill (
+item split_string: skill(message, message) -> message[] = 
+skill (
   item input: message, 
   item character: message
 ): message[] -> {
@@ -9,18 +10,19 @@ item split_string = skill (
   item ret: message[] = [];
   item current: message = "";
 
-
-  cannon(item i = 0; i < input.length(); i++){
+  cannon(item i: stats = 0; i < input.length(); i = i + 1) {
     // `ch` and `i` are defined in this block due to the for loop initialization and this variable declaration
-    int ch: message = input[i];
+    item ch: message = input[i];
 
-
-    canwin(ch == "character"){
+    canwin(ch == character) {
       ret.push(current);
       current = "";
-    } lose current = current + ch;
+    } lose {
+      current = current + ch;
+    }
   }
 
   ret.push(current);
-  return ret;
-}
+  recast ret;
+};
+

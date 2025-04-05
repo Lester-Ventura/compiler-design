@@ -17,7 +17,8 @@ support {
 }
 
 // Another example with error handling for array access
-item performArrayOperation = skill (): passive -> {
+item performArrayOperation: skill () -> passive = 
+skill (): passive -> {
     item scores: stats[] = [10, 20, 30];
     item index: stats = 5; // Out of bounds index
     

@@ -1,4 +1,4 @@
-item factorial = skill (item n: stats): stats -> {
+item factorial: skill (stats) -> stats = skill (item n: stats): stats -> {
     canwin (n <= 1) {
         recast 1;
     } lose {
@@ -11,7 +11,8 @@ item num: stats = 5;
 broadcast("Factorial of " + num + " is: " + factorial(num));
 
 // Another function example - calculate damage
-item calculateDamage = skill (
+item calculateDamage: skill (stats, stats, stats) -> stats = 
+skill (
     item baseDamage: stats,
     item armorPen: stats,
     item targetArmor: stats

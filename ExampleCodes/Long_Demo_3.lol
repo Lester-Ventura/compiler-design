@@ -48,11 +48,11 @@ canwin (result > 10) {
 
 // switch
 channel (result) {
-    teleport 10: {
+    teleport (10): {
         broadcast("\n\tThe result is ten.");
         cancel;
     }
-    teleport 15: {
+    teleport (15): {
         broadcast("\n\tThe result is fifteen.");
         cancel;
     }
@@ -65,28 +65,23 @@ channel (result) {
 wave (x > 0) {
     broadcast("x is positive: " + x);
     x = x - 1;
-} clear;
+    clear;
+} 
 
 cannon (item i: stats = 0; i < 5; i = i + 1) {
     broadcast("Loop iteration: " + i);
 }
 
-cannon (item num of [1, 2, 3, 4, 5]) {
+cannon (item num: stats of [1, 2, 3, 4, 5]) {
     broadcast("For each: " + num);
 }
 
 // object type declaration
 build Player {
-    item name: message;
-    item health: stats;
-    item mana: stats;
+    name: message;
+    health: stats;
+    mana: stats;
 }
-
-item myPlayer: Player;
-myPlayer.name = "Invoker";
-myPlayer.health = 100;
-myPlayer.mana = 200;
-broadcast("Player: " + myPlayer.name + ", Health: " + myPlayer.health + ", Mana: " + myPlayer.mana);
 
 // error handling
 support {
@@ -94,5 +89,6 @@ support {
 } carry (error) {
     broadcast("Caught error: " + error);
 }
+
 
 

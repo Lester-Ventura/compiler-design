@@ -349,7 +349,7 @@ class ReductionTable {
     reductions.put(79, new Reduction(
         (input) -> new ExpressionNode.ObjectLiteral((Node.ObjectLiteralFieldList) input.getInternalNode(1))));
     reductions.put(80, new Reduction((input) -> new ExpressionNode.ObjectLiteral()));
-    reductions.put(91, new Reduction((input) -> ((Node.ObjectLiteralFieldList) input.getInternalNode(2))
+    reductions.put(81, new Reduction((input) -> ((Node.ObjectLiteralFieldList) input.getInternalNode(2))
         .add((Node.ObjectLiteralField) input.getInternalNode(0))));
     reductions.put(82,
         new Reduction((input) -> new Node.ObjectLiteralFieldList((Node.ObjectLiteralField) input.getInternalNode(0))));

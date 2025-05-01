@@ -1,7 +1,11 @@
 package parser;
 
 import interpreter.ExecutionContext;
+import interpreter.InterpreterError;
+import interpreter.LoLangThrowable;
+import interpreter.LoLangValue;
 import lexer.Token;
+import parser.Node.SwitchCaseList.SwitchCase;
 import utils.DOTGenerator;
 
 public abstract class StatementNode extends Node {
@@ -29,6 +33,11 @@ public abstract class StatementNode extends Node {
       this.statements.toDot(builder);
       builder.addEdge(this.hashCode(), this.statements.hashCode());
     }
+
+    public void execute(ExecutionContext context) {
+      for (StatementNode statement : this.statements.statements)
+        statement.execute(context);
+    }
   }
 
   public static class Import extends StatementNode {
@@ -44,6 +53,10 @@ public abstract class StatementNode extends Node {
 
     public void toDot(DOTGenerator builder) {
       builder.addNode(this.hashCode(), "Import [lexeme=" + this.lexeme.replace("\"", "\'") + "]");
+    }
+
+    public void execute(ExecutionContext context) {
+      throw new InterpreterError("Import statements are not implemented yet");
     }
   }
 
@@ -80,36 +93,48 @@ public abstract class StatementNode extends Node {
         builder.addEdge(this.hashCode(), this.elseBody.hashCode());
       }
     }
+
+    public void execute(ExecutionContext context) {
+      ExecutionContext forkedContext = context.fork();
+
+      for (IfStatementBranch branch : this.branches.clauses) {
+        // Evaluate the condition inside the branch
+        LoLangValue condition = branch.condition.evaluate(context);
+        if (!(condition instanceof LoLangValue.Boolean))
+          throw new InterpreterError("Condition must be a boolean");
+
+        LoLangValue.Boolean conditionValue = (LoLangValue.Boolean) condition;
+
+        if (conditionValue.value == false)
+          continue;
+
+        // Execute the body of the branch
+        branch.body.execute(forkedContext);
+        return;
+      }
+
+      if (this.elseBody != null)
+        this.elseBody.execute(context);
+    }
   }
 
   public static class VariableDeclaration extends StatementNode {
-    String lexeme;
-    TypeExpressionNode type;
-    ExpressionNode expression = null;
+    Node.VariableDeclaration declaration;
 
     VariableDeclaration(Node.VariableDeclaration declaration) {
-      this.lexeme = declaration.lexeme;
-      this.type = declaration.type;
-      this.expression = declaration.expression;
+      this.declaration = declaration;
     }
 
     public String toString() {
-      return this.expression != null
-          ? String.format("[VariableDeclaration: %s %s %s]", this.lexeme.replace("\"", "\'"),
-              this.type.toString(),
-              this.expression.toString())
-          : String.format("[VariableDeclaration: %s %s]", this.lexeme.replace("\"", "\'"), this.type.toString());
+      return this.declaration.toString();
     }
 
     public void toDot(DOTGenerator builder) {
-      builder.addNode(this.hashCode(), "VariableDeclaration [lexeme=" + this.lexeme.replace("\"", "\'") + "]");
-      this.type.toDot(builder);
-      builder.addEdge(this.hashCode(), this.type.hashCode());
+      this.declaration.toDot(builder);
+    }
 
-      if (this.expression != null) {
-        this.expression.toDot(builder);
-        builder.addEdge(this.hashCode(), this.expression.hashCode());
-      }
+    public void execute(ExecutionContext context) {
+      this.declaration.addToContext(context);
     }
   }
 
@@ -139,6 +164,10 @@ public abstract class StatementNode extends Node {
         builder.addEdge(this.hashCode(), this.expression.hashCode());
       }
     }
+
+    public void execute(ExecutionContext context) {
+      context.environment.define(this.lexeme, this.expression.evaluate(context), true);
+    }
   }
 
   public static class Block extends StatementNode {
@@ -161,6 +190,13 @@ public abstract class StatementNode extends Node {
       builder.addNode(this.hashCode(), "Block");
       this.statements.toDot(builder);
       builder.addEdge(this.hashCode(), this.statements.hashCode());
+    }
+
+    public void execute(ExecutionContext context) {
+      ExecutionContext forkedContext = context.fork();
+
+      for (StatementNode statement : this.statements.statements)
+        statement.execute(forkedContext);
     }
   }
 
@@ -186,6 +222,11 @@ public abstract class StatementNode extends Node {
         this.expression.toDot(builder);
         builder.addEdge(this.hashCode(), this.expression.hashCode());
       }
+    }
+
+    public void execute(ExecutionContext context) {
+      if (this.expression != null)
+        context.environment.assign("return", this.expression.evaluate(context));
     }
   }
 
@@ -213,6 +254,17 @@ public abstract class StatementNode extends Node {
       this.catchBody.toDot(builder);
       builder.addEdge(this.hashCode(), this.catchBody.hashCode());
     }
+
+    public void execute(ExecutionContext context) {
+      try {
+        ExecutionContext forkedContext = context.fork();
+        this.body.execute(forkedContext);
+      } catch (LoLangThrowable.Error errorException) {
+        ExecutionContext forkedContext = context.fork();
+        forkedContext.environment.define(identifier, errorException.message, true);
+        this.catchBody.execute(forkedContext);
+      }
+    }
   }
 
   public static class Throw extends StatementNode {
@@ -228,6 +280,10 @@ public abstract class StatementNode extends Node {
 
     public void toDot(DOTGenerator builder) {
       builder.addNode(this.hashCode(), "Throw [errorMessage=" + this.errorMessasge.replace("\"", "\'") + "]");
+    }
+
+    public void execute(ExecutionContext context) {
+      throw new LoLangThrowable.Error(new LoLangValue.String(errorMessasge));
     }
   }
 
@@ -257,6 +313,57 @@ public abstract class StatementNode extends Node {
       this.cases.toDot(builder);
       builder.addEdge(this.hashCode(), this.cases.hashCode());
     }
+
+    public void execute(ExecutionContext context) {
+      LoLangValue value = this.expr.evaluate(context);
+      if (!(value instanceof LoLangValue.Number) || !(value instanceof LoLangValue.String)) {
+        throw new InterpreterError("Switch expression value be a number or string");
+      }
+
+      for (SwitchCase caseNode : this.cases.namedCases) {
+        if (isValueEqualWithToken(value, caseNode.literal)) {
+          executeStatementsWithBreak(caseNode.statements, context);
+          return;
+        }
+      }
+
+      // if no case matched, execute default case
+      if (this.cases.defaultCase != null)
+        executeStatementsWithBreak(this.cases.defaultCase.statements, context);
+    }
+
+    void executeStatements(Block statements, ExecutionContext context) {
+      try {
+        statements.execute(context);
+      } catch (LoLangThrowable.SwitchGoto gotoException) {
+        for (SwitchCase caseNode : this.cases.namedCases) {
+          if (isValueEqualWithToken(gotoException.label, caseNode.literal)) {
+            executeStatements(caseNode.statements, context);
+            break;
+          }
+        }
+      }
+    }
+
+    void executeStatementsWithBreak(Block statements, ExecutionContext context) {
+      try {
+        executeStatements(statements, context);
+      } catch (LoLangThrowable.SwitchBreak breakException) {
+        return;
+      }
+    }
+
+    static boolean isValueEqualWithToken(LoLangValue value, Token token) {
+      if (value instanceof LoLangValue.Number) {
+        return ((LoLangValue.Number) value).value == Double.parseDouble(token.lexeme);
+      }
+
+      else if (value instanceof LoLangValue.String) {
+        return ((LoLangValue.String) value).value.equals(token.lexeme);
+      }
+
+      return false;
+    }
   }
 
   public static class SwitchBreak extends StatementNode {
@@ -267,21 +374,29 @@ public abstract class StatementNode extends Node {
     public void toDot(DOTGenerator builder) {
       builder.addNode(this.hashCode(), "SwitchBreak");
     }
+
+    public void execute(ExecutionContext context) {
+      throw new LoLangThrowable.SwitchBreak();
+    }
   }
 
   public static class SwitchGoto extends StatementNode {
-    String lexeme;
+    Token token;
 
-    SwitchGoto(String lexeme) {
-      this.lexeme = lexeme;
+    SwitchGoto(Token token) {
+      this.token = token;
     }
 
     public String toString() {
-      return String.format("[SwitchGoto: %s]", this.lexeme.replace("\"", "\'"));
+      return String.format("[SwitchGoto: %s]", this.token.lexeme.replace("\"", "\'"));
     }
 
     public void toDot(DOTGenerator builder) {
-      builder.addNode(this.hashCode(), "SwitchGoto [lexeme=" + this.lexeme.replace("\"", "\'") + "]");
+      builder.addNode(this.hashCode(), "SwitchGoto [lexeme=" + this.token.lexeme.replace("\"", "\'") + "]");
+    }
+
+    public void execute(ExecutionContext context) {
+      throw new LoLangThrowable.SwitchGoto(context.environment.get(this.token.lexeme));
     }
   }
 
@@ -314,6 +429,27 @@ public abstract class StatementNode extends Node {
 
       this.statement.toDot(builder);
       builder.addEdge(this.hashCode(), this.statement.hashCode());
+    }
+
+    public void execute(ExecutionContext context) {
+      LoLangValue iteratorValue = this.iterator.evaluate(context);
+      if (!(iteratorValue instanceof LoLangValue.Array))
+        throw new InterpreterError("Iterator must be an array");
+
+      LoLangValue.Array array = (LoLangValue.Array) iteratorValue;
+
+      for (LoLangValue value : array.values) {
+        ExecutionContext forkedContext = context.fork();
+        forkedContext.environment.define(this.token.lexeme, value, false);
+
+        try {
+          this.statement.execute(forkedContext);
+        } catch (LoLangThrowable.LoopBreak breakException) {
+          break;
+        } catch (LoLangThrowable.LoopContinue continueException) {
+          continue;
+        }
+      }
     }
   }
 
@@ -405,6 +541,40 @@ public abstract class StatementNode extends Node {
       this.stmt.toDot(builder);
       builder.addEdge(this.hashCode(), this.stmt.hashCode());
     }
+
+    public void execute(ExecutionContext context) {
+      ExecutionContext sharedContext = context.fork();
+
+      // Run init by adding declarations to the shared context across all runs
+      if (this.init != null)
+        for (Node.VariableDeclaration declaration : this.init.declarations)
+          declaration.addToContext(sharedContext);
+
+      while (true) {
+        // Check if should run
+        LoLangValue condition = this.condition.evaluate(sharedContext);
+        if (!(condition instanceof LoLangValue.Boolean))
+          throw new InterpreterError("Condition must be a boolean");
+
+        boolean conditionValue = ((LoLangValue.Boolean) condition).value;
+        if (conditionValue == false)
+          break;
+
+        try {
+          ExecutionContext forkedContext = sharedContext.fork();
+          this.stmt.execute(forkedContext);
+        } catch (LoLangThrowable.LoopBreak breakException) {
+          break;
+        } catch (LoLangThrowable.LoopContinue continueException) {
+        }
+
+        if (this.increment != null)
+          for (ExpressionNode increment : this.increment.expressions)
+            increment.evaluate(sharedContext);
+
+        continue;
+      }
+    }
   }
 
   public static class LoopBreak extends StatementNode {
@@ -415,6 +585,10 @@ public abstract class StatementNode extends Node {
     public void toDot(DOTGenerator builder) {
       builder.addNode(this.hashCode(), "LoopBreak");
     }
+
+    public void execute(ExecutionContext context) {
+      throw new LoLangThrowable.LoopBreak();
+    }
   }
 
   public static class LoopContinue extends StatementNode {
@@ -424,6 +598,10 @@ public abstract class StatementNode extends Node {
 
     public void toDot(DOTGenerator builder) {
       builder.addNode(this.hashCode(), "LoopContinue");
+    }
+
+    public void execute(ExecutionContext context) {
+      throw new LoLangThrowable.LoopContinue();
     }
   }
 
@@ -460,6 +638,27 @@ public abstract class StatementNode extends Node {
       this.statement.toDot(builder);
       builder.addEdge(this.hashCode(), this.statement.hashCode());
     }
+
+    public void execute(ExecutionContext context) {
+      while (true) {
+        LoLangValue condition = this.condition.evaluate(context);
+        if (!(condition instanceof LoLangValue.Boolean))
+          throw new InterpreterError("Condition must be a boolean");
+
+        boolean conditionValue = ((LoLangValue.Boolean) condition).value;
+        if (conditionValue == false)
+          break;
+
+        try {
+          ExecutionContext forkedContext = context.fork();
+          this.statement.execute(forkedContext);
+        } catch (LoLangThrowable.LoopBreak breakException) {
+          break;
+        } catch (LoLangThrowable.LoopContinue continueException) {
+          continue;
+        }
+      }
+    }
   }
 
   public static class Expression extends StatementNode {
@@ -477,6 +676,10 @@ public abstract class StatementNode extends Node {
       builder.addNode(this.hashCode(), "ExpressionStatement");
       this.expression.toDot(builder);
       builder.addEdge(this.hashCode(), this.expression.hashCode());
+    }
+
+    public void execute(ExecutionContext context) {
+      this.expression.evaluate(context);
     }
   }
 
@@ -499,6 +702,11 @@ public abstract class StatementNode extends Node {
       builder.addNode(this.hashCode(), "ObjectTypeDeclaration");
       this.properties.toDot(builder);
       builder.addEdge(this.hashCode(), this.properties.hashCode());
+    }
+
+    public void execute(ExecutionContext context) {
+      // TODO: implement
+      throw new Error("Not implemented yet");
     }
   }
 }

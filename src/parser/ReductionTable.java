@@ -112,8 +112,8 @@ class ReductionTable {
     // HANDLE <STATEMENT> -> reductions;
     addALotOfSameReduction(5, 16, passthroughReducer, reductions);
     reductions.put(17, new Reduction((input) -> new StatementNode.SwitchBreak()));
-    reductions.put(18, new Reduction((input) -> new StatementNode.SwitchGoto(input.getToken(1).lexeme)));
-    reductions.put(19, new Reduction((input) -> new StatementNode.SwitchGoto(input.getToken(1).lexeme)));
+    reductions.put(18, new Reduction((input) -> new StatementNode.SwitchGoto(input.getToken(1))));
+    reductions.put(19, new Reduction((input) -> new StatementNode.SwitchGoto(input.getToken(1))));
     reductions.put(20, new Reduction((input) -> new StatementNode.LoopBreak()));
     reductions.put(21, new Reduction((input) -> new StatementNode.LoopContinue()));
     reductions.put(22, new Reduction((input) -> new StatementNode.Import(input.getToken(1).lexeme)));

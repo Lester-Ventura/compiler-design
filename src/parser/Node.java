@@ -3,6 +3,7 @@ package parser;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
+import interpreter.ExecutionContext;
 import lexer.Token;
 import utils.DOTGenerator;
 
@@ -80,6 +81,13 @@ public abstract class Node {
       this.lexeme = lexeme;
       this.type = type;
       this.expression = expression;
+    }
+
+    void addToContext(ExecutionContext context) {
+      if (this.expression != null)
+        context.environment.define(this.lexeme, this.expression.evaluate(context), false);
+      else
+        context.environment.declare(this.lexeme);
     }
 
     public String toString() {

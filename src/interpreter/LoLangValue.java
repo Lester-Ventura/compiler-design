@@ -6,12 +6,38 @@ import java.util.HashMap;
 import parser.Node;
 import parser.StatementNode;
 
-public class LoLangValue {
+public abstract class LoLangValue {
+	public abstract java.lang.String toString();
+
+	public interface DotSettable {
+		public void setDot(java.lang.String key, LoLangValue value);
+	}
+
+	public interface DotGettable {
+		public LoLangValue getDot(java.lang.String key);
+	}
+
+	public interface IndexGettable {
+		public void setIndex(int index, LoLangValue value);
+	}
+
+	public interface IndexSettable {
+		public LoLangValue getIndex(int index);
+	}
+
+	public interface Callable {
+		public LoLangValue call(ArrayList<LoLangValue> arguments);
+	}
+
 	public static class String extends LoLangValue {
 		public java.lang.String value;
 
 		public String(java.lang.String value) {
 			this.value = value;
+		}
+
+		public java.lang.String toString() {
+			return java.lang.String.format("[LoLangValue.String]: %s", this.value);
 		}
 	}
 
@@ -21,6 +47,10 @@ public class LoLangValue {
 		public Number(double value) {
 			this.value = value;
 		}
+
+		public java.lang.String toString() {
+			return java.lang.String.format("[LoLangValue.Number]: %s", this.value);
+		}
 	}
 
 	public static class Boolean extends LoLangValue {
@@ -29,30 +59,82 @@ public class LoLangValue {
 		public Boolean(boolean value) {
 			this.value = value;
 		}
+
+		public java.lang.String toString() {
+			return java.lang.String.format("[LoLangValue.Boolean]: %s", this.value ? "true" : "false");
+		}
 	}
 
 	public static class Null extends LoLangValue {
 		public Null() {
 		}
-	}
 
-	public static class Object extends LoLangValue {
-		HashMap<String, LoLangValue> fields;
-
-		public Object(HashMap<String, LoLangValue> fields) {
-			this.fields = fields;
+		public java.lang.String toString() {
+			return "[LoLangValue.Null]";
 		}
 	}
 
-	public static class Array extends LoLangValue {
-		ArrayList<LoLangValue> values;
+	public static class Object extends LoLangValue implements DotSettable, DotGettable {
+		HashMap<java.lang.String, LoLangValue> fields;
+
+		public Object(HashMap<java.lang.String, LoLangValue> fields) {
+			this.fields = fields;
+		}
+
+		public void setDot(java.lang.String key, LoLangValue value) {
+			if (this.fields.containsKey(key) == false)
+				throw new InterpreterError("Cannot set dot on non-existent field");
+
+			this.fields.put(key, value);
+		}
+
+		public LoLangValue getDot(java.lang.String key) {
+			if (this.fields.containsKey(key) == false)
+				throw new InterpreterError("Cannot get dot on non-existent field");
+
+			return this.fields.get(key);
+		}
+
+		public java.lang.String toString() {
+			java.lang.String ret = "[LoLangValue.Object]: {";
+
+			for (java.lang.String key : this.fields.keySet())
+				ret += key + ": " + this.fields.get(key).toString() + ", ";
+
+			return ret + "}";
+		}
+	}
+
+	public static class Array extends LoLangValue implements IndexGettable, IndexSettable {
+		public final ArrayList<LoLangValue> values;
+
+		public Array() {
+			this.values = new ArrayList<>();
+		}
 
 		public Array(ArrayList<LoLangValue> values) {
 			this.values = values;
 		}
+
+		public void setIndex(int index, LoLangValue value) {
+			this.values.set(index, value);
+		}
+
+		public LoLangValue getIndex(int index) {
+			return this.values.get(index);
+		}
+
+		public java.lang.String toString() {
+			java.lang.String ret = "[LoLangValue.Array]: [";
+
+			for (LoLangValue value : this.values)
+				ret += value.toString() + ", ";
+
+			return ret + "]";
+		}
 	}
 
-	public static class UserDefinedFunction extends LoLangValue {
+	public static class UserDefinedFunction extends LoLangValue implements Callable {
 		Node.ParameterList parameters;
 		StatementNode body;
 		ExecutionContext context;
@@ -62,5 +144,38 @@ public class LoLangValue {
 			this.body = body;
 			this.context = context;
 		}
+
+		public Object call(ArrayList<LoLangValue> arguments) {
+			throw new InterpreterError("User-defined-functions are not implemented yet");
+		}
+
+		public java.lang.String toString() {
+			return java.lang.String.format("[LoLangValue.UserDefinedFunction]: 0x%s", this.hashCode());
+		}
+	}
+
+	public static class SystemDefinedFunction extends LoLangValue implements Callable {
+		SystemDefinedFunctionLambda lambda;
+		int arity;
+
+		public SystemDefinedFunction(SystemDefinedFunctionLambda lambda, int arity) {
+			this.lambda = lambda;
+			this.arity = arity;
+		}
+
+		public LoLangValue call(ArrayList<LoLangValue> arguments) {
+			if (arguments.size() != this.arity)
+				throw new InterpreterError("Incorrect number of arguments passed to system-defined function");
+
+			return this.lambda.run(arguments.toArray(new LoLangValue[this.arity]));
+		}
+
+		public java.lang.String toString() {
+			return java.lang.String.format("[LoLangValue.SystemDefinedFunction]: 0x%s", this.hashCode());
+		}
+	}
+
+	public static interface SystemDefinedFunctionLambda {
+		LoLangValue run(LoLangValue... arguments);
 	}
 }

@@ -1,5 +1,7 @@
 package parser;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import interpreter.ExecutionContext;
 import interpreter.InterpreterError;
 import interpreter.LoLangValue;
@@ -8,7 +10,7 @@ import lexer.TokenType;
 import utils.DOTGenerator;
 
 public abstract class ExpressionNode extends Node {
-  abstract LoLangValue execute(ExecutionContext context);
+  abstract LoLangValue evaluate(ExecutionContext context);
 
   public static class FunctionExpression extends ExpressionNode {
     Node.ParameterList parameters;
@@ -43,6 +45,10 @@ public abstract class ExpressionNode extends Node {
       this.body.toDot(builder);
       builder.addEdge(this.hashCode(), this.body.hashCode());
     }
+
+    LoLangValue evaluate(ExecutionContext context) {
+      return new LoLangValue.UserDefinedFunction(this.parameters, this.body, context);
+    }
   }
 
   public static class ArrayLiteral extends ExpressionNode {
@@ -65,6 +71,15 @@ public abstract class ExpressionNode extends Node {
       builder.addNode(this.hashCode(), "ArrayLiteral");
       this.expressions.toDot(builder);
       builder.addEdge(this.hashCode(), this.expressions.hashCode());
+    }
+
+    LoLangValue evaluate(ExecutionContext context) {
+      ArrayList<LoLangValue> values = new ArrayList<>();
+
+      for (ExpressionNode expression : this.expressions.expressions)
+        values.add(expression.evaluate(context));
+
+      return new LoLangValue.Array(values);
     }
   }
 
@@ -89,6 +104,15 @@ public abstract class ExpressionNode extends Node {
       this.fields.toDot(builder);
       builder.addEdge(this.hashCode(), this.fields.hashCode());
     }
+
+    LoLangValue evaluate(ExecutionContext context) {
+      HashMap<String, LoLangValue> fields = new HashMap<>();
+
+      for (Node.ObjectLiteralField field : this.fields.fields)
+        fields.put(field.lexeme, field.expression.evaluate(context));
+
+      return new LoLangValue.Object(fields);
+    }
   }
 
   public static class DotAccess extends ExpressionNode {
@@ -109,6 +133,14 @@ public abstract class ExpressionNode extends Node {
       builder.addNode(this.hashCode(), "DotAccess [lexeme=" + this.right.replace("\"", "\'") + "]");
       this.left.toDot(builder);
       builder.addEdge(this.hashCode(), this.left.hashCode());
+    }
+
+    LoLangValue evaluate(ExecutionContext context) {
+      LoLangValue left = this.left.evaluate(context);
+      if ((left instanceof LoLangValue.DotGettable) == false)
+        throw new InterpreterError("Cannot access dot on non-object");
+
+      return ((LoLangValue.DotGettable) left).getDot(this.right);
     }
   }
 
@@ -141,6 +173,23 @@ public abstract class ExpressionNode extends Node {
         builder.addEdge(this.hashCode(), this.parameters.hashCode());
       }
     }
+
+    public LoLangValue evaluate(ExecutionContext context) {
+      LoLangValue left = this.left.evaluate(context);
+
+      if (!(left instanceof LoLangValue.Callable))
+        throw new InterpreterError("Cannot call non-callable value");
+
+      LoLangValue.Callable callable = (LoLangValue.Callable) left;
+      ArrayList<LoLangValue> arguments = new ArrayList<>();
+
+      if (this.parameters != null) {
+        for (ExpressionNode parameter : this.parameters.expressions)
+          arguments.add(parameter.evaluate(context));
+      }
+
+      return callable.call(arguments);
+    }
   }
 
   public static class Identifier extends ExpressionNode {
@@ -158,33 +207,56 @@ public abstract class ExpressionNode extends Node {
       builder.addNode(this.hashCode(),
           "Identifier [lexeme=" + this.lexeme.replace("\"", "\'") + "]");
     }
+
+    public LoLangValue evaluate(ExecutionContext context) {
+      return context.environment.get(this.lexeme);
+    }
   }
 
   public static class Incrementation extends ExpressionNode {
     ExpressionNode left;
-    Token token;
+    boolean isIncrement;
     boolean isPostfix;
 
     Incrementation(ExpressionNode left, Token token, boolean isPostfix) {
       this.left = left;
-      this.token = token;
+      this.isIncrement = token.type == TokenType.DOUBLE_PLUS;
       this.isPostfix = isPostfix;
     }
 
     public String toString() {
+      String symbol = this.isIncrement ? "++" : "--";
+
       return String.format("[Incrementation: %s%s]",
-          this.isPostfix ? this.left.toString() : this.token.toString(),
-          !this.isPostfix ? this.left.toString() : this.token.toString());
+          this.isPostfix ? this.left.toString() : symbol,
+          !this.isPostfix ? this.left.toString() : symbol);
     }
 
     public void toDot(DOTGenerator builder) {
       builder.addNode(this.hashCode(), String.format("Incrementation [operation=%s] [order=%s]",
-          this.token.lexeme.replace("\"", "\'"),
+          (this.isIncrement ? "++" : "--").replace("\"", "\'"),
           this.isPostfix ? "postfix" : "prefix"));
 
       this.left.toDot(builder);
       builder.addEdge(this.hashCode(), this.left.hashCode());
     }
+
+    public LoLangValue evaluate(ExecutionContext context) {
+      LoLangValue left = this.left.evaluate(context);
+
+      if (!(left instanceof LoLangValue.Number))
+        throw new InterpreterError(String.format("Cannot %s non-number", this.isIncrement ? "increment" : "decrement"));
+
+      double value = ((LoLangValue.Number) left).value;
+      double modifier = this.isIncrement ? 1 : -1;
+
+      double newValue = value + modifier;
+      setValue(context, this.left, new LoLangValue.Number(newValue));
+
+      return new LoLangValue.Number(
+          this.isPostfix ? value : newValue);
+    }
+
   }
 
   public static class Assignment extends ExpressionNode {
@@ -208,6 +280,41 @@ public abstract class ExpressionNode extends Node {
       this.right.toDot(builder);
       builder.addEdge(this.hashCode(), this.right.hashCode());
     }
+
+    public LoLangValue evaluate(ExecutionContext context) {
+      LoLangValue newValue = this.right.evaluate(context);
+      return setValue(context, left, newValue);
+    }
+  }
+
+  public static LoLangValue setValue(ExecutionContext context, ExpressionNode left, LoLangValue newValue) {
+    if (left instanceof ExpressionNode.Identifier) {
+      ExpressionNode.Identifier identifier = (ExpressionNode.Identifier) left;
+      context.environment.assign(identifier.lexeme, newValue);
+    } else if (left instanceof ExpressionNode.IndexAccess) {
+      ExpressionNode.IndexAccess indexAccess = (ExpressionNode.IndexAccess) left;
+      LoLangValue leftValue = indexAccess.left.evaluate(context);
+
+      if (!(leftValue instanceof LoLangValue.Array))
+        throw new InterpreterError("Invalid left-hand side of assignment");
+
+      LoLangValue.Array array = (LoLangValue.Array) leftValue;
+      double index = ((LoLangValue.Number) indexAccess.right.evaluate(context)).value;
+      array.setIndex((int) Math.max(Math.round(index), 0), newValue);
+    } else if (left instanceof ExpressionNode.DotAccess) {
+      ExpressionNode.DotAccess dotAccess = (ExpressionNode.DotAccess) left;
+      LoLangValue leftValue = dotAccess.left.evaluate(context);
+
+      if (!(leftValue instanceof LoLangValue.Object))
+        throw new InterpreterError("Invalid left-hand side of assignment");
+
+      LoLangValue.Object object = (LoLangValue.Object) leftValue;
+      object.setDot(dotAccess.right, newValue);
+    } else {
+      throw new InterpreterError("Invalid left-hand side of assignment");
+    }
+
+    return newValue;
   }
 
   public static class IndexAccess extends ExpressionNode {
@@ -231,6 +338,20 @@ public abstract class ExpressionNode extends Node {
       this.right.toDot(builder);
       builder.addEdge(this.hashCode(), this.right.hashCode());
     }
+
+    public LoLangValue evaluate(ExecutionContext context) {
+      LoLangValue left = this.left.evaluate(context);
+      LoLangValue right = this.right.evaluate(context);
+
+      if (left instanceof LoLangValue.Array && right instanceof LoLangValue.Number) {
+        LoLangValue.Array array = (LoLangValue.Array) left;
+        double index = ((LoLangValue.Number) right).value;
+
+        return array.getIndex((int) Math.max(Math.round(index), 0));
+      }
+
+      throw new InterpreterError("Invalid index access on " + left.getClass().getName());
+    }
   }
 
   public static class Literal extends ExpressionNode {
@@ -250,6 +371,32 @@ public abstract class ExpressionNode extends Node {
       builder.addNode(this.hashCode(),
           "Literal [lexeme=" + this.lexeme.replace("\"", "\'") + "] [type=" + this.type.toString() + "]");
     }
+
+    LoLangValue evaluate(ExecutionContext context) {
+      switch (this.type) {
+        case STRING_LITERAL:
+          return new LoLangValue.String(this.lexeme);
+        case BOOLEAN_LITERAL:
+          return new LoLangValue.Boolean(Boolean.parseBoolean(this.lexeme));
+        case NULL_LITERAL:
+          return new LoLangValue.Null();
+        case NUMBER_LITERAL:
+          return new LoLangValue.Number(parseNumber(this.lexeme));
+        default:
+          throw new InterpreterError("Invalid token literal type");
+      }
+    }
+  }
+
+  public static double parseNumber(String lexeme) {
+    // handle if number is in hex format / octal format / binary format
+    if (lexeme.startsWith("0x") || lexeme.startsWith("0X"))
+      return Integer.parseInt(lexeme.substring(2), 16);
+    else if (lexeme.startsWith("0o") || lexeme.startsWith("0O"))
+      return Integer.parseInt(lexeme.substring(2), 8);
+    else if (lexeme.startsWith("0b") || lexeme.startsWith("0B"))
+      return Integer.parseInt(lexeme.substring(2), 2);
+    return Double.parseDouble(lexeme);
   }
 
   public static class Binary extends ExpressionNode {
@@ -276,9 +423,9 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.right.hashCode());
     }
 
-    public LoLangValue execute(ExecutionContext context) {
-      LoLangValue left = this.left.execute(context);
-      LoLangValue right = this.right.execute(context);
+    public LoLangValue evaluate(ExecutionContext context) {
+      LoLangValue left = this.left.evaluate(context);
+      LoLangValue right = this.right.evaluate(context);
 
       if (left instanceof LoLangValue.Number && right instanceof LoLangValue.Number) {
         LoLangValue.Number leftNumber = (LoLangValue.Number) left;
@@ -369,8 +516,8 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.operand.hashCode());
     }
 
-    public LoLangValue execute(ExecutionContext context) {
-      LoLangValue operand = this.operand.execute(context);
+    public LoLangValue evaluate(ExecutionContext context) {
+      LoLangValue operand = this.operand.evaluate(context);
 
       if (operand instanceof LoLangValue.Number && this.operation.equals("-"))
         return new LoLangValue.Number(-1 * ((LoLangValue.Number) operand).value);
@@ -399,8 +546,8 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.expression.hashCode());
     }
 
-    public LoLangValue execute(ExecutionContext context) {
-      return this.expression.execute(context);
+    public LoLangValue evaluate(ExecutionContext context) {
+      return this.expression.evaluate(context);
     }
   }
 }

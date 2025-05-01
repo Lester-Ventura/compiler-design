@@ -6,9 +6,12 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Scanner;
 
-import parser.ParserException;
+import interpreter.ExecutionContext;
+import interpreter.Global;
 import parser.ParserResult;
+import parser.StatementNode;
 import parser.LR1Parser;
+import parser.Node;
 
 public class CodeReader {
   CreateParser parserCreator;
@@ -92,26 +95,34 @@ public class CodeReader {
 
     if (parsingResult.root != null) {
       System.out.println(parsingResult.root);
-      String output = DOTGenerator.generate(parsingResult.root);
-      FileWriter writer = new FileWriter("output.dot");
-
-      try {
-        writer.write(output);
-        System.out.println("DOT file successfully generated to output.dot");
-      } catch (IOException e) {
-        System.out.println("Error has occured while writing file: " + e.getMessage());
-      }
-
-      writer.close();
+      printRoot(parsingResult.root);
     } else {
       System.out.println("Was unable to create a parse tree");
     }
 
-    if (parsingResult.errors.size() != 0) {
-      System.out.println("\nThe following errors were encountered: \n");
+    parsingResult.printErrors();
 
-      for (ParserException exception : parsingResult.errors)
-        System.out.println(exception.getMessage() + "\n");
+    if (parsingResult.root != null && (parsingResult.root instanceof StatementNode.Program)) {
+      System.out.println("===============================================");
+
+      // Begin executing the program
+      StatementNode.Program program = (StatementNode.Program) parsingResult.root;
+      ExecutionContext global = Global.createGlobal();
+      program.execute(global);
     }
+  }
+
+  static void printRoot(Node node) throws IOException {
+    String output = DOTGenerator.generate(node);
+    FileWriter writer = new FileWriter("output.dot");
+
+    try {
+      writer.write(output);
+      System.out.println("DOT file successfully generated to output.dot");
+    } catch (IOException e) {
+      System.out.println("Error has occured while writing file: " + e.getMessage());
+    }
+
+    writer.close();
   }
 }

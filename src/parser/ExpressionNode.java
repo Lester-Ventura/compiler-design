@@ -1,10 +1,15 @@
 package parser;
 
+import interpreter.ExecutionContext;
+import interpreter.InterpreterError;
+import interpreter.LoLangValue;
 import lexer.Token;
 import lexer.TokenType;
 import utils.DOTGenerator;
 
 public abstract class ExpressionNode extends Node {
+  abstract LoLangValue execute(ExecutionContext context);
+
   public static class FunctionExpression extends ExpressionNode {
     Node.ParameterList parameters;
     TypeExpressionNode returnType;
@@ -270,6 +275,79 @@ public abstract class ExpressionNode extends Node {
       this.right.toDot(builder);
       builder.addEdge(this.hashCode(), this.right.hashCode());
     }
+
+    public LoLangValue execute(ExecutionContext context) {
+      LoLangValue left = this.left.execute(context);
+      LoLangValue right = this.right.execute(context);
+
+      if (left instanceof LoLangValue.Number && right instanceof LoLangValue.Number) {
+        LoLangValue.Number leftNumber = (LoLangValue.Number) left;
+        LoLangValue.Number rightNumber = (LoLangValue.Number) right;
+
+        if (this.operation.lexeme.equals("+"))
+          return new LoLangValue.Number(leftNumber.value + rightNumber.value);
+        else if (this.operation.lexeme.equals("-"))
+          return new LoLangValue.Number(leftNumber.value - rightNumber.value);
+        else if (this.operation.lexeme.equals("*"))
+          return new LoLangValue.Number(leftNumber.value * rightNumber.value);
+        else if (this.operation.lexeme.equals("/"))
+          return new LoLangValue.Number(leftNumber.value / rightNumber.value);
+        else if (this.operation.lexeme.equals("%"))
+          return new LoLangValue.Number(leftNumber.value % rightNumber.value);
+        else if (this.operation.lexeme.equals("**"))
+          return new LoLangValue.Number(Math.pow(leftNumber.value, rightNumber.value));
+        else if (this.operation.lexeme.equals("&"))
+          return new LoLangValue.Number((int) leftNumber.value & (int) rightNumber.value);
+        else if (this.operation.lexeme.equals("|"))
+          return new LoLangValue.Number((int) leftNumber.value | (int) rightNumber.value);
+        else if (this.operation.lexeme.equals("^"))
+          return new LoLangValue.Number((int) leftNumber.value ^ (int) rightNumber.value);
+
+        else if (this.operation.lexeme.equals("<"))
+          return new LoLangValue.Boolean(leftNumber.value < rightNumber.value);
+        else if (this.operation.lexeme.equals(">"))
+          return new LoLangValue.Boolean(leftNumber.value > rightNumber.value);
+        else if (this.operation.lexeme.equals("<="))
+          return new LoLangValue.Boolean(leftNumber.value <= rightNumber.value);
+        else if (this.operation.lexeme.equals(">="))
+          return new LoLangValue.Boolean(leftNumber.value >= rightNumber.value);
+        else if (this.operation.lexeme.equals("=="))
+          return new LoLangValue.Boolean(leftNumber.value == rightNumber.value);
+        else if (this.operation.lexeme.equals("!="))
+          return new LoLangValue.Boolean(leftNumber.value != rightNumber.value);
+
+        throw new InterpreterError("Invalid binary operation \"" + this.operation.lexeme + "\" on Number, Number");
+      }
+
+      if (left instanceof LoLangValue.Boolean && right instanceof LoLangValue.Boolean) {
+        LoLangValue.Boolean leftBoolean = (LoLangValue.Boolean) left;
+        LoLangValue.Boolean rightBoolean = (LoLangValue.Boolean) right;
+
+        if (this.operation.lexeme.equals("&&"))
+          return new LoLangValue.Boolean(leftBoolean.value && rightBoolean.value);
+        else if (this.operation.lexeme.equals("||"))
+          return new LoLangValue.Boolean(leftBoolean.value || rightBoolean.value);
+        else if (this.operation.lexeme.equals("=="))
+          return new LoLangValue.Boolean(leftBoolean.value == rightBoolean.value);
+        else if (this.operation.lexeme.equals("!="))
+          return new LoLangValue.Boolean(leftBoolean.value != rightBoolean.value);
+
+        throw new InterpreterError("Invalid binary operation \"" + this.operation.lexeme + "\" on Boolean, Boolean");
+      }
+
+      if (left instanceof LoLangValue.String && right instanceof LoLangValue.String) {
+        LoLangValue.String leftString = (LoLangValue.String) left;
+        LoLangValue.String rightString = (LoLangValue.String) right;
+
+        if (this.operation.lexeme.equals("+"))
+          return new LoLangValue.String(leftString.value + rightString.value);
+
+        throw new InterpreterError("Invalid binary operation \"" + this.operation.lexeme + "\" on String, String");
+      }
+
+      throw new InterpreterError("Invalid binary operation \"" + this.operation.lexeme + "\" on "
+          + left.getClass().getName() + ", " + right.getClass().getName());
+    }
   }
 
   public static class Unary extends ExpressionNode {
@@ -290,6 +368,18 @@ public abstract class ExpressionNode extends Node {
       this.operand.toDot(builder);
       builder.addEdge(this.hashCode(), this.operand.hashCode());
     }
+
+    public LoLangValue execute(ExecutionContext context) {
+      LoLangValue operand = this.operand.execute(context);
+
+      if (operand instanceof LoLangValue.Number && this.operation.equals("-"))
+        return new LoLangValue.Number(-1 * ((LoLangValue.Number) operand).value);
+
+      else if (operand instanceof LoLangValue.Boolean && this.operation.equals("!"))
+        return new LoLangValue.Boolean(!((LoLangValue.Boolean) operand).value);
+
+      throw new InterpreterError("Invalid operation \"" + this.operation + "\" on " + operand.getClass().getName());
+    }
   }
 
   public static class Grouping extends ExpressionNode {
@@ -307,6 +397,10 @@ public abstract class ExpressionNode extends Node {
       builder.addNode(this.hashCode(), "Grouping");
       this.expression.toDot(builder);
       builder.addEdge(this.hashCode(), this.expression.hashCode());
+    }
+
+    public LoLangValue execute(ExecutionContext context) {
+      return this.expression.execute(context);
     }
   }
 }

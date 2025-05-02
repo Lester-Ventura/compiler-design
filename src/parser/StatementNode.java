@@ -350,7 +350,7 @@ public abstract class StatementNode extends Node {
       SemanticContext forkedCatchContext = context.fork();
       forkedCatchContext.variableEnvironment.define(this.identifier.lexeme, new LoLangType.String(), true);
 
-      this.catchBody.semanticAnalysis(forkedContext);
+      this.catchBody.semanticAnalysis(forkedCatchContext);
     }
   }
 

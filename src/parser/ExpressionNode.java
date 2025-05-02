@@ -493,7 +493,7 @@ public abstract class ExpressionNode extends Node {
         case STRING_LITERAL:
           return new LoLangValue.String(this.identifier.lexeme);
         case BOOLEAN_LITERAL:
-          return new LoLangValue.Boolean(Boolean.parseBoolean(this.identifier.lexeme));
+          return new LoLangValue.Boolean(this.identifier.lexeme.equals("faker"));
         case NULL_LITERAL:
           return new LoLangValue.Null();
         case NUMBER_LITERAL:
@@ -632,7 +632,24 @@ public abstract class ExpressionNode extends Node {
       LoLangType right = this.right.evaluateType(context);
 
       if (left instanceof LoLangType.Number && right instanceof LoLangType.Number) {
-        return new LoLangType.Number();
+        if ((this.operation.lexeme.equals("+"))
+            || (this.operation.lexeme.equals("-"))
+            || (this.operation.lexeme.equals("*"))
+            || (this.operation.lexeme.equals("/"))
+            || (this.operation.lexeme.equals("%"))
+            || (this.operation.lexeme.equals("**"))
+            || (this.operation.lexeme.equals("&"))
+            || (this.operation.lexeme.equals("|"))
+            || (this.operation.lexeme.equals("^")))
+          return new LoLangType.Number();
+
+        if ((this.operation.lexeme.equals("<"))
+            || (this.operation.lexeme.equals(">"))
+            || (this.operation.lexeme.equals("<="))
+            || (this.operation.lexeme.equals(">="))
+            || (this.operation.lexeme.equals("=="))
+            || (this.operation.lexeme.equals("!=")))
+          return new LoLangType.Boolean();
       }
 
       if (left instanceof LoLangType.Boolean && right instanceof LoLangType.Boolean) {

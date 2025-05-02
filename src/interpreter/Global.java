@@ -32,9 +32,9 @@ public class Global {
     SemanticContext context = new SemanticContext();
 
     context.typeEnvironment.define("message", new LoLangType.String(), true);
-    context.typeEnvironment.define("number", new LoLangType.Number(), true);
-    context.typeEnvironment.define("boolean", new LoLangType.Boolean(), true);
-    context.typeEnvironment.define("null", new LoLangType.Null(), true);
+    context.typeEnvironment.define("stats", new LoLangType.Number(), true);
+    context.typeEnvironment.define("goat", new LoLangType.Boolean(), true);
+    context.typeEnvironment.define("cooldown", new LoLangType.Null(), true);
     context.typeEnvironment.define("passive", new LoLangType.Void(), true);
 
     LoLangType.Lambda broadcastType = new LoLangType.Lambda(new LoLangType.Void(),

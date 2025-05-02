@@ -27,6 +27,8 @@ public abstract class LoLangValue {
 
 	public interface Callable {
 		public LoLangValue call(ArrayList<LoLangValue> arguments);
+
+		public int getArity();
 	}
 
 	public static class String extends LoLangValue {
@@ -152,6 +154,10 @@ public abstract class LoLangValue {
 		public java.lang.String toString() {
 			return java.lang.String.format("[LoLangValue.UserDefinedFunction]: 0x%s", this.hashCode());
 		}
+
+		public int getArity() {
+			return this.parameters.declarations.size();
+		}
 	}
 
 	public static class SystemDefinedFunction extends LoLangValue implements Callable {
@@ -172,6 +178,10 @@ public abstract class LoLangValue {
 
 		public java.lang.String toString() {
 			return java.lang.String.format("[LoLangValue.SystemDefinedFunction]: 0x%s", this.hashCode());
+		}
+
+		public int getArity() {
+			return this.arity;
 		}
 	}
 

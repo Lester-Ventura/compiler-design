@@ -1,10 +1,10 @@
 package interpreter;
 
 public class ExecutionContext {
-  public Environment environment = new Environment();
+  public Environment<LoLangValue> environment = new Environment<LoLangValue>();
 
-  public ExecutionContext(Environment parentEnvironment) {
-    this.environment = new Environment(parentEnvironment);
+  public ExecutionContext(Environment<LoLangValue> parentEnvironment) {
+    this.environment = new Environment<LoLangValue>(parentEnvironment);
   }
 
   public ExecutionContext() {

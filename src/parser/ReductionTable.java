@@ -85,7 +85,7 @@ class ReductionTable {
         (input) -> new ExpressionNode.Binary(input.getExpressionNode(0), input.getToken(1),
             input.getExpressionNode(2)));
     Reduction unaryOperationReducer = new Reduction(
-        (input) -> new ExpressionNode.Unary(input.getToken(0).lexeme,
+        (input) -> new ExpressionNode.Unary(input.getToken(0),
             input.getExpressionNode(1)));
 
     reductions.put(1, new Reduction((input) -> new StatementNode.Program()));
@@ -116,7 +116,7 @@ class ReductionTable {
     reductions.put(19, new Reduction((input) -> new StatementNode.SwitchGoto(input.getToken(1))));
     reductions.put(20, new Reduction((input) -> new StatementNode.LoopBreak()));
     reductions.put(21, new Reduction((input) -> new StatementNode.LoopContinue()));
-    reductions.put(22, new Reduction((input) -> new StatementNode.Import(input.getToken(1).lexeme)));
+    reductions.put(22, new Reduction((input) -> new StatementNode.Import(input.getToken(1))));
 
     // BEGIN HANDLING IF CONDITIONS
     reductions.put(23, new Reduction((input) -> {
@@ -171,23 +171,23 @@ class ReductionTable {
     }));
     reductions.put(31, new Reduction((input) -> {
       Node.VariableDeclarationHeader header = (Node.VariableDeclarationHeader) input.getInternalNode(0);
-      return new Node.VariableDeclaration(header.lexeme, header.type);
+      return new Node.VariableDeclaration(header.identifier, header.type);
     }));
     reductions.put(32, new Reduction((input) -> {
       Node.VariableDeclarationHeader header = (Node.VariableDeclarationHeader) input.getInternalNode(0);
       ExpressionNode expr = input.getExpressionNode(2);
-      return new Node.VariableDeclaration(header.lexeme, header.type, expr);
+      return new Node.VariableDeclaration(header.identifier, header.type, expr);
     }));
     reductions.put(33, new Reduction((input) -> {
       Token identifier = input.getToken(1);
       TypeExpressionNode type = input.getTypeExpressionNode(3);
-      return new Node.VariableDeclarationHeader(identifier.lexeme, type);
+      return new Node.VariableDeclarationHeader(identifier, type);
     }));
     reductions.put(34, new Reduction((input) -> {
       Token identifier = input.getToken(1);
       TypeExpressionNode type = input.getTypeExpressionNode(3);
       ExpressionNode expr = input.getExpressionNode(5);
-      return new StatementNode.ConstantDeclaration(identifier.lexeme, type, expr);
+      return new StatementNode.ConstantDeclaration(identifier, type, expr);
     }));
     // END OF HANDLING VARIABLE AND CONSTANT DECLARATIONS
 
@@ -201,9 +201,9 @@ class ReductionTable {
       Token identifier = input.getToken(4);
       StatementNode.Block errorHandler = (StatementNode.Block) input.getInternalNode(6);
 
-      return new StatementNode.TryCatch(block, identifier.lexeme, errorHandler);
+      return new StatementNode.TryCatch(block, identifier, errorHandler);
     }));
-    reductions.put(40, new Reduction((input) -> new StatementNode.Throw(input.getToken(1).lexeme)));
+    reductions.put(40, new Reduction((input) -> new StatementNode.Throw(input.getToken(1))));
 
     // BEGIN HANDLING SWITCH STATEMENTS
     reductions.put(41, new Reduction((input) -> new StatementNode.Switch(input.getExpressionNode(2),
@@ -354,7 +354,7 @@ class ReductionTable {
     reductions.put(82,
         new Reduction((input) -> new Node.ObjectLiteralFieldList((Node.ObjectLiteralField) input.getInternalNode(0))));
     reductions.put(83,
-        new Reduction((input) -> new Node.ObjectLiteralField(input.getToken(0).lexeme, input.getExpressionNode(2))));
+        new Reduction((input) -> new Node.ObjectLiteralField(input.getToken(0), input.getExpressionNode(2))));
 
     // BEGIN FUNNY
     reductions.put(84, binaryOperationReducer);
@@ -405,18 +405,18 @@ class ReductionTable {
         (input) -> new ExpressionNode.Assignment(input.getExpressionNode(0), input.getExpressionNode(2))));
 
     // HANDLE ASSIGNABLE LEFT EXPRESSIONS
-    reductions.put(123, new Reduction((input) -> new ExpressionNode.Identifier(input.getToken(0).lexeme)));
+    reductions.put(123, new Reduction((input) -> new ExpressionNode.Identifier(input.getToken(0))));
     reductions.put(124,
-        new Reduction((input) -> new ExpressionNode.DotAccess(input.getExpressionNode(0), input.getToken(2).lexeme)));
+        new Reduction((input) -> new ExpressionNode.DotAccess(input.getExpressionNode(0), input.getToken(2))));
     reductions.put(125,
         new Reduction(
             (input) -> new ExpressionNode.DotAccess(new ExpressionNode.FunctionCall(input.getExpressionNode(0),
                 (Node.ExpressionList) input.getInternalNode(2)),
-                input.getToken(5).lexeme)));
+                input.getToken(5))));
     reductions.put(126,
         new Reduction(
             (input) -> new ExpressionNode.DotAccess(new ExpressionNode.FunctionCall(input.getExpressionNode(0)),
-                input.getToken(4).lexeme)));
+                input.getToken(4))));
 
     reductions.put(127,
         new Reduction(
@@ -434,7 +434,7 @@ class ReductionTable {
     // HANDLE IDENTIFIER STACK EXPRESSIONS
     reductions.put(130, new Reduction((input) -> {
       try {
-        return new ExpressionNode.Identifier(input.getToken(0).lexeme);
+        return new ExpressionNode.Identifier(input.getToken(0));
       } catch (Error e) {
         // <ASSIGNABLE_TARGET_EXPRESSION> uses this reduction when it spots an r_paren
         return input.getExpressionNode(0);
@@ -442,7 +442,7 @@ class ReductionTable {
     }));
 
     reductions.put(131,
-        new Reduction((input) -> new ExpressionNode.DotAccess(input.getExpressionNode(0), input.getToken(2).lexeme)));
+        new Reduction((input) -> new ExpressionNode.DotAccess(input.getExpressionNode(0), input.getToken(2))));
     reductions.put(132,
         new Reduction(
             (input) -> new ExpressionNode.IndexAccess(input.getExpressionNode(0), input.getExpressionNode(2))));
@@ -456,7 +456,7 @@ class ReductionTable {
 
     // HANDLE LITERALS AND GROUPING EXPRESSION
     addALotOfSameReduction(135, 138,
-        new Reduction((input) -> new ExpressionNode.Literal(input.getToken(0).lexeme, input.getToken(0).type)),
+        new Reduction((input) -> new ExpressionNode.Literal(input.getToken(0))),
         reductions);
     reductions.put(139,
         new Reduction(
@@ -465,22 +465,23 @@ class ReductionTable {
     // HANDLE TYPES
     reductions.put(140,
         new Reduction(
-            (input) -> new StatementNode.ObjectTypeDeclaration((Node.PropertyList) input.getInternalNode(3))));
+            (input) -> new StatementNode.ObjectTypeDeclaration(input.getToken(1),
+                (Node.PropertyList) input.getInternalNode(3))));
     reductions.put(141,
         new Reduction(
-            (input) -> new StatementNode.ObjectTypeDeclaration()));
+            (input) -> new StatementNode.ObjectTypeDeclaration(input.getToken(1))));
     reductions.put(142, new Reduction((input) -> ((Node.PropertyList) input.getInternalNode(0))
         .add((Node.PropertyDefinition) input.getInternalNode(1))));
     reductions.put(143,
         new Reduction((input) -> new Node.PropertyList((Node.PropertyDefinition) input.getInternalNode(0))));
     reductions.put(144, new Reduction(
-        (input) -> new Node.PropertyDefinition(input.getToken(0).lexeme, input.getTypeExpressionNode(2))));
+        (input) -> new Node.PropertyDefinition(input.getToken(0), input.getTypeExpressionNode(2))));
     reductions.put(145, new Reduction((input) -> new TypeExpressionNode.Array(input.getTypeExpressionNode(0))));
 
     Reduction typeReductionEndpoint = new Reduction(
-        (input) -> new TypeExpressionNode.Identifier(input.getToken(0).lexeme));
+        (input) -> new TypeExpressionNode.Identifier(input.getToken(0)));
     addALotOfSameReduction(146, 149, typeReductionEndpoint, reductions);
-    reductions.put(150, new Reduction((input) -> new TypeExpressionNode.Identifier(input.getToken(1).lexeme)));
+    reductions.put(150, new Reduction((input) -> new TypeExpressionNode.Identifier(input.getToken(1))));
     reductions.put(151, passthroughReducer);
 
     // HANDLE LAMBDA TYPES

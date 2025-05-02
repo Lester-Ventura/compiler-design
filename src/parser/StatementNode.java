@@ -1,16 +1,24 @@
 package parser;
 
+import java.util.HashMap;
+
 import interpreter.ExecutionContext;
 import interpreter.InterpreterError;
 import interpreter.LoLangThrowable;
 import interpreter.LoLangValue;
 import lexer.Token;
+import lexer.TokenType;
 import parser.Node.SwitchCaseList.SwitchCase;
+import semantic.LoLangType;
+import semantic.SemanticAnalysisError;
+import semantic.SemanticContext;
+import semantic.SemanticContext.Scope;
 import utils.DOTGenerator;
 
 public abstract class StatementNode extends Node {
-  // Uncomment this line when it's time to implement execution
   abstract void execute(ExecutionContext context);
+
+  abstract void semanticAnalysis(SemanticContext context);
 
   public static class Program extends StatementNode {
     StatementList statements;
@@ -38,25 +46,36 @@ public abstract class StatementNode extends Node {
       for (StatementNode statement : this.statements.statements)
         statement.execute(context);
     }
+
+    public void semanticAnalysis(SemanticContext context) {
+      for (StatementNode statement : this.statements.statements)
+        statement.semanticAnalysis(context);
+    }
   }
 
   public static class Import extends StatementNode {
-    String lexeme;
+    Token token;
 
-    Import(String lexeme) {
-      this.lexeme = lexeme;
+    Import(Token token) {
+      this.token = token;
     }
 
     public String toString() {
-      return String.format("[Import: %s]", this.lexeme.replace("\"", "\'"));
+      return String.format("[Import: %s]", this.token.lexeme.replace("\"", "\'"));
     }
 
     public void toDot(DOTGenerator builder) {
-      builder.addNode(this.hashCode(), "Import [lexeme=" + this.lexeme.replace("\"", "\'") + "]");
+      builder.addNode(this.hashCode(), "Import [lexeme=" + this.token.lexeme.replace("\"", "\'") + "]");
     }
 
     public void execute(ExecutionContext context) {
+      // TODO: implement
       throw new InterpreterError("Import statements are not implemented yet");
+    }
+
+    public void semanticAnalysis(SemanticContext context) {
+      // TODO: implement
+      throw new SemanticAnalysisError("Import statements are not implemented yet");
     }
   }
 
@@ -116,6 +135,20 @@ public abstract class StatementNode extends Node {
       if (this.elseBody != null)
         this.elseBody.execute(context);
     }
+
+    public void semanticAnalysis(SemanticContext context) {
+      for (IfStatementBranch branch : this.branches.clauses) {
+        LoLangType conditionType = branch.condition.evaluateType(context);
+        if (!(conditionType instanceof LoLangType.Boolean))
+          throw new SemanticAnalysisError("Condition must be a boolean");
+
+        SemanticContext forkedContext = context.fork();
+        branch.body.semanticAnalysis(forkedContext);
+      }
+
+      if (this.elseBody != null)
+        this.elseBody.semanticAnalysis(context);
+    }
   }
 
   public static class VariableDeclaration extends StatementNode {
@@ -136,26 +169,39 @@ public abstract class StatementNode extends Node {
     public void execute(ExecutionContext context) {
       this.declaration.addToContext(context);
     }
+
+    public void semanticAnalysis(SemanticContext context) {
+      context.variableEnvironment.define(this.declaration.identifier.lexeme,
+          this.declaration.expression.evaluateType(context), false);
+
+      if (this.declaration.expression != null) {
+        LoLangType expressionType = this.declaration.expression.evaluateType(context);
+        if (!expressionType.isEquivalent(this.declaration.type.evaluate(context)))
+          throw new SemanticAnalysisError("Type of variable declaration does not match type of expression");
+      }
+    }
   }
 
   public static class ConstantDeclaration extends StatementNode {
-    String lexeme;
+    Token identifier;
     TypeExpressionNode type;
     ExpressionNode expression;
 
-    ConstantDeclaration(String lexeme, TypeExpressionNode type, ExpressionNode expression) {
-      this.lexeme = lexeme;
+    ConstantDeclaration(Token identifier, TypeExpressionNode type, ExpressionNode expression) {
+      this.identifier = identifier;
       this.type = type;
       this.expression = expression;
     }
 
     public String toString() {
-      return String.format("[ConstantDeclaration: [Name=%s] [Type=%s] [Init=%s]]", this.lexeme.replace("\"", "\'"),
+      return String.format("[ConstantDeclaration: [Name=%s] [Type=%s] [Init=%s]]",
+          this.identifier.lexeme.replace("\"", "\'"),
           this.type.toString(), this.expression.toString());
     }
 
     public void toDot(DOTGenerator builder) {
-      builder.addNode(this.hashCode(), "ConstantDeclaration [lexeme=" + this.lexeme.replace("\"", "\'") + "]");
+      builder.addNode(this.hashCode(),
+          "ConstantDeclaration [lexeme=" + this.identifier.lexeme.replace("\"", "\'") + "]");
       this.type.toDot(builder);
       builder.addEdge(this.hashCode(), this.type.hashCode());
 
@@ -166,7 +212,11 @@ public abstract class StatementNode extends Node {
     }
 
     public void execute(ExecutionContext context) {
-      context.environment.define(this.lexeme, this.expression.evaluate(context), true);
+      context.environment.define(this.identifier.lexeme, this.expression.evaluate(context), true);
+    }
+
+    public void semanticAnalysis(SemanticContext context) {
+      context.variableEnvironment.define(this.identifier.lexeme, this.expression.evaluateType(context), true);
     }
   }
 
@@ -198,6 +248,14 @@ public abstract class StatementNode extends Node {
       for (StatementNode statement : this.statements.statements)
         statement.execute(forkedContext);
     }
+
+    public void semanticAnalysis(SemanticContext context) {
+      SemanticContext forkedContext = context.fork();
+      forkedContext.loadTypesFromStatementList(this.statements);
+
+      for (StatementNode statement : this.statements.statements)
+        statement.semanticAnalysis(forkedContext);
+    }
   }
 
   public static class Return extends StatementNode {
@@ -228,14 +286,33 @@ public abstract class StatementNode extends Node {
       if (this.expression != null)
         context.environment.assign("return", this.expression.evaluate(context));
     }
+
+    public void semanticAnalysis(SemanticContext context) {
+      if (!context.isInScope(Scope.FUNCTION_BODY))
+        throw new SemanticAnalysisError("Return statement is not allowed outside of function body");
+
+      LoLangType expectedReturnType = context.returnType;
+
+      if (expectedReturnType == null) {
+        if (this.expression != null)
+          throw new SemanticAnalysisError("Return statement must not contain a return value");
+        return;
+      }
+
+      if (this.expression == null)
+        throw new SemanticAnalysisError("Return statement must contain a return value");
+      else if (!expectedReturnType.isEquivalent(this.expression.evaluateType(context)))
+        throw new SemanticAnalysisError("Return value must be of type " + expectedReturnType.toString());
+
+    }
   }
 
   public static class TryCatch extends StatementNode {
     StatementNode body;
-    String identifier;
+    Token identifier;
     StatementNode catchBody;
 
-    TryCatch(StatementNode body, String identifier, StatementNode catchBody) {
+    TryCatch(StatementNode body, Token identifier, StatementNode catchBody) {
       this.body = body;
       this.identifier = identifier;
       this.catchBody = catchBody;
@@ -261,29 +338,43 @@ public abstract class StatementNode extends Node {
         this.body.execute(forkedContext);
       } catch (LoLangThrowable.Error errorException) {
         ExecutionContext forkedContext = context.fork();
-        forkedContext.environment.define(identifier, errorException.message, true);
+        forkedContext.environment.define(identifier.lexeme, errorException.message, true);
         this.catchBody.execute(forkedContext);
       }
+    }
+
+    public void semanticAnalysis(SemanticContext context) {
+      SemanticContext forkedContext = context.fork();
+      this.body.semanticAnalysis(forkedContext);
+
+      SemanticContext forkedCatchContext = context.fork();
+      forkedCatchContext.variableEnvironment.define(this.identifier.lexeme, new LoLangType.String(), true);
+
+      this.catchBody.semanticAnalysis(forkedContext);
     }
   }
 
   public static class Throw extends StatementNode {
-    String errorMessasge;
+    Token errorMessasge;
 
-    Throw(String errorMessasge) {
+    Throw(Token errorMessasge) {
       this.errorMessasge = errorMessasge;
     }
 
     public String toString() {
-      return String.format("[Throw: %s]", this.errorMessasge.replace("\"", "\'"));
+      return String.format("[Throw: %s]", this.errorMessasge.lexeme.replace("\"", "\'"));
     }
 
     public void toDot(DOTGenerator builder) {
-      builder.addNode(this.hashCode(), "Throw [errorMessage=" + this.errorMessasge.replace("\"", "\'") + "]");
+      builder.addNode(this.hashCode(), "Throw [errorMessage=" + this.errorMessasge.lexeme.replace("\"", "\'") + "]");
     }
 
     public void execute(ExecutionContext context) {
-      throw new LoLangThrowable.Error(new LoLangValue.String(errorMessasge));
+      throw new LoLangThrowable.Error(new LoLangValue.String(errorMessasge.lexeme));
+    }
+
+    public void semanticAnalysis(SemanticContext context) {
+      // no static analysis is required for throw statements
     }
   }
 
@@ -342,6 +433,10 @@ public abstract class StatementNode extends Node {
             break;
           }
         }
+
+        // if no case matched, we should rethrow the exception since maybe there's
+        // another switch case in the parent
+        throw gotoException;
       }
     }
 
@@ -350,6 +445,9 @@ public abstract class StatementNode extends Node {
         executeStatements(statements, context);
       } catch (LoLangThrowable.SwitchBreak breakException) {
         return;
+      } catch (LoLangThrowable.SwitchGoto gotoException) {
+        // this is an actual interpreter error
+        throw new InterpreterError("Encountered goto statement with no matching case");
       }
     }
 
@@ -364,6 +462,37 @@ public abstract class StatementNode extends Node {
 
       return false;
     }
+
+    public void semanticAnalysis(SemanticContext context) {
+      LoLangType exprType = this.expr.evaluateType(context);
+      if (!(exprType instanceof LoLangType.Number) && !(exprType instanceof LoLangType.String))
+        throw new SemanticAnalysisError("Switch expression value must be a number or string");
+
+      for (SwitchCase caseNode : this.cases.namedCases) {
+        if (caseNode.literal.type == TokenType.NUMBER_LITERAL && !(exprType instanceof LoLangType.Number))
+          throw new SemanticAnalysisError("Switch expression value must be a number");
+        else if (caseNode.literal.type == TokenType.STRING_LITERAL && !(exprType instanceof LoLangType.String))
+          throw new SemanticAnalysisError("Switch expression value must be a string");
+
+        SemanticContext forkedContext = context.fork();
+        forkedContext.pushScope(Scope.SWITCH_CASE_BODY);
+
+        for (SwitchCase _caseNode : this.cases.namedCases)
+          forkedContext.gotoLabels.add(new SemanticContext.GotoLabel(_caseNode.literal));
+
+        caseNode.statements.semanticAnalysis(forkedContext);
+      }
+
+      if (this.cases.defaultCase != null) {
+        SemanticContext forkedContext = context.fork();
+
+        for (SwitchCase _caseNode : this.cases.namedCases)
+          forkedContext.gotoLabels.add(new SemanticContext.GotoLabel(_caseNode.literal));
+
+        forkedContext.pushScope(Scope.SWITCH_CASE_BODY);
+        this.cases.defaultCase.statements.semanticAnalysis(forkedContext);
+      }
+    }
   }
 
   public static class SwitchBreak extends StatementNode {
@@ -377,6 +506,11 @@ public abstract class StatementNode extends Node {
 
     public void execute(ExecutionContext context) {
       throw new LoLangThrowable.SwitchBreak();
+    }
+
+    public void semanticAnalysis(SemanticContext context) {
+      if (context.isInScope(Scope.SWITCH_CASE_BODY) == false)
+        throw new SemanticAnalysisError("SwitchBreak statement is not allowed outside of switch case body");
     }
   }
 
@@ -397,6 +531,24 @@ public abstract class StatementNode extends Node {
 
     public void execute(ExecutionContext context) {
       throw new LoLangThrowable.SwitchGoto(context.environment.get(this.token.lexeme));
+    }
+
+    public void semanticAnalysis(SemanticContext context) {
+      if (context.isInScope(Scope.SWITCH_CASE_BODY) == false)
+        throw new SemanticAnalysisError("SwitchGoto statement is not allowed outside of switch case body");
+
+      // check if token is in the list of goto labels
+      for (SemanticContext.GotoLabel label : context.gotoLabels) {
+        if (label.stringLabel != null && this.token.type == TokenType.STRING_LITERAL
+            && label.stringLabel.equals(this.token.lexeme))
+          break;
+
+        else if (label.intLabel != -1 && this.token.type == TokenType.NUMBER_LITERAL
+            && label.intLabel == Integer.parseInt(this.token.lexeme))
+          break;
+      }
+
+      throw new SemanticAnalysisError("No matching switch case found");
     }
   }
 
@@ -450,6 +602,25 @@ public abstract class StatementNode extends Node {
           continue;
         }
       }
+    }
+
+    public void semanticAnalysis(SemanticContext context) {
+      LoLangType iteratorType = this.iterator.evaluateType(context);
+      if (!(iteratorType instanceof LoLangType.Array))
+        throw new SemanticAnalysisError("Iterator must be an array");
+
+      LoLangType.Array array = (LoLangType.Array) iteratorType;
+      LoLangType elementType = array.elementType;
+      LoLangType declaredType = this.type.evaluate(context);
+
+      if (declaredType.isEquivalent(elementType) == false)
+        throw new SemanticAnalysisError(
+            "Declared type of for loop must be equivalent to the element type of the iterator");
+
+      SemanticContext forkedContext = context.fork();
+      forkedContext.pushScope(Scope.LOOP_BODY);
+      forkedContext.variableEnvironment.define(this.token.lexeme, elementType, true);
+      this.statement.semanticAnalysis(forkedContext);
     }
   }
 
@@ -543,26 +714,28 @@ public abstract class StatementNode extends Node {
     }
 
     public void execute(ExecutionContext context) {
-      ExecutionContext sharedContext = context.fork();
+      ExecutionContext forkedContext = context.fork();
 
       // Run init by adding declarations to the shared context across all runs
       if (this.init != null)
         for (Node.VariableDeclaration declaration : this.init.declarations)
-          declaration.addToContext(sharedContext);
+          declaration.addToContext(forkedContext);
 
       while (true) {
-        // Check if should run
-        LoLangValue condition = this.condition.evaluate(sharedContext);
-        if (!(condition instanceof LoLangValue.Boolean))
-          throw new InterpreterError("Condition must be a boolean");
+        // If there is a condition, then we need to check if we shold run
+        if (this.condition != null) {
+          LoLangValue condition = this.condition.evaluate(forkedContext);
+          if (!(condition instanceof LoLangValue.Boolean))
+            throw new InterpreterError("Condition must be a boolean");
 
-        boolean conditionValue = ((LoLangValue.Boolean) condition).value;
-        if (conditionValue == false)
-          break;
+          boolean conditionValue = ((LoLangValue.Boolean) condition).value;
+          if (conditionValue == false)
+            break;
+        }
 
         try {
-          ExecutionContext forkedContext = sharedContext.fork();
-          this.stmt.execute(forkedContext);
+          ExecutionContext loopBodyContext = forkedContext.fork();
+          this.stmt.execute(loopBodyContext);
         } catch (LoLangThrowable.LoopBreak breakException) {
           break;
         } catch (LoLangThrowable.LoopContinue continueException) {
@@ -570,10 +743,29 @@ public abstract class StatementNode extends Node {
 
         if (this.increment != null)
           for (ExpressionNode increment : this.increment.expressions)
-            increment.evaluate(sharedContext);
+            increment.evaluate(forkedContext);
 
         continue;
       }
+    }
+
+    public void semanticAnalysis(SemanticContext context) {
+      // Forked context represents header, loop body context represents entire loop
+      SemanticContext forkedContext = context.fork();
+
+      if (this.init != null) {
+        for (Node.VariableDeclaration init : this.init.declarations)
+          forkedContext.variableEnvironment.define(init.identifier.lexeme, init.type.evaluate(context), false);
+      }
+
+      if (this.condition != null) {
+        LoLangType conditionType = this.condition.evaluateType(context);
+        if (!(conditionType instanceof LoLangType.Boolean))
+          throw new SemanticAnalysisError("Condition must be a boolean");
+      }
+
+      SemanticContext loopBodyContext = forkedContext.fork();
+      loopBodyContext.pushScope(Scope.LOOP_BODY);
     }
   }
 
@@ -589,6 +781,11 @@ public abstract class StatementNode extends Node {
     public void execute(ExecutionContext context) {
       throw new LoLangThrowable.LoopBreak();
     }
+
+    public void semanticAnalysis(SemanticContext context) {
+      if (context.isInScope(Scope.LOOP_BODY) == false)
+        throw new SemanticAnalysisError("LoopBreak statement is not allowed outside of loop body");
+    }
   }
 
   public static class LoopContinue extends StatementNode {
@@ -602,6 +799,11 @@ public abstract class StatementNode extends Node {
 
     public void execute(ExecutionContext context) {
       throw new LoLangThrowable.LoopContinue();
+    }
+
+    public void semanticAnalysis(SemanticContext context) {
+      if (context.isInScope(Scope.LOOP_BODY) == false)
+        throw new SemanticAnalysisError("LoopContinue statement is not allowed outside of loop body");
     }
   }
 
@@ -659,6 +861,18 @@ public abstract class StatementNode extends Node {
         }
       }
     }
+
+    public void semanticAnalysis(SemanticContext context) {
+      if (this.condition != null) {
+        LoLangType conditionType = this.condition.evaluateType(context);
+        if (!(conditionType instanceof LoLangType.Boolean))
+          throw new SemanticAnalysisError("Condition must be a boolean");
+      }
+
+      SemanticContext forkedContext = context.fork();
+      forkedContext.pushScope(Scope.LOOP_BODY);
+      this.statement.semanticAnalysis(forkedContext);
+    }
   }
 
   public static class Expression extends StatementNode {
@@ -681,16 +895,23 @@ public abstract class StatementNode extends Node {
     public void execute(ExecutionContext context) {
       this.expression.evaluate(context);
     }
+
+    public void semanticAnalysis(SemanticContext context) {
+      this.expression.evaluateType(context);
+    }
   }
 
   public static class ObjectTypeDeclaration extends StatementNode {
     Node.PropertyList properties;
+    public final Token identifier;
 
-    ObjectTypeDeclaration(Node.PropertyList properties) {
+    ObjectTypeDeclaration(Token identifier, Node.PropertyList properties) {
+      this.identifier = identifier;
       this.properties = properties;
     }
 
-    ObjectTypeDeclaration() {
+    ObjectTypeDeclaration(Token identifier) {
+      this.identifier = identifier;
       this.properties = new Node.PropertyList();
     }
 
@@ -705,8 +926,22 @@ public abstract class StatementNode extends Node {
     }
 
     public void execute(ExecutionContext context) {
-      // TODO: implement
-      throw new Error("Not implemented yet");
+      // This method does nothing at runtime
+    }
+
+    public void semanticAnalysis(SemanticContext context) {
+      // This method does nothing at analysis time
+    }
+
+    public LoLangType.Object convertToType(SemanticContext context) {
+      HashMap<String, LoLangType> fields = new HashMap<>();
+
+      for (Node.PropertyDefinition property : this.properties.definitions) {
+        LoLangType type = property.type.evaluate(context);
+        fields.put(property.identifier.lexeme, type);
+      }
+
+      return new LoLangType.Object(fields);
     }
   }
 }

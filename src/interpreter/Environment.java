@@ -3,38 +3,38 @@ package interpreter;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-class SymbolTableEntry {
-  public LoLangValue value;
-  public boolean constant;
+public class Environment<InternalValue> {
+  public static class SymbolTableEntry<InternalValue> {
+    public InternalValue value;
+    public boolean constant;
 
-  public SymbolTableEntry(LoLangValue value, boolean constant) {
-    this.value = value;
-    this.constant = constant;
+    public SymbolTableEntry(InternalValue value, boolean constant) {
+      this.value = value;
+      this.constant = constant;
+    }
   }
-}
 
-public class Environment {
-  public Environment parent = null;
-  public ArrayList<Environment> siblings = new ArrayList<>();
+  public Environment<InternalValue> parent = null;
+  public ArrayList<Environment<InternalValue>> siblings = new ArrayList<>();
 
-  public HashMap<String, SymbolTableEntry> variables = new HashMap<>();
+  public HashMap<String, SymbolTableEntry<InternalValue>> variables = new HashMap<>();
 
-  public Environment(Environment parent) {
+  public Environment(Environment<InternalValue> parent) {
     this.parent = parent;
   }
 
   public Environment() {
   }
 
-  public LoLangValue get(String name) {
+  public SymbolTableEntry<InternalValue> getSymbolTableEntry(String name) {
     if (this.variables.containsKey(name))
-      return this.variables.get(name).value;
+      return this.variables.get(name);
 
     else if (this.parent != null)
-      return this.parent.get(name);
+      return this.parent.getSymbolTableEntry(name);
 
-    for (Environment sibling : this.siblings) {
-      LoLangValue value = sibling.get(name);
+    for (Environment<InternalValue> sibling : this.siblings) {
+      SymbolTableEntry<InternalValue> value = sibling.getSymbolTableEntry(name);
       if (value != null)
         return value;
     }
@@ -42,8 +42,12 @@ public class Environment {
     throw new InterpreterError("Cannot find variable \"" + name + "\"");
   }
 
-  public void define(String name, LoLangValue value, boolean constant) {
-    SymbolTableEntry newEntry = new SymbolTableEntry(value, constant);
+  public InternalValue get(String name) {
+    return this.getSymbolTableEntry(name).value;
+  }
+
+  public void define(String name, InternalValue value, boolean constant) {
+    SymbolTableEntry<InternalValue> newEntry = new SymbolTableEntry<InternalValue>(value, constant);
     this.variables.put(name, newEntry);
   }
 
@@ -52,9 +56,9 @@ public class Environment {
     this.define(name, null, false);
   }
 
-  public void assign(String name, LoLangValue value) {
+  public void assign(String name, InternalValue value) {
     if (this.variables.containsKey(name)) {
-      SymbolTableEntry entry = this.variables.get(name);
+      SymbolTableEntry<InternalValue> entry = this.variables.get(name);
 
       if (entry.constant)
         throw new InterpreterError("Cannot assign to constant variable \"" + name + "\"");

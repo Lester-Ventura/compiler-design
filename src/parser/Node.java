@@ -13,7 +13,7 @@ public abstract class Node {
   abstract public void toDot(DOTGenerator builder);
 
   public static class StatementList extends Node {
-    ArrayList<StatementNode> statements;
+    public final ArrayList<StatementNode> statements;
 
     StatementList(ArrayList<StatementNode> statements) {
       this.statements = statements;
@@ -48,58 +48,59 @@ public abstract class Node {
   }
 
   public static class VariableDeclarationHeader extends Node {
-    String lexeme;
+    Token identifier;
     TypeExpressionNode type;
 
-    VariableDeclarationHeader(String lexeme, TypeExpressionNode type) {
-      this.lexeme = lexeme;
+    VariableDeclarationHeader(Token identifier, TypeExpressionNode type) {
+      this.identifier = identifier;
       this.type = type;
     }
 
     public String toString() {
-      return String.format("[VariableDeclarationHeader: %s %s]", this.lexeme, this.type.toString());
+      return String.format("[VariableDeclarationHeader: %s %s]", this.identifier.lexeme, this.type.toString());
     }
 
     public void toDot(DOTGenerator builder) {
-      builder.addNode(this.hashCode(), "VariableDeclarationHeader [lexeme=" + this.lexeme + "]");
+      builder.addNode(this.hashCode(), "VariableDeclarationHeader [lexeme=" + this.identifier.lexeme + "]");
       this.type.toDot(builder);
       builder.addEdge(this.hashCode(), this.type.hashCode());
     }
   }
 
   public static class VariableDeclaration extends Node {
-    String lexeme;
-    TypeExpressionNode type;
-    ExpressionNode expression = null;
+    public final Token identifier;
+    public final TypeExpressionNode type;
+    public final ExpressionNode expression;
 
-    VariableDeclaration(String lexeme, TypeExpressionNode type) {
-      this.lexeme = lexeme;
+    VariableDeclaration(Token identifier, TypeExpressionNode type) {
+      this.identifier = identifier;
       this.type = type;
+      this.expression = null;
     }
 
-    VariableDeclaration(String lexeme, TypeExpressionNode type, ExpressionNode expression) {
-      this.lexeme = lexeme;
+    VariableDeclaration(Token identifier, TypeExpressionNode type, ExpressionNode expression) {
+      this.identifier = identifier;
       this.type = type;
       this.expression = expression;
     }
 
     void addToContext(ExecutionContext context) {
       if (this.expression != null)
-        context.environment.define(this.lexeme, this.expression.evaluate(context), false);
+        context.environment.define(this.identifier.lexeme, this.expression.evaluate(context), false);
       else
-        context.environment.declare(this.lexeme);
+        context.environment.declare(this.identifier.lexeme);
     }
 
     public String toString() {
       return this.expression != null
-          ? String.format("[VariableDeclaration: %s %s %s]", this.lexeme,
+          ? String.format("[VariableDeclaration: %s %s %s]", this.identifier.lexeme,
               this.type.toString(),
               this.expression.toString())
-          : String.format("[VariableDeclaration: %s %s]", this.lexeme, this.type.toString());
+          : String.format("[VariableDeclaration: %s %s]", this.identifier.lexeme, this.type.toString());
     }
 
     public void toDot(DOTGenerator builder) {
-      builder.addNode(this.hashCode(), "VariableDeclaration [lexeme=" + this.lexeme + "]");
+      builder.addNode(this.hashCode(), "VariableDeclaration [lexeme=" + this.identifier.lexeme + "]");
       this.type.toDot(builder);
       builder.addEdge(this.hashCode(), this.type.hashCode());
 
@@ -200,7 +201,7 @@ public abstract class Node {
   }
 
   public static class CounterLoopInit extends Node {
-    ArrayList<Node.VariableDeclaration> declarations;
+    public final ArrayList<Node.VariableDeclaration> declarations;
 
     CounterLoopInit(ArrayList<Node.VariableDeclaration> declarations) {
       this.declarations = declarations;
@@ -301,27 +302,27 @@ public abstract class Node {
   }
 
   public static class ObjectLiteralField extends Node {
-    String lexeme;
+    Token identifier;
     ExpressionNode expression;
 
-    public ObjectLiteralField(String lexeme, ExpressionNode expression) {
-      this.lexeme = lexeme;
+    public ObjectLiteralField(Token identifier, ExpressionNode expression) {
+      this.identifier = identifier;
       this.expression = expression;
     }
 
     public String toString() {
-      return String.format("[ObjectLiteralField: %s %s]", this.lexeme, this.expression.toString());
+      return String.format("[ObjectLiteralField: %s %s]", this.identifier.lexeme, this.expression.toString());
     }
 
     public void toDot(DOTGenerator builder) {
-      builder.addNode(this.hashCode(), "ObjectLiteralField [lexeme=" + this.lexeme + "]");
+      builder.addNode(this.hashCode(), "ObjectLiteralField [lexeme=" + this.identifier.lexeme + "]");
       this.expression.toDot(builder);
       builder.addEdge(this.hashCode(), this.expression.hashCode());
     }
   }
 
   public static class ParameterList extends Node {
-    ArrayList<StatementNode.VariableDeclarationHeader> declarations;
+    public ArrayList<StatementNode.VariableDeclarationHeader> declarations;
 
     public ParameterList(ArrayList<StatementNode.VariableDeclarationHeader> declarations) {
       this.declarations = declarations;
@@ -449,27 +450,27 @@ public abstract class Node {
   }
 
   public static class PropertyDefinition extends Node {
-    String lexeme;
+    Token identifier;
     TypeExpressionNode type;
 
-    PropertyDefinition(String lexeme, TypeExpressionNode type) {
-      this.lexeme = lexeme;
+    PropertyDefinition(Token identifier, TypeExpressionNode type) {
+      this.identifier = identifier;
       this.type = type;
     }
 
     public String toString() {
-      return String.format("[PropertyDefinition: %s %s]", this.lexeme, this.type.toString());
+      return String.format("[PropertyDefinition: %s %s]", this.identifier.lexeme, this.type.toString());
     }
 
     public void toDot(DOTGenerator builder) {
-      builder.addNode(this.hashCode(), "PropertyDefinition [lexeme=" + this.lexeme + "]");
+      builder.addNode(this.hashCode(), "PropertyDefinition [lexeme=" + this.identifier.lexeme + "]");
       this.type.toDot(builder);
       builder.addEdge(this.hashCode(), this.type.hashCode());
     }
   }
 
   public static class LambdaParamterList extends Node {
-    ArrayList<TypeExpressionNode> parameters;
+    public ArrayList<TypeExpressionNode> parameters;
 
     LambdaParamterList(ArrayList<TypeExpressionNode> parameters) {
       this.parameters = parameters;

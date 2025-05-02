@@ -10,6 +10,7 @@ import interpreter.ExecutionContext;
 import interpreter.Global;
 import parser.ParserResult;
 import parser.StatementNode;
+import semantic.SemanticAnalyzer;
 import parser.LR1Parser;
 import parser.Node;
 
@@ -104,10 +105,14 @@ public class CodeReader {
 
     if (parsingResult.root != null && (parsingResult.root instanceof StatementNode.Program)) {
       System.out.println("===============================================");
+      SemanticAnalyzer analyzer = new SemanticAnalyzer((StatementNode.Program) parsingResult.root);
+      analyzer.analyze();
+
+      System.out.println("===============================================");
 
       // Begin executing the program
       StatementNode.Program program = (StatementNode.Program) parsingResult.root;
-      ExecutionContext global = Global.createGlobal();
+      ExecutionContext global = Global.createGlobalExecutionContext();
       program.execute(global);
     }
   }

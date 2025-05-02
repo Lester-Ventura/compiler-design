@@ -6,6 +6,10 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+interface StringTransformer {
+  String run(String input);
+}
+
 public class RegexEngine {
   private HashMap<String, RegexNode> environment = new HashMap<>();
   String input;
@@ -73,7 +77,7 @@ public class RegexEngine {
     addRule(name, expression, null);
   }
 
-  public void addRule(String name, String expression, TokenType emit) {
+  public void addRule(String name, String expression, TokenType emit, StringTransformer transformer) {
     // need to lex the expression
     RegexLexer lexer = new RegexLexer(expression);
     ArrayList<RegexToken> tokens = lexer.lex();
@@ -82,8 +86,12 @@ public class RegexEngine {
     RegexNode root = parser.parse();
 
     root.setTokenType(emit);
-
+    root.setTransformer(transformer);
     environment.put(name, root);
+  }
+
+  public void addRule(String name, String expression, TokenType emit) {
+    addRule(name, expression, emit, null);
   }
 
   public Token peekNextToken() {
@@ -136,8 +144,11 @@ public class RegexEngine {
 
     if (retNode != null && retNode.getTokenType() != null) {
       currentCharacterIndex += ret.lexeme.length();
-      Token returnedToken = new Token(retNode.getTokenType(), ret.lexeme,
+
+      String lexeme = retNode.getTransformer() != null ? retNode.getTransformer().run(ret.lexeme) : ret.lexeme;
+      Token returnedToken = new Token(retNode.getTokenType(), lexeme,
           ColumnAndRow.calculate(startCharacterIndex, input));
+
       return returnedToken;
     }
 
@@ -214,7 +225,7 @@ public class RegexEngine {
 
     // handle literal tokens
     lexer.addRule("string_literal", "$\"(${character} | $\')*$\" | $\'(${character} | $\")*$\'",
-        TokenType.STRING_LITERAL);
+        TokenType.STRING_LITERAL, (String str) -> str.substring(1, str.length() - 1));
     lexer.addRule("number_literal",
         "${float_number}|${decimal_number}|${octal_number}|${binary_number}|${hexadecimal_number}",
         TokenType.NUMBER_LITERAL);
@@ -274,6 +285,7 @@ class RegexEngineParsingResult {
 
 abstract class RegexNode {
   private TokenType emit;
+  private StringTransformer transformer;
 
   public TokenType getTokenType() {
     return emit;
@@ -281,6 +293,14 @@ abstract class RegexNode {
 
   public void setTokenType(TokenType emit) {
     this.emit = emit;
+  }
+
+  public StringTransformer getTransformer() {
+    return transformer;
+  }
+
+  public void setTransformer(StringTransformer transformer) {
+    this.transformer = transformer;
   }
 
   abstract public String toString();

@@ -1,24 +1,33 @@
 package parser;
 
+import java.util.ArrayList;
+
+import lexer.Token;
+import semantic.LoLangType;
+import semantic.SemanticContext;
 import utils.DOTGenerator;
 
 public abstract class TypeExpressionNode extends Node {
-  // abstract void evaluate();
+  abstract LoLangType evaluate(SemanticContext context);
 
   public static class Identifier extends TypeExpressionNode {
-    String lexeme;
+    Token identifier;
 
-    Identifier(String lexeme) {
-      this.lexeme = lexeme;
+    Identifier(Token identifier) {
+      this.identifier = identifier;
     }
 
     public String toString() {
-      return String.format("[TypeIdentifier: %s]", this.lexeme.replace("\"", "\'"));
+      return String.format("[TypeIdentifier: %s]", this.identifier.lexeme.replace("\"", "\'"));
     }
 
     public void toDot(DOTGenerator builder) {
       builder.addNode(this.hashCode(),
-          "TypeIdentifier [lexeme=" + this.lexeme.replace("\"", "\'") + "]");
+          "TypeIdentifier [lexeme=" + this.identifier.lexeme.replace("\"", "\'") + "]");
+    }
+
+    public LoLangType evaluate(SemanticContext context) {
+      return context.typeEnvironment.get(this.identifier.lexeme);
     }
   }
 
@@ -37,6 +46,10 @@ public abstract class TypeExpressionNode extends Node {
       builder.addNode(this.hashCode(), "Array");
       this.elementType.toDot(builder);
       builder.addEdge(this.hashCode(), this.elementType.hashCode());
+    }
+
+    public LoLangType evaluate(SemanticContext context) {
+      return new LoLangType.Array(this.elementType.evaluate(context));
     }
   }
 
@@ -66,6 +79,16 @@ public abstract class TypeExpressionNode extends Node {
 
       this.returnType.toDot(builder);
       builder.addEdge(this.hashCode(), this.returnType.hashCode());
+    }
+
+    public LoLangType evaluate(SemanticContext context) {
+      ArrayList<LoLangType> parameterList = new ArrayList<>();
+
+      for (TypeExpressionNode parameter : this.parameterTypes.parameters) {
+        parameterList.add(parameter.evaluate(context));
+      }
+
+      return new LoLangType.Lambda(this.returnType.evaluate(context), parameterList);
     }
   }
 }

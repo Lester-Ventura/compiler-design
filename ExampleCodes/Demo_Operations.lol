@@ -36,14 +36,23 @@ canwin(finalVal == 78) {
     broadcast("the final test didn't work");
 }
 
+// to also demonstrate unary operations
+// these are evaluated before everything else here
+item three : stats = 3;
+item one : stats = 1;
+
+item precedenceTest : stats = 5 + 3 % 5 * 2 - --three ** 4 ** (1/2) / ++one;
 
 // just to be super sure about the order : this should be 9
+// 5 + 3 % 5 * 2 - <2> ** 4 ** (1/2) / <2>
+// 5 + 3 % 5 * 2 - 2 ** 4 ** (0.5) / 2
+// 5 + 3 % 5 * 2 - 2 ** <2> / 2
+// 5 + 3 % 5 * 2 - <4> / 2
+// 5 + <3> * 2 - 4 / 2
 // 5 + <6> - 4 / 2
 // 5 + 6 - <2>
 // <11> - 2
 // <9>
-item precedenceTest : stats = 5 + 3 * 2 - 4 / 2;
-
 canwin(precedenceTest == 9) {
     broadcast("precedence test works!");
 } lose {

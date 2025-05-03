@@ -9,4 +9,8 @@ cannon(faker) {
 }
 
 // This should now throw an error because we have declared the variable in its scope already
+<<<<<<< HEAD
 broadcast(inside);
+=======
+broadcast(inside);
+>>>>>>> 147e0ebcf61adee3252729ef4d853f9fb3cdff47

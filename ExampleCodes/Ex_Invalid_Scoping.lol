@@ -8,4 +8,8 @@ canwin(faker) {
 }
 
 // This should throw an error due to an undeclared variable
+<<<<<<< HEAD
 broadcast(inside);
+=======
+broadcast(inside);
+>>>>>>> 147e0ebcf61adee3252729ef4d853f9fb3cdff47

@@ -792,11 +792,18 @@ public abstract class ExpressionNode extends Node {
       }
 
       if (left instanceof LoLangType.Boolean && right instanceof LoLangType.Boolean) {
-        return new LoLangType.Boolean();
+        if ((this.operation.lexeme.equals("&&"))
+            || (this.operation.lexeme.equals("||"))
+            || (this.operation.lexeme.equals("=="))
+            || (this.operation.lexeme.equals("!=")))
+          return new LoLangType.Boolean();
       }
 
       if (left instanceof LoLangType.String && right instanceof LoLangType.String) {
-        return new LoLangType.String();
+        if (this.operation.lexeme.equals("+"))
+          return new LoLangType.String();
+        else if (this.operation.lexeme.equals("=="))
+          return new LoLangType.Boolean();
       }
 
       context.addException(new SemanticAnalyzerException("Invalid binary operation \"" + this.operation.lexeme

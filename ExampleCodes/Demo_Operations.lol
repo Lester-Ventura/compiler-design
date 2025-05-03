@@ -7,7 +7,7 @@
 item val : stats = (5 ** 2 + 3 - 4 / 2) * 3;
 
 canwin(val == 78) {
-    broadcast("it just works!");
+    broadcast(val);
 } lose {
     broadcast("the operations didn't work");
 }
@@ -20,7 +20,7 @@ canwin(val == 78) {
 item bitwiseTest : stats = (0b11 | 0b111 & 0b1001) ^ 0b100;
 
 canwin(bitwiseTest == 5) {
-    broadcast("bitwise works!"); // this should work
+    broadcast(bitwiseTest); // this should work
 } lose {
     broadcast("the bitwise operation didn't work");
 }
@@ -31,7 +31,7 @@ item finalVal : stats = ((0b11 | 0b111 & 0b1001 ^ 0b100) ** 2 + 3 - 4 / 2) * 0b1
 
 // this should still be 78 cause it's just the same as before
 canwin(finalVal == 78) {
-    broadcast("final test works!");
+    broadcast(finalVal);
 } lose {
     broadcast("the final test didn't work");
 }
@@ -54,7 +54,7 @@ item precedenceTest : stats = 5 + 3 % 5 * 2 - --three ** 4 ** (1/2) / ++one;
 // <11> - 2
 // <9>
 canwin(precedenceTest == 9) {
-    broadcast("precedence test works!");
+    broadcast(precedenceTest);
 } lose {
     broadcast("the final test didn't work");
 }

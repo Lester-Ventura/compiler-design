@@ -11,5 +11,5 @@ item smallHexadecimal : stats = 0xF;
 smallDecimal = smallDecimal + smallHexadecimal;
 
 canwin(smallDecimal > 15) {
-    broadcast("it works");
+    broadcast(smallDecimal);
 }

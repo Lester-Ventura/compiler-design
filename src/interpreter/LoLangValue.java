@@ -1,11 +1,11 @@
 package interpreter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 
 import parser.Node;
 import parser.StatementNode;
-import utils.UnimplementedError;
 
 public abstract class LoLangValue {
 	public abstract java.lang.String toString();
@@ -157,8 +157,21 @@ public abstract class LoLangValue {
 			this.context = context;
 		}
 
-		public Object call(ArrayList<LoLangValue> arguments) {
-			throw new UnimplementedError("User-defined-functions are not implemented yet");
+		public LoLangValue call(ArrayList<LoLangValue> arguments) {
+			ExecutionContext forkedContext = context.fork();
+
+			for (int i = 0; i < this.parameters.declarations.size(); i++) {
+				Node.VariableDeclarationHeader declaration = this.parameters.declarations.get(i);
+				forkedContext.environment.define(declaration.identifier.lexeme, arguments.get(i), true);
+			}
+
+			try {
+				this.body.execute(forkedContext);
+			} catch (LoLangThrowable.Return returnException) {
+				return returnException.value;
+			}
+
+			return new LoLangValue.Null();
 		}
 
 		public java.lang.String toString() {
@@ -183,6 +196,7 @@ public abstract class LoLangValue {
 			if (arguments.size() != this.arity)
 				throw new InterpreterExceptions.FunctionCallArityException();
 
+			Collections.reverse(arguments);
 			return this.lambda.run(arguments.toArray(new LoLangValue[this.arity]));
 		}
 

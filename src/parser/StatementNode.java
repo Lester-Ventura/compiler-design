@@ -17,7 +17,7 @@ import utils.DOTGenerator;
 import utils.UnimplementedError;
 
 public abstract class StatementNode extends Node {
-  abstract void execute(ExecutionContext context);
+  public abstract void execute(ExecutionContext context);
 
   abstract void semanticAnalysis(SemanticContext context);
 

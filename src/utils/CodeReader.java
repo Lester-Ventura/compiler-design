@@ -22,8 +22,6 @@ public class CodeReader {
   }
 
   public void run(boolean interactive) {
-    Scanner scanner = new Scanner(System.in);
-
     while (true) {
       File[] files = getFiles();
 
@@ -34,8 +32,8 @@ public class CodeReader {
       printLongLine();
       System.out.print("Enter the file number to read: ");
 
-      int fileNumber = scanner.nextInt();
-      scanner.nextLine(); // consume the newline
+      int fileNumber = InputScanner.globalScanner.nextInt();
+      InputScanner.globalScanner.nextLine(); // consume the newline
 
       int index = fileNumber - 1;
       if (index == files.length) {
@@ -56,13 +54,11 @@ public class CodeReader {
 
         printLongLine();
         System.out.println("Scanning complete! Enter any key to continue...");
-        scanner.nextLine(); // consume the newline
+        InputScanner.globalScanner.nextLine(); // consume the newline
       } catch (IOException e) {
         System.out.println("Error has occured while scanning file: " + e.getMessage());
       }
     }
-
-    scanner.close();
   }
 
   public static File[] getFiles() {

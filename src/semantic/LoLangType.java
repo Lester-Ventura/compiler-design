@@ -117,17 +117,29 @@ public abstract class LoLangType {
   }
 
   public static class Lambda extends LoLangType {
+    public static interface GenerateGenericReturnType {
+      LoLangType run(ArrayList<LoLangType> parameterTypes);
+    }
+
     public final LoLangType returnType;
     public final ArrayList<LoLangType> parameterList;
+    public final boolean isGeneric;
+    public final GenerateGenericReturnType generateGenericReturnType;
 
     public Lambda(LoLangType returnType) {
-      this.returnType = returnType;
-      this.parameterList = new ArrayList<>();
+      this(returnType, new ArrayList<>(), null);
     }
 
     public Lambda(LoLangType returnType, ArrayList<LoLangType> parameterList) {
+      this(returnType, parameterList, null);
+    }
+
+    public Lambda(LoLangType returnType, ArrayList<LoLangType> parameterList,
+        GenerateGenericReturnType generateGenericReturnType) {
       this.returnType = returnType;
       this.parameterList = parameterList;
+      this.isGeneric = generateGenericReturnType != null;
+      this.generateGenericReturnType = generateGenericReturnType;
     }
 
     public boolean isEquivalent(LoLangType other) {

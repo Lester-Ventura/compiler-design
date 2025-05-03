@@ -48,7 +48,7 @@ public abstract class Node {
   }
 
   public static class VariableDeclarationHeader extends Node {
-    Token identifier;
+    public final Token identifier;
     TypeExpressionNode type;
 
     VariableDeclarationHeader(Token identifier, TypeExpressionNode type) {

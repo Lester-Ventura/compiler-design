@@ -1,18 +1,9 @@
-item x: stats = 2;
+item array : stats[] = [1, 2, 3];
 
-channel(x) {
-	teleport (1): {
-		broadcast("\nMinions have Spawned");
-		cancel; // this ends case 1
-	}
-	
-	teleport (2): {
-		broadcast("Welcome to League of Languages");		
-		flash 3; // switch specific goto
-	}
+item performArrayOperation: skill (message, stats) -> passive = 
+  skill (item testing: message, item kills: stats): passive -> {
+    broadcast("Hello, World! " + testing);
+    broadcast(array[0]);
+  } 
 
-	recall: {
-		broadcast("Report jungle");
-		cancel;
-	}
-}
+performArrayOperation("this is just nice to know", 10);

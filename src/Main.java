@@ -1,9 +1,12 @@
 import java.util.ArrayList;
+import java.util.Scanner;
 
 import utils.*;
 import parser.*;
 
 public class Main {
+    public Scanner globalScanner = new Scanner(System.in);
+
     public static void main(String[] args) {
         boolean isInteractive = args.length <= 0 || !args[0].equals("--no-interactive");
 

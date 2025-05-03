@@ -60,12 +60,14 @@ public abstract class ExpressionNode extends Node {
 
     public LoLangType evaluateType(SemanticContext context) {
       ArrayList<LoLangType> parameterTypes = new ArrayList<>();
+      SemanticContext forkedContext = context.cleanFunctionFork(this.returnType.evaluate(context));
 
-      for (Node.VariableDeclarationHeader parameter : this.parameters.declarations)
+      for (Node.VariableDeclarationHeader parameter : this.parameters.declarations) {
         parameterTypes.add(parameter.type.evaluate(context));
+        forkedContext.variableEnvironment.define(parameter.identifier.lexeme, parameter.type.evaluate(context), true);
+      }
 
       // We also need to verify the body
-      SemanticContext forkedContext = context.cleanFunctionFork(this.returnType.evaluate(context));
       this.body.semanticAnalysis(forkedContext);
 
       return new LoLangType.Lambda(this.returnType.evaluate(context), parameterTypes);
@@ -100,8 +102,8 @@ public abstract class ExpressionNode extends Node {
     LoLangValue evaluate(ExecutionContext context) {
       ArrayList<LoLangValue> values = new ArrayList<>();
 
-      for (ExpressionNode expression : this.expressions.expressions)
-        values.add(expression.evaluate(context));
+      for (int i = this.expressions.expressions.size() - 1; i >= 0; i--)
+        values.add(this.expressions.expressions.get(i).evaluate(context));
 
       return new LoLangValue.Array(values);
     }
@@ -296,19 +298,28 @@ public abstract class ExpressionNode extends Node {
         return new LoLangType.Any();
       }
 
+      ArrayList<LoLangType> parameterTypes = new ArrayList<>();
+
       // Verify that argument types match the parameter types
       for (int i = 0; i < lambda.parameterList.size(); i++) {
         LoLangType parameterType = lambda.parameterList.get(i);
+        parameterTypes.add(parameterType);
+
         ExpressionNode argumentType = this.parameters.expressions.get(i);
 
         if (!parameterType.isEquivalent(argumentType.evaluateType(context))) {
+          int index = lambda.parameterList.size() - i - 1;
           context.addException(
-              new SemanticAnalyzerException(String.format("Incorrect parameter type passed to function at index %d", i),
+              new SemanticAnalyzerException(
+                  String.format("Incorrect parameter type passed to function at index %d", index),
                   this.functionCallToken));
         }
       }
 
-      return lambda.returnType;
+      if (lambda.isGeneric == false)
+        return lambda.returnType;
+
+      return lambda.generateGenericReturnType.run(parameterTypes);
     }
   }
 

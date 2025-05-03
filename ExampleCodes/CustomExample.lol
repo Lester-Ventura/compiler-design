@@ -1,9 +1,15 @@
-item array : stats[] = [1, 2, 3];
+build Player {
+    name: message;
+    alias: message;
+    careerLength: stats;
+    status: goat;
+}
 
-item performArrayOperation: skill (message, stats) -> passive = 
-  skill (item testing: message, item kills: stats): passive -> {
-    broadcast("Hello, World! " + testing);
-    broadcast(array[0]);
-  } 
+item Faker: build Player = {
+  name: "Lee Sang-hyeok",
+  alias: "Faker",
+  careerLength: 12,
+  status: faker
+};
 
-performArrayOperation("this is just nice to know", 10);
+broadcast(Faker.name);

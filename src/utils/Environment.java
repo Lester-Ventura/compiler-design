@@ -39,7 +39,7 @@ public class Environment<InternalValue> {
         return value;
     }
 
-    throw new EnvironmentException("Cannot find variable \"" + name + "\"");
+    throw new EnvironmentException("Cannot find symbol table entry \"" + name + "\"");
   }
 
   public InternalValue get(String name) throws EnvironmentException {

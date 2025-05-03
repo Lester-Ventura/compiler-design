@@ -49,6 +49,8 @@ public abstract class StatementNode extends Node {
     }
 
     public void semanticAnalysis(SemanticContext context) {
+      context.loadTypesFromStatementList(this.statements);
+
       for (StatementNode statement : this.statements.statements)
         statement.semanticAnalysis(context);
     }
@@ -173,9 +175,11 @@ public abstract class StatementNode extends Node {
     }
 
     public void semanticAnalysis(SemanticContext context) {
+      LoLangType declarationType = this.declaration.type.evaluate(context);
+
       if (this.declaration.expression != null) {
         LoLangType expressionType = this.declaration.expression.evaluateType(context);
-        if (!expressionType.isEquivalent(this.declaration.type.evaluate(context))) {
+        if (!expressionType.isEquivalent(declarationType)) {
           if (this.declaration.equalsToken == null)
             throw new Error("INVARIANT VIOLATION: equalsToken should not be null");
 
@@ -184,7 +188,7 @@ public abstract class StatementNode extends Node {
         }
       }
 
-      context.variableEnvironment.define(this.declaration.identifier.lexeme, this.declaration.type.evaluate(context),
+      context.variableEnvironment.define(this.declaration.identifier.lexeme, declarationType,
           false);
     }
   }

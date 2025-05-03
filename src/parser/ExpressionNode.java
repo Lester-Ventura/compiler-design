@@ -208,7 +208,7 @@ public abstract class ExpressionNode extends Node {
       if (!(left instanceof LoLangType.DotGettable)) {
         context.addException(new SemanticAnalyzerException("Left side of dot access must be an object",
             this.identifier));
-        return new LoLangType.Unknown();
+        return new LoLangType.Any();
       }
 
       LoLangType.DotGettable gettable = (LoLangType.DotGettable) left;
@@ -216,7 +216,7 @@ public abstract class ExpressionNode extends Node {
       if (!(gettable.hasKey(this.identifier.lexeme))) {
         context.addException(new SemanticAnalyzerException("Cannot access property \"" + this.identifier.lexeme
             + "\"on non-object", this.identifier));
-        return new LoLangType.Unknown();
+        return new LoLangType.Any();
       }
 
       return gettable.getKey(this.identifier.lexeme);
@@ -285,7 +285,7 @@ public abstract class ExpressionNode extends Node {
         context.addException(
             new SemanticAnalyzerException("Left side of function-call expression must return a lambda",
                 this.functionCallToken));
-        return new LoLangType.Unknown();
+        return new LoLangType.Any();
       }
 
       LoLangType.Lambda lambda = (LoLangType.Lambda) lambdaValue;
@@ -293,7 +293,7 @@ public abstract class ExpressionNode extends Node {
       if (lambda.parameterList.size() != this.parameters.expressions.size()) {
         context.addException(new SemanticAnalyzerException("Incorrect number of parameters passed to function",
             this.functionCallToken));
-        return new LoLangType.Unknown();
+        return new LoLangType.Any();
       }
 
       // Verify that argument types match the parameter types
@@ -342,7 +342,7 @@ public abstract class ExpressionNode extends Node {
       } catch (EnvironmentException e) {
         context.addException(new SemanticAnalyzerException("Cannot find variable \"" + this.identifier.lexeme + "\"",
             this.identifier));
-        return new LoLangType.Unknown();
+        return new LoLangType.Any();
       }
     }
   }
@@ -404,7 +404,7 @@ public abstract class ExpressionNode extends Node {
                 isPostfix ? "left" : "right", isIncrement() ? "increment" : "decrement"),
                 this.token));
 
-        return new LoLangType.Unknown();
+        return new LoLangType.Any();
       }
 
       return left;
@@ -452,7 +452,7 @@ public abstract class ExpressionNode extends Node {
         } catch (EnvironmentException e) {
           context.addException(new SemanticAnalyzerException("Cannot find variable \"" + identifier + "\"",
               ((ExpressionNode.Identifier) this.left).identifier));
-          return new LoLangType.Unknown();
+          return new LoLangType.Any();
         }
       }
 
@@ -461,7 +461,7 @@ public abstract class ExpressionNode extends Node {
 
       if (left.isEquivalent(right) == false) {
         context.addException(new SemanticAnalyzerException("Cannot assign values to different types", equalsSign));
-        return new LoLangType.Unknown();
+        return new LoLangType.Any();
       }
 
       return left;
@@ -576,13 +576,13 @@ public abstract class ExpressionNode extends Node {
       if (!(left instanceof LoLangType.Array)) {
         context.addException(
             new SemanticAnalyzerException("Left side of index access should be an array type", leftBracket));
-        return new LoLangType.Unknown();
+        return new LoLangType.Any();
       }
 
       if (!(right instanceof LoLangType.Number)) {
         context.addException(
             new SemanticAnalyzerException("Index should be a number type", leftBracket));
-        return new LoLangType.Unknown();
+        return new LoLangType.Any();
       }
 
       LoLangType.Array array = (LoLangType.Array) left;
@@ -636,7 +636,7 @@ public abstract class ExpressionNode extends Node {
         default:
           // Ok it should never reach here. Parser error if it did
           context.addException(new SemanticAnalyzerException("Invalid token literal type", this.token));
-          return new LoLangType.Unknown();
+          return new LoLangType.Any();
       }
     }
   }
@@ -788,7 +788,7 @@ public abstract class ExpressionNode extends Node {
 
       context.addException(new SemanticAnalyzerException("Invalid binary operation \"" + this.operation.lexeme
           + "\" on " + left.getClass().getName() + ", " + right.getClass().getName(), this.operation));
-      return new LoLangType.Unknown();
+      return new LoLangType.Any();
     }
   }
 
@@ -837,7 +837,7 @@ public abstract class ExpressionNode extends Node {
 
       context.addException(new SemanticAnalyzerException("Invalid operation \"" + lexeme + "\" on type "
           + operandType.getClass().getName(), this.operationToken));
-      return new LoLangType.Unknown();
+      return new LoLangType.Any();
     }
   }
 

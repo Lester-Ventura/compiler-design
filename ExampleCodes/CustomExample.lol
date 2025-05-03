@@ -1,13 +1,18 @@
-support {
-	item team: message = "Bili-bili Gaming";
-  canwin(shaker){
-    broadcast("T1 are the past, the present, and the future.");
-  }lose{
-    feed "It is not your time yet.";
-  }
+item x: stats = 2;
 
-  recast "this is a value";
-  recast "this is a value2";
-} carry (e) {
-	broadcast(e); 
+channel(x) {
+	teleport (1): {
+		broadcast("\nMinions have Spawned");
+		cancel; // this ends case 1
+	}
+	
+	teleport (2): {
+		broadcast("Welcome to League of Languages");		
+		flash 1; // switch specific goto
+	}
+
+	recall: {
+		broadcast("Report jungle");
+		cancel;
+	}
 }

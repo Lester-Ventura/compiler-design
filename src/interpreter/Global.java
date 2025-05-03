@@ -14,7 +14,7 @@ public class Global {
     context.environment.define("broadcast", new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
       System.out.println(arguments[0].toString());
       return new LoLangValue.Null();
-    }, 1), false);
+    }, 1), true);
 
     context.environment.define("chat", new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
       Scanner scanner = new Scanner(System.in);
@@ -23,7 +23,13 @@ public class Global {
       scanner.close();
 
       return new LoLangValue.String(input);
-    }, 1), false);
+    }, 1), true);
+
+    context.environment.define("ff", new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+      LoLangValue.Number number = (LoLangValue.Number) arguments[0];
+      System.exit(number.value == 15 ? (int) 0 : (int) Math.floor(number.value));
+      return new LoLangValue.Null();
+    }, 1), true);
 
     return context;
   };
@@ -44,6 +50,10 @@ public class Global {
     LoLangType.Lambda chatType = new LoLangType.Lambda(new LoLangType.String(),
         new ArrayList<LoLangType>(Arrays.asList(new LoLangType[] { new LoLangType.String() })));
     context.variableEnvironment.define("chat", chatType, true);
+
+    LoLangType.Lambda ffType = new LoLangType.Lambda(new LoLangType.Void(),
+        new ArrayList<LoLangType>(Arrays.asList(new LoLangType[] { new LoLangType.Number() })));
+    context.variableEnvironment.define("ff", ffType, true);
 
     return context;
   }

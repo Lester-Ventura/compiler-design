@@ -173,9 +173,6 @@ public abstract class StatementNode extends Node {
     }
 
     public void semanticAnalysis(SemanticContext context) {
-      context.variableEnvironment.define(this.declaration.identifier.lexeme,
-          this.declaration.expression.evaluateType(context), false);
-
       if (this.declaration.expression != null) {
         LoLangType expressionType = this.declaration.expression.evaluateType(context);
         if (!expressionType.isEquivalent(this.declaration.type.evaluate(context))) {
@@ -186,6 +183,9 @@ public abstract class StatementNode extends Node {
               "Type of variable declaration does not match type of expression", this.declaration.equalsToken));
         }
       }
+
+      context.variableEnvironment.define(this.declaration.identifier.lexeme, this.declaration.type.evaluate(context),
+          false);
     }
   }
 
@@ -428,7 +428,7 @@ public abstract class StatementNode extends Node {
 
     public void execute(ExecutionContext context) {
       LoLangValue value = this.expr.evaluate(context);
-      if (!(value instanceof LoLangValue.Number) || !(value instanceof LoLangValue.String)) {
+      if (!(value instanceof LoLangValue.Number) && !(value instanceof LoLangValue.String)) {
         throw new RuntimeError("Switch expression value be a number or string", this.leftParenToken);
       }
 
@@ -493,20 +493,25 @@ public abstract class StatementNode extends Node {
         return;
       }
 
+      // add labels to context
+      SemanticContext sharedContext = context.fork();
+      for (SwitchCase caseNode : this.cases.namedCases)
+        sharedContext.gotoLabels.add(new SemanticContext.GotoLabel(caseNode.literal));
+
       for (SwitchCase caseNode : this.cases.namedCases) {
         if (caseNode.literal.type == TokenType.NUMBER_LITERAL && !(exprType instanceof LoLangType.Number)) {
-          context.addException(new SemanticAnalyzerException("Switch expression value must be a number",
+          sharedContext.addException(new SemanticAnalyzerException("Switch expression value must be a number",
               this.leftParenToken));
           return;
         }
 
         else if (caseNode.literal.type == TokenType.STRING_LITERAL && !(exprType instanceof LoLangType.String)) {
-          context.addException(new SemanticAnalyzerException("Switch expression value must be a string",
+          sharedContext.addException(new SemanticAnalyzerException("Switch expression value must be a string",
               this.leftParenToken));
           return;
         }
 
-        SemanticContext forkedContext = context.fork();
+        SemanticContext forkedContext = sharedContext.fork();
         forkedContext.pushScope(Scope.SWITCH_CASE_BODY);
 
         for (SwitchCase _caseNode : this.cases.namedCases)
@@ -593,11 +598,11 @@ public abstract class StatementNode extends Node {
       for (SemanticContext.GotoLabel label : context.gotoLabels) {
         if (label.stringLabel != null && this.gotoTargetToken.type == TokenType.STRING_LITERAL
             && label.stringLabel.equals(this.gotoTargetToken.lexeme))
-          break;
+          return;
 
         else if (label.intLabel != -1 && this.gotoTargetToken.type == TokenType.NUMBER_LITERAL
             && label.intLabel == Integer.parseInt(this.gotoTargetToken.lexeme))
-          break;
+          return;
       }
 
       context.addException(new SemanticAnalyzerException(String

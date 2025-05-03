@@ -1,3 +1,6 @@
+// This should be rechecked once we get standard library stuff
+// uses array.push()
+
 // This defines a function called `split_string` in the global scope
 item split_string: skill(message, message) -> message[] = 
 skill (

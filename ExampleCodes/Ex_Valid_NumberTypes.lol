@@ -8,8 +8,8 @@ item float: stats = 1234.123456;
 // simple operations for testing
 item smallDecimal : stats = 1;
 item smallHexadecimal : stats = 0xF;
+
+// this should be 16, cause it's 15 + 1
 smallDecimal = smallDecimal + smallHexadecimal;
 
-canwin(smallDecimal > 15) {
-    broadcast(smallDecimal);
-}
+broadcast(smallDecimal);

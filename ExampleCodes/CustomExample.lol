@@ -5,6 +5,9 @@ support {
   }lose{
     feed "It is not your time yet.";
   }
+
+  recast "this is a value";
+  recast "this is a value2";
 } carry (e) {
 	broadcast(e); 
 }

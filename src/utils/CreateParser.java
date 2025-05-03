@@ -4,5 +4,5 @@ import parser.LR1Parser;
 
 @FunctionalInterface
 public interface CreateParser {
-  LR1Parser run(String input);
+  LR1Parser run(String input, String inputPath);
 }

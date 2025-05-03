@@ -1,5 +1,7 @@
 package interpreter;
 
+import utils.Environment;
+
 public class ExecutionContext {
   public Environment<LoLangValue> environment = new Environment<LoLangValue>();
 

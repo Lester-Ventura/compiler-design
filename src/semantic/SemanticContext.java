@@ -3,11 +3,11 @@ package semantic;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import interpreter.Environment;
 import lexer.Token;
 import lexer.TokenType;
 import parser.StatementNode;
 import parser.Node.StatementList;
+import utils.Environment;
 
 public class SemanticContext {
   public enum Scope {
@@ -33,29 +33,35 @@ public class SemanticContext {
   public final LoLangType returnType;
   public final ArrayList<GotoLabel> gotoLabels;
 
+  public final ArrayList<SemanticAnalyzerException> exceptions;
+
+  @SuppressWarnings("unchecked")
   public SemanticContext(Environment<LoLangType> parentTypeEnvironment,
-      Environment<LoLangType> parentVariableEnvironment,
-      ArrayList<Scope> scopes, LoLangType returnType, ArrayList<GotoLabel> gotoLabels) {
+      Environment<LoLangType> parentVariableEnvironment, ArrayList<Scope> scopes, LoLangType returnType,
+      ArrayList<GotoLabel> gotoLabels, ArrayList<SemanticAnalyzerException> exceptions) {
     this.typeEnvironment = new Environment<LoLangType>(parentTypeEnvironment);
     this.variableEnvironment = new Environment<LoLangType>(parentVariableEnvironment);
     this.scopes = (ArrayList<Scope>) scopes.clone();
     this.returnType = returnType;
     this.gotoLabels = (ArrayList<GotoLabel>) gotoLabels.clone();
+    this.exceptions = exceptions;
   }
 
   public SemanticContext() {
     this.returnType = null;
     this.scopes = new ArrayList<>();
     this.gotoLabels = new ArrayList<>();
+    this.exceptions = new ArrayList<>();
   }
 
   public SemanticContext cleanFunctionFork(LoLangType returnType) {
     return new SemanticContext(typeEnvironment, variableEnvironment,
-        new ArrayList<>(Arrays.asList(new Scope[] { Scope.FUNCTION_BODY })), returnType, this.gotoLabels);
+        new ArrayList<>(Arrays.asList(new Scope[] { Scope.FUNCTION_BODY })), returnType, this.gotoLabels,
+        this.exceptions);
   }
 
   public SemanticContext fork() {
-    return new SemanticContext(typeEnvironment, variableEnvironment, scopes, returnType, gotoLabels);
+    return new SemanticContext(typeEnvironment, variableEnvironment, scopes, returnType, gotoLabels, exceptions);
   }
 
   public void pushScope(Scope scope) {
@@ -71,6 +77,11 @@ public class SemanticContext {
         return true;
 
     return false;
+  }
+
+  public void addException(SemanticAnalyzerException exception) {
+    if (this.exceptions != null)
+      this.exceptions.add(exception);
   }
 
   public void loadTypesFromStatementList(StatementList list) {

@@ -70,17 +70,20 @@ public abstract class Node {
   public static class VariableDeclaration extends Node {
     public final Token identifier;
     public final TypeExpressionNode type;
+    public final Token equalsToken;
     public final ExpressionNode expression;
 
     VariableDeclaration(Token identifier, TypeExpressionNode type) {
       this.identifier = identifier;
       this.type = type;
+      this.equalsToken = null;
       this.expression = null;
     }
 
-    VariableDeclaration(Token identifier, TypeExpressionNode type, ExpressionNode expression) {
+    VariableDeclaration(Token identifier, TypeExpressionNode type, ExpressionNode expression, Token equalsToken) {
       this.identifier = identifier;
       this.type = type;
+      this.equalsToken = equalsToken;
       this.expression = expression;
     }
 
@@ -394,8 +397,9 @@ public abstract class Node {
   public static class IfStatementBranch extends Node {
     ExpressionNode condition;
     StatementNode body;
+    Token conditionToken;
 
-    IfStatementBranch(ExpressionNode condition, StatementNode body) {
+    IfStatementBranch(ExpressionNode condition, StatementNode body, Token conditionToken) {
       this.condition = condition;
       this.body = body;
     }

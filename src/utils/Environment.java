@@ -1,4 +1,4 @@
-package interpreter;
+package utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,7 +26,7 @@ public class Environment<InternalValue> {
   public Environment() {
   }
 
-  public SymbolTableEntry<InternalValue> getSymbolTableEntry(String name) {
+  public SymbolTableEntry<InternalValue> getSymbolTableEntry(String name) throws EnvironmentException {
     if (this.variables.containsKey(name))
       return this.variables.get(name);
 
@@ -39,10 +39,10 @@ public class Environment<InternalValue> {
         return value;
     }
 
-    throw new InterpreterError("Cannot find variable \"" + name + "\"");
+    throw new EnvironmentException("Cannot find variable \"" + name + "\"");
   }
 
-  public InternalValue get(String name) {
+  public InternalValue get(String name) throws EnvironmentException {
     return this.getSymbolTableEntry(name).value;
   }
 
@@ -56,12 +56,12 @@ public class Environment<InternalValue> {
     this.define(name, null, false);
   }
 
-  public void assign(String name, InternalValue value) {
+  public void assign(String name, InternalValue value) throws EnvironmentException {
     if (this.variables.containsKey(name)) {
       SymbolTableEntry<InternalValue> entry = this.variables.get(name);
 
       if (entry.constant)
-        throw new InterpreterError("Cannot assign to constant variable \"" + name + "\"");
+        throw new EnvironmentException("Cannot assign to constant variable \"" + name + "\"");
 
       entry.value = value;
       return;
@@ -72,6 +72,6 @@ public class Environment<InternalValue> {
       return;
     }
 
-    throw new InterpreterError("Cannot assign to undeclared variable \"" + name + "\"");
+    throw new EnvironmentException("Cannot assign to undeclared variable \"" + name + "\"");
   }
 }

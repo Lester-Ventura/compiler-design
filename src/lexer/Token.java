@@ -7,12 +7,18 @@ public class Token {
     public final String lexeme;
     public final int column;
     public final int line;
+    public final String sourcePath;
 
-    public Token(TokenType token, String lexeme, ColumnAndRow info) {
+    public Token(TokenType token, String lexeme, ColumnAndRow info, String sourcePath) {
         this.type = token;
         this.lexeme = lexeme;
         this.column = info.getActualColumn();
         this.line = info.getActualRow();
+        this.sourcePath = sourcePath;
+    }
+
+    public Token(TokenType token, String lexeme) {
+        this(token, lexeme, new ColumnAndRow(0, 0), null);
     }
 
     @Override

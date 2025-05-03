@@ -4,8 +4,10 @@ import java.util.ArrayList;
 
 import lexer.Token;
 import semantic.LoLangType;
+import semantic.SemanticAnalyzerException;
 import semantic.SemanticContext;
 import utils.DOTGenerator;
+import utils.EnvironmentException;
 
 public abstract class TypeExpressionNode extends Node {
   abstract LoLangType evaluate(SemanticContext context);
@@ -27,7 +29,13 @@ public abstract class TypeExpressionNode extends Node {
     }
 
     public LoLangType evaluate(SemanticContext context) {
-      return context.typeEnvironment.get(this.identifier.lexeme);
+      try {
+        return context.typeEnvironment.get(this.identifier.lexeme);
+      } catch (EnvironmentException e) {
+        context.addException(new SemanticAnalyzerException("Cannot find type \"" + this.identifier.lexeme + "\"",
+            this.identifier));
+        return new LoLangType.Unknown();
+      }
     }
   }
 

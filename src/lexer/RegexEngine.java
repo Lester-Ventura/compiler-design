@@ -13,11 +13,13 @@ interface StringTransformer {
 public class RegexEngine {
   private HashMap<String, RegexNode> environment = new HashMap<>();
   String input;
+  String inputPath;
   int currentCharacterIndex;
   int startCharacterIndex;
 
-  private RegexEngine(String input) {
+  private RegexEngine(String input, String inputPath) {
     this.input = input;
+    this.inputPath = inputPath;
   }
 
   private char peek() {
@@ -115,7 +117,7 @@ public class RegexEngine {
     startCharacterIndex = currentCharacterIndex;
 
     if (hasNextToken() == false)
-      return new Token(TokenType.EOF, "", ColumnAndRow.calculate(startCharacterIndex, input));
+      return new Token(TokenType.EOF, "", ColumnAndRow.calculate(startCharacterIndex, input), inputPath);
 
     RegexEngineParsingResult ret = new RegexEngineParsingResult(false, "", null);
     RegexNode retNode = null;
@@ -147,7 +149,7 @@ public class RegexEngine {
 
       String lexeme = retNode.getTransformer() != null ? retNode.getTransformer().run(ret.lexeme) : ret.lexeme;
       Token returnedToken = new Token(retNode.getTokenType(), lexeme,
-          ColumnAndRow.calculate(startCharacterIndex, input));
+          ColumnAndRow.calculate(startCharacterIndex, input), inputPath);
 
       return returnedToken;
     }
@@ -164,8 +166,8 @@ public class RegexEngine {
     return currentCharacterIndex < input.length();
   }
 
-  public static RegexEngine createRegexEngine(String input) {
-    RegexEngine lexer = new RegexEngine(input);
+  public static RegexEngine createRegexEngine(String input, String inputPath) {
+    RegexEngine lexer = new RegexEngine(input, inputPath);
 
     // lex symbols
     lexer.addRule("plus", "$+", TokenType.PLUS);

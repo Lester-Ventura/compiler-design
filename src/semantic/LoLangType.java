@@ -18,31 +18,31 @@ public abstract class LoLangType {
 
   public static class Number extends Intrinsic {
     public boolean isEquivalent(LoLangType other) {
-      return other instanceof Number;
+      return other instanceof Any ? true : other instanceof Number;
     }
   }
 
   public static class Boolean extends Intrinsic {
     public boolean isEquivalent(LoLangType other) {
-      return other instanceof Boolean;
+      return other instanceof Any ? true : other instanceof Boolean;
     }
   }
 
   public static class Null extends Intrinsic {
     public boolean isEquivalent(LoLangType other) {
-      return other instanceof Null;
+      return other instanceof Any ? true : other instanceof Null;
     }
   }
 
   public static class Void extends Intrinsic {
     public boolean isEquivalent(LoLangType other) {
-      return other instanceof Void;
+      return other instanceof Any ? true : other instanceof Void;
     }
   }
 
   public static class String extends Intrinsic implements DotGettable {
     public boolean isEquivalent(LoLangType other) {
-      return other instanceof String;
+      return other instanceof Any ? true : other instanceof String;
     }
 
     // TODO: implement
@@ -64,6 +64,9 @@ public abstract class LoLangType {
     }
 
     public boolean isEquivalent(LoLangType other) {
+      if (other instanceof Any)
+        return true;
+
       if (!(other instanceof Array))
         return false;
 
@@ -80,6 +83,9 @@ public abstract class LoLangType {
     }
 
     public boolean isEquivalent(LoLangType other) {
+      if (other instanceof Any)
+        return true;
+
       if (!(other instanceof Object))
         return false;
 
@@ -125,6 +131,9 @@ public abstract class LoLangType {
     }
 
     public boolean isEquivalent(LoLangType other) {
+      if (other instanceof Any)
+        return true;
+
       if (!(other instanceof Lambda))
         return false;
 
@@ -140,6 +149,18 @@ public abstract class LoLangType {
           return false;
       }
 
+      return true;
+    }
+  }
+
+  public static class Any extends LoLangType {
+    public boolean isEquivalent(LoLangType other) {
+      return true;
+    }
+  }
+
+  public static class Unknown extends LoLangType {
+    public boolean isEquivalent(LoLangType other) {
       return true;
     }
   }

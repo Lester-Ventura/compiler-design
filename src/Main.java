@@ -13,7 +13,8 @@ public class Main {
         LR1TableParser tableParser = new LR1TableParser(FileLoader.loadFile("lr1_table.txt"));
         ArrayList<LR1TableParser.LR1TableState> states = tableParser.parse();
 
-        CreateParser parserGenerator = (String input) -> new LR1Parser(input, productions, states);
+        CreateParser parserGenerator = (String input, String inputPath) -> new LR1Parser(input, inputPath, productions,
+                states);
         CodeReader codeReader = new CodeReader(parserGenerator);
         codeReader.run(isInteractive);
 

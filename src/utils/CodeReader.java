@@ -10,7 +10,7 @@ import interpreter.ExecutionContext;
 import interpreter.Global;
 import parser.ParserResult;
 import parser.StatementNode;
-import semantic.SemanticAnalyzer;
+import semantic.SemanticContext;
 import parser.LR1Parser;
 import parser.Node;
 
@@ -31,8 +31,7 @@ public class CodeReader {
         System.out.println(String.format("[%d]: %s", i + 1, files[i].getName()));
       }
       System.out.println(String.format("[%d]: %s", files.length + 1, "Exit"));
-
-      System.out.println("===============================================");
+      printLongLine();
       System.out.print("Enter the file number to read: ");
 
       int fileNumber = scanner.nextInt();
@@ -55,7 +54,7 @@ public class CodeReader {
         if (interactive == false)
           System.exit(0);
 
-        System.out.println("===============================================");
+        printLongLine();
         System.out.println("Scanning complete! Enter any key to continue...");
         scanner.nextLine(); // consume the newline
       } catch (IOException e) {
@@ -91,27 +90,40 @@ public class CodeReader {
     scanner.close();
 
     // create the parser with the input file and parse
-    LR1Parser parser = parserCreator.run(source);
+    LR1Parser parser = parserCreator.run(source, file.getPath());
     ParserResult parsingResult = parser.parse();
 
-    if (parsingResult.root != null) {
-      System.out.println(parsingResult.root);
-      printRoot(parsingResult.root);
-    } else {
-      System.out.println("Was unable to create a parse tree");
+    if (parsingResult.errors.size() != 0) {
+      System.out.println("The following errors were encountered during parsing:\n");
+      ErrorWindowBuilder.printErrors(parsingResult.errors);
     }
 
-    parsingResult.printErrors();
+    if (parsingResult.root == null) {
+      System.out.println("Was unable to create a parse tree");
+      return;
+    }
+
+    System.out.println(parsingResult.root);
+    printRoot(parsingResult.root);
 
     if (parsingResult.root != null && (parsingResult.root instanceof StatementNode.Program)) {
-      System.out.println("===============================================");
-      SemanticAnalyzer analyzer = new SemanticAnalyzer((StatementNode.Program) parsingResult.root);
-      analyzer.analyze();
+      StatementNode.Program program = (StatementNode.Program) parsingResult.root;
+      printLongLine();
 
-      System.out.println("===============================================");
+      System.out.println("Performing semantic analysis...\n");
+
+      SemanticContext context = Global.createGlobalSemanticContext();
+      program.semanticAnalysis(context);
+
+      if (context.exceptions.size() != 0) {
+        System.out.println("The following errors were encountered during semantic analysis:\n");
+        ErrorWindowBuilder.printErrors(context.exceptions);
+      }
+
+      System.out.println("Semantic analysis complete!");
 
       // Begin executing the program
-      StatementNode.Program program = (StatementNode.Program) parsingResult.root;
+      printLongLine();
       ExecutionContext global = Global.createGlobalExecutionContext();
       program.execute(global);
     }
@@ -129,5 +141,10 @@ public class CodeReader {
     }
 
     writer.close();
+  }
+
+  static void printLongLine() {
+    System.out
+        .println("==============================================================================================");
   }
 }

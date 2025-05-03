@@ -5,28 +5,33 @@ import java.util.HashMap;
 
 import parser.Node;
 import parser.StatementNode;
+import utils.UnimplementedError;
 
 public abstract class LoLangValue {
 	public abstract java.lang.String toString();
 
 	public interface DotSettable {
-		public void setDot(java.lang.String key, LoLangValue value);
+		public void setDot(java.lang.String key, LoLangValue value)
+				throws InterpreterExceptions.DotAccessNonExistentException;
 	}
 
 	public interface DotGettable {
-		public LoLangValue getDot(java.lang.String key);
+		public LoLangValue getDot(java.lang.String key) throws InterpreterExceptions.DotAccessNonExistentException;
 	}
 
 	public interface IndexGettable {
-		public void setIndex(int index, LoLangValue value);
+		public void setIndex(int index, LoLangValue value)
+				throws InterpreterExceptions.IndexAccessOutOfBoundsException;
 	}
 
 	public interface IndexSettable {
-		public LoLangValue getIndex(int index);
+		public LoLangValue getIndex(int index)
+				throws InterpreterExceptions.IndexAccessOutOfBoundsException;;
 	}
 
 	public interface Callable {
-		public LoLangValue call(ArrayList<LoLangValue> arguments);
+		public LoLangValue call(ArrayList<LoLangValue> arguments)
+				throws InterpreterExceptions.FunctionCallArityException;
 
 		public int getArity();
 	}
@@ -83,16 +88,17 @@ public abstract class LoLangValue {
 			this.fields = fields;
 		}
 
-		public void setDot(java.lang.String key, LoLangValue value) {
+		public void setDot(java.lang.String key, LoLangValue value)
+				throws InterpreterExceptions.DotAccessNonExistentException {
 			if (this.fields.containsKey(key) == false)
-				throw new InterpreterError("Cannot set dot on non-existent field");
+				throw new InterpreterExceptions.DotAccessNonExistentException();
 
 			this.fields.put(key, value);
 		}
 
-		public LoLangValue getDot(java.lang.String key) {
+		public LoLangValue getDot(java.lang.String key) throws InterpreterExceptions.DotAccessNonExistentException {
 			if (this.fields.containsKey(key) == false)
-				throw new InterpreterError("Cannot get dot on non-existent field");
+				throw new InterpreterExceptions.DotAccessNonExistentException();
 
 			return this.fields.get(key);
 		}
@@ -118,11 +124,15 @@ public abstract class LoLangValue {
 			this.values = values;
 		}
 
-		public void setIndex(int index, LoLangValue value) {
+		public void setIndex(int index, LoLangValue value) throws InterpreterExceptions.IndexAccessOutOfBoundsException {
+			if (index < 0 || index >= this.values.size())
+				throw new InterpreterExceptions.IndexAccessOutOfBoundsException();
 			this.values.set(index, value);
 		}
 
-		public LoLangValue getIndex(int index) {
+		public LoLangValue getIndex(int index) throws InterpreterExceptions.IndexAccessOutOfBoundsException {
+			if (index < 0 || index >= this.values.size())
+				throw new InterpreterExceptions.IndexAccessOutOfBoundsException();
 			return this.values.get(index);
 		}
 
@@ -148,7 +158,7 @@ public abstract class LoLangValue {
 		}
 
 		public Object call(ArrayList<LoLangValue> arguments) {
-			throw new InterpreterError("User-defined-functions are not implemented yet");
+			throw new UnimplementedError("User-defined-functions are not implemented yet");
 		}
 
 		public java.lang.String toString() {
@@ -169,9 +179,9 @@ public abstract class LoLangValue {
 			this.arity = arity;
 		}
 
-		public LoLangValue call(ArrayList<LoLangValue> arguments) {
+		public LoLangValue call(ArrayList<LoLangValue> arguments) throws InterpreterExceptions.FunctionCallArityException {
 			if (arguments.size() != this.arity)
-				throw new InterpreterError("Incorrect number of arguments passed to system-defined function");
+				throw new InterpreterExceptions.FunctionCallArityException();
 
 			return this.lambda.run(arguments.toArray(new LoLangValue[this.arity]));
 		}

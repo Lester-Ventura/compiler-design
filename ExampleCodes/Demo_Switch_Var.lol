@@ -1,3 +1,5 @@
+item role : message = "Support";
+
 channel(role) {
     teleport ("Top"): {
         broadcast("You are the solo laner.");

@@ -8,7 +8,7 @@ channel(x) {
 	
 	teleport (2): {
 		broadcast("Welcome to League of Languages");		
-		flash 1; // switch specific goto
+		flash 3; // switch specific goto
 	}
 
 	recall: {

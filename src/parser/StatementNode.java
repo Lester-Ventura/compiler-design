@@ -176,6 +176,8 @@ public abstract class StatementNode extends Node {
 
     public void semanticAnalysis(SemanticContext context) {
       LoLangType declarationType = this.declaration.type.evaluate(context);
+      context.variableEnvironment.define(this.declaration.identifier.lexeme, declarationType,
+          false);
 
       if (this.declaration.expression != null) {
         LoLangType expressionType = this.declaration.expression.evaluateType(context);
@@ -187,9 +189,6 @@ public abstract class StatementNode extends Node {
               "Type of variable declaration does not match type of expression", this.declaration.equalsToken));
         }
       }
-
-      context.variableEnvironment.define(this.declaration.identifier.lexeme, declarationType,
-          false);
     }
   }
 
@@ -835,7 +834,7 @@ public abstract class StatementNode extends Node {
       }
 
       if (this.condition != null) {
-        LoLangType conditionType = this.condition.evaluateType(context);
+        LoLangType conditionType = this.condition.evaluateType(forkedContext);
         if (!(conditionType instanceof LoLangType.Boolean)) {
           context
               .addException(new SemanticAnalyzerException("Condition must be a boolean", this.conditionSemicolonToken));

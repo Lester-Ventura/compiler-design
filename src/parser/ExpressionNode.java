@@ -754,6 +754,8 @@ public abstract class ExpressionNode extends Node {
 
         if (this.operation.lexeme.equals("+"))
           return new LoLangValue.String(leftString.value + rightString.value);
+        else if (this.operation.lexeme.equals("=="))
+          return new LoLangValue.Boolean(leftString.value.equals(rightString.value));
 
         throw new RuntimeError("Invalid binary operation \"" + this.operation.lexeme + "\" on String, String",
             this.operation);

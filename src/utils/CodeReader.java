@@ -8,6 +8,7 @@ import java.util.Scanner;
 
 import interpreter.ExecutionContext;
 import interpreter.Global;
+import interpreter.RuntimeError;
 import parser.ParserResult;
 import parser.StatementNode;
 import semantic.SemanticContext;
@@ -120,8 +121,13 @@ public class CodeReader {
 
       // Begin executing the program
       printLongLine();
-      ExecutionContext global = Global.createGlobalExecutionContext();
-      program.execute(global);
+
+      try {
+        ExecutionContext global = Global.createGlobalExecutionContext();
+        program.execute(global);
+      } catch (RuntimeError e) {
+        ErrorWindowBuilder.printErrors(e);
+      }
     }
   }
 

@@ -117,12 +117,13 @@ public class Global {
             if (internalString.value.length() < 0 || intIndex >= internalString.value.length())
               throw new InterpreterExceptions.IndexAccessOutOfBoundsException(intIndex);
 
-            return new LoLangValue.String(internalString.value.charAt(intIndex) + " ");
+            return new LoLangValue.String(internalString.value.charAt(intIndex) + "");
           }, 1);
         }
 
         public LoLangType type(LoLangType thisType, SemanticContext context) {
-          return new LoLangType.Lambda(new LoLangType.Number());
+          return new LoLangType.Lambda(new LoLangType.String(),
+              new ArrayList<>(Arrays.asList(new LoLangType.Number())));
         }
       });
     }

@@ -120,9 +120,10 @@ public abstract class ExpressionNode extends Node {
           LoLangType nextType = this.expressions.expressions.get(i).evaluateType(context);
 
           if (!elementType.isEquivalent(nextType)) {
-            // TODO: this can be better, point to exact index that contains bad type
             context.addException(
-                new SemanticAnalyzerException("All elements of array must be of the same type", this.leftBracket));
+                new SemanticAnalyzerException(
+                    "All elements of array must be of the same type: " + elementType.toString(),
+                    this.leftBracket));
             break;
           }
         }
@@ -210,8 +211,8 @@ public abstract class ExpressionNode extends Node {
     public LoLangType evaluateType(SemanticContext context) {
       LoLangType left = this.left.evaluateType(context);
       if (!(left instanceof LoLangType.DotGettable)) {
-        context.addException(new SemanticAnalyzerException("Left side of dot access must be an object",
-            this.identifier));
+        context.addException(new SemanticAnalyzerException("Left side of dot access must be an object, received: "
+            + left.toString(), this.identifier));
         return new LoLangType.Any();
       }
 
@@ -219,7 +220,7 @@ public abstract class ExpressionNode extends Node {
 
       if (!(gettable.hasKey(this.identifier.lexeme))) {
         context.addException(new SemanticAnalyzerException("Cannot access property \"" + this.identifier.lexeme
-            + "\"on non-object", this.identifier));
+            + "\"on non-object: " + left.toString(), this.identifier));
         return new LoLangType.Any();
       }
 
@@ -286,7 +287,8 @@ public abstract class ExpressionNode extends Node {
 
       if (!(lambdaValue instanceof LoLangType.Lambda)) {
         context.addException(
-            new SemanticAnalyzerException("Left side of function-call expression must return a lambda",
+            new SemanticAnalyzerException(
+                "Left side of function-call expression must return a lambda, received: " + lambdaValue.toString(),
                 this.functionCallToken));
         return new LoLangType.Any();
       }
@@ -301,14 +303,17 @@ public abstract class ExpressionNode extends Node {
         try {
           return lambda.generateGenericReturnType.run(context, argumentTypes);
         } catch (GenericReturnTypeArityException e) {
-          context.addException(new SemanticAnalyzerException("Incorrect number of parameters passed to function",
+          context.addException(new SemanticAnalyzerException(
+              String.format("Incorrect number of parameters passed to function, expected %d, received %d", e.expected,
+                  e.received),
               this.functionCallToken));
 
           return new LoLangType.Any();
         } catch (GenericReturnTypeParameterMismatchException e) {
           context.addException(
               new SemanticAnalyzerException(
-                  String.format("Incorrect parameter type passed to function at index %d", e.index),
+                  String.format("Incorrect parameter type passed to function at index %d, expected %s, received %s",
+                      e.index, e.expected.toString(), e.received.toString()),
                   this.functionCallToken));
 
           return new LoLangType.Any();
@@ -332,13 +337,15 @@ public abstract class ExpressionNode extends Node {
         LoLangType parameterType = lambda.parameterList.get(i);
         parameterTypes.add(parameterType);
 
-        ExpressionNode argumentType = this.parameters.expressions.get(i);
+        ExpressionNode argumentTypeNode = this.parameters.expressions.get(i);
+        LoLangType argumentType = argumentTypeNode.evaluateType(context);
 
-        if (!parameterType.isEquivalent(argumentType.evaluateType(context))) {
+        if (!parameterType.isEquivalent(argumentType)) {
           int index = lambda.parameterList.size() - i - 1;
           context.addException(
               new SemanticAnalyzerException(
-                  String.format("Incorrect parameter type passed to function at index %d", index),
+                  String.format("Incorrect parameter type passed to function at index %d, expected %s, received %s",
+                      index, parameterType.toString(), argumentType.toString()),
                   this.functionCallToken));
         }
       }
@@ -435,8 +442,8 @@ public abstract class ExpressionNode extends Node {
 
       if (!(left instanceof LoLangType.Number)) {
         context.addException(
-            new SemanticAnalyzerException(String.format("%s side of %s must have a type of number",
-                isPostfix ? "left" : "right", isIncrement() ? "increment" : "decrement"),
+            new SemanticAnalyzerException(String.format("%s side of %s must have a type of number, received %s",
+                isPostfix ? "left" : "right", isIncrement() ? "increment" : "decrement", left.toString()),
                 this.token));
 
         return new LoLangType.Any();
@@ -495,7 +502,8 @@ public abstract class ExpressionNode extends Node {
       LoLangType right = this.right.evaluateType(context);
 
       if (left.isEquivalent(right) == false) {
-        context.addException(new SemanticAnalyzerException("Cannot assign values to different types", equalsSign));
+        context.addException(new SemanticAnalyzerException(String.format(
+            "Cannot assign values to different types %s and %s", left.toString(), right.toString()), equalsSign));
         return new LoLangType.Any();
       }
 
@@ -609,13 +617,15 @@ public abstract class ExpressionNode extends Node {
 
       if (!(left instanceof LoLangType.Array)) {
         context.addException(
-            new SemanticAnalyzerException("Left side of index access should be an array type", leftBracket));
+            new SemanticAnalyzerException("Left side of index access should be an array type, received: "
+                + left.toString(), leftBracket));
         return new LoLangType.Any();
       }
 
       if (!(right instanceof LoLangType.Number)) {
         context.addException(
-            new SemanticAnalyzerException("Index should be a number type", leftBracket));
+            new SemanticAnalyzerException("Index should be a number type, received" + right.toString(),
+                leftBracket));
         return new LoLangType.Any();
       }
 
@@ -669,7 +679,8 @@ public abstract class ExpressionNode extends Node {
           return new LoLangType.Number();
         default:
           // Ok it should never reach here. Parser error if it did
-          context.addException(new SemanticAnalyzerException("Invalid token literal type", this.token));
+          context.addException(new SemanticAnalyzerException(
+              "Invalid token literal type, got: " + this.token.type.toString(), this.token));
           return new LoLangType.Any();
       }
     }

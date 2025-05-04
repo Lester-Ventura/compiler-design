@@ -32,14 +32,17 @@ public class ErrorWindowBuilder {
   }
 
   public static void printErrors(ArrayList<? extends LoLangExceptionLike> errors) {
-    for (LoLangExceptionLike exception : errors) {
-      if (exception.getToken() != null) {
-        System.out.println(String.format("%s:%d:%d  -  %s", exception.getToken().sourcePath,
-            exception.getToken().line, exception.getToken().column, exception.getMessage()));
-        String errorWindow = ErrorWindowBuilder.buildErrorWindow(exception.getToken());
-        System.out.println(errorWindow);
-      } else
-        System.out.println(exception.getMessage());
-    }
+    for (LoLangExceptionLike error : errors)
+      printErrors(error);
+  }
+
+  public static void printErrors(LoLangExceptionLike exception) {
+    if (exception.getToken() != null) {
+      System.out.println(String.format("%s:%d:%d  -  %s", exception.getToken().sourcePath,
+          exception.getToken().line, exception.getToken().column, exception.getMessage()));
+      String errorWindow = ErrorWindowBuilder.buildErrorWindow(exception.getToken());
+      System.out.println(errorWindow);
+    } else
+      System.out.println(exception.getMessage());
   }
 }

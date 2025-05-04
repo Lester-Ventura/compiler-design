@@ -1,6 +1,7 @@
 package parser;
 
 import java.util.HashMap;
+import java.util.stream.Collectors;
 
 import interpreter.ExecutionContext;
 import interpreter.RuntimeError;
@@ -143,7 +144,9 @@ public abstract class StatementNode extends Node {
       for (IfStatementBranch branch : this.branches.clauses) {
         LoLangType conditionType = branch.condition.evaluateType(context);
         if (!(conditionType instanceof LoLangType.Boolean)) {
-          context.addException(new SemanticAnalyzerException("Condition must be a boolean", branch.conditionToken));
+          context.addException(
+              new SemanticAnalyzerException("Condition must be a boolean, received: " + conditionType.toString(),
+                  branch.conditionToken));
         }
 
         SemanticContext forkedContext = context.fork();
@@ -186,7 +189,9 @@ public abstract class StatementNode extends Node {
             throw new Error("INVARIANT VIOLATION: equalsToken should not be null");
 
           context.addException(new SemanticAnalyzerException(
-              "Type of variable declaration does not match type of expression", this.declaration.equalsToken));
+              String.format("Type of expression (%s) does not match declared type (%s)", expressionType.toString(),
+                  declarationType.toString()),
+              this.declaration.equalsToken));
         }
       }
     }
@@ -316,14 +321,20 @@ public abstract class StatementNode extends Node {
         return;
       }
 
-      if (this.expression == null)
-        context.addException(new SemanticAnalyzerException("Return statement must contain a return value",
+      if (this.expression == null) {
+        context.addException(new SemanticAnalyzerException(
+            "Return statement must contain a return value of type " + expectedReturnType.toString(),
             this.returnToken));
 
-      else if (!expectedReturnType.isEquivalent(this.expression.evaluateType(context))) {
-        context
-            .addException(new SemanticAnalyzerException("Return value must be of type " + expectedReturnType.toString(),
-                this.returnToken));
+        return;
+      }
+
+      LoLangType expressionReturnType = this.expression.evaluateType(context);
+      if (!expectedReturnType.isEquivalent(expressionReturnType)) {
+        context.addException(new SemanticAnalyzerException(
+            "Return value must be of type " + expectedReturnType.toString() + ", received: "
+                + expressionReturnType.toString(),
+            this.returnToken));
       }
     }
   }
@@ -491,7 +502,8 @@ public abstract class StatementNode extends Node {
     public void semanticAnalysis(SemanticContext context) {
       LoLangType exprType = this.expr.evaluateType(context);
       if (!(exprType instanceof LoLangType.Number) && !(exprType instanceof LoLangType.String)) {
-        context.addException(new SemanticAnalyzerException("Switch expression value must be a number or string",
+        context.addException(new SemanticAnalyzerException(
+            "Switch expression value must be a number or string, received: " + exprType.toString(),
             this.leftParenToken));
         return;
       }
@@ -503,14 +515,16 @@ public abstract class StatementNode extends Node {
 
       for (SwitchCase caseNode : this.cases.namedCases) {
         if (caseNode.literal.type == TokenType.NUMBER_LITERAL && !(exprType instanceof LoLangType.Number)) {
-          sharedContext.addException(new SemanticAnalyzerException("Switch expression value must be a number",
-              this.leftParenToken));
+          sharedContext.addException(
+              new SemanticAnalyzerException("Switch case label must be a number, received: string",
+                  this.leftParenToken));
           return;
         }
 
         else if (caseNode.literal.type == TokenType.STRING_LITERAL && !(exprType instanceof LoLangType.String)) {
-          sharedContext.addException(new SemanticAnalyzerException("Switch expression value must be a string",
-              this.leftParenToken));
+          sharedContext
+              .addException(new SemanticAnalyzerException("Switch case label must be a string, received: number",
+                  this.leftParenToken));
           return;
         }
 
@@ -559,7 +573,7 @@ public abstract class StatementNode extends Node {
         return;
 
       context.addException(
-          new SemanticAnalyzerException("switch-break statement is not allowed outside of switch case body",
+          new SemanticAnalyzerException("Switch break is not allowed outside of switch case body",
               this.token));
     }
   }
@@ -592,7 +606,7 @@ public abstract class StatementNode extends Node {
     public void semanticAnalysis(SemanticContext context) {
       if (context.isInScope(Scope.SWITCH_CASE_BODY) == false) {
         context.addException(
-            new SemanticAnalyzerException("SwitchGoto statement is not allowed outside of switch case body",
+            new SemanticAnalyzerException("Switch goto statement is not allowed outside of switch case body",
                 this.gotoKeywordToken));
         return;
       }
@@ -608,8 +622,14 @@ public abstract class StatementNode extends Node {
           return;
       }
 
+      // List possible labels here
+      String possibleLabels = context.gotoLabels.stream().map(label -> label.stringLabel != null
+          ? ("\"" + label.stringLabel + "\"")
+          : String.format("%d", label.intLabel)).collect(Collectors.joining(", "));
+
       context.addException(new SemanticAnalyzerException(String
-          .format("No matching switch case found within the context for goto target %s", this.gotoTargetToken.lexeme),
+          .format("No matching switch case found within the context for goto target %s, expected: [%s]",
+              this.gotoTargetToken.lexeme, possibleLabels),
           this.gotoTargetToken));
     }
   }
@@ -673,7 +693,9 @@ public abstract class StatementNode extends Node {
     public void semanticAnalysis(SemanticContext context) {
       LoLangType iteratorType = this.iterator.evaluateType(context);
       if (!(iteratorType instanceof LoLangType.Array)) {
-        context.addException(new SemanticAnalyzerException("Iterate value must be an array", this.ofToken));
+        context.addException(new SemanticAnalyzerException("Iterator must be an array, received: " + iteratorType,
+            this.ofToken));
+
         return;
       }
 
@@ -683,7 +705,11 @@ public abstract class StatementNode extends Node {
 
       if (declaredType.isEquivalent(elementType) == false) {
         context.addException(new SemanticAnalyzerException(
-            "Declared type of for loop must be equivalent to the element type of the iterator", this.ofToken));
+            String.format(
+                "Declared type of foreach variable must be equivalent to the element type of the iterator, expected: %s but received: %s",
+                elementType.toString(), declaredType.toString()),
+            this.ofToken));
+
         return;
       }
 
@@ -836,14 +862,15 @@ public abstract class StatementNode extends Node {
       if (this.condition != null) {
         LoLangType conditionType = this.condition.evaluateType(forkedContext);
         if (!(conditionType instanceof LoLangType.Boolean)) {
-          context
-              .addException(new SemanticAnalyzerException("Condition must be a boolean", this.conditionSemicolonToken));
+          context.addException(new SemanticAnalyzerException("Condition must be a boolean, received: " + conditionType,
+              this.conditionSemicolonToken));
           return;
         }
       }
 
       SemanticContext loopBodyContext = forkedContext.fork();
       loopBodyContext.pushScope(Scope.LOOP_BODY);
+      this.stmt.semanticAnalysis(loopBodyContext);
     }
   }
 
@@ -868,7 +895,7 @@ public abstract class StatementNode extends Node {
 
     public void semanticAnalysis(SemanticContext context) {
       if (context.isInScope(Scope.LOOP_BODY) == false) {
-        context.addException(new SemanticAnalyzerException("LoopBreak statement is not allowed outside of loop body",
+        context.addException(new SemanticAnalyzerException("Loop break statement is not allowed outside of loop body",
             this.token));
         return;
       }
@@ -897,7 +924,7 @@ public abstract class StatementNode extends Node {
     public void semanticAnalysis(SemanticContext context) {
       if (context.isInScope(Scope.LOOP_BODY))
         return;
-      context.addException(new SemanticAnalyzerException("LoopContinue statement is not allowed outside of loop body",
+      context.addException(new SemanticAnalyzerException("Loop continue statement is not allowed outside of loop body",
           this.token));
     }
   }
@@ -967,7 +994,9 @@ public abstract class StatementNode extends Node {
         LoLangType conditionType = this.condition.evaluateType(context);
         if (!(conditionType instanceof LoLangType.Boolean)) {
           context.addException(
-              new SemanticAnalyzerException("While-loop condition must be a boolean", this.leftParenToken));
+              new SemanticAnalyzerException(
+                  "While-loop condition must be a boolean, received: " + conditionType.toString(),
+                  this.leftParenToken));
           return;
         }
       }

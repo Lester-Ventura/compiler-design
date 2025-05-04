@@ -4,13 +4,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import interpreter.Global;
+import semantic.SemanticAnalyzerException.GenericReturnTypeException;
+
 public abstract class LoLangType {
   abstract public boolean isEquivalent(LoLangType other);
+
+  abstract public java.lang.String toString();
 
   public static interface DotGettable {
     public boolean hasKey(java.lang.String key);
 
-    public LoLangType getKey(java.lang.String key);
+    public LoLangType getKey(SemanticContext context, java.lang.String key);
   }
 
   static abstract class Intrinsic extends LoLangType {
@@ -20,11 +25,19 @@ public abstract class LoLangType {
     public boolean isEquivalent(LoLangType other) {
       return other instanceof Any ? true : other instanceof Number;
     }
+
+    public java.lang.String toString() {
+      return "number";
+    }
   }
 
   public static class Boolean extends Intrinsic {
     public boolean isEquivalent(LoLangType other) {
       return other instanceof Any ? true : other instanceof Boolean;
+    }
+
+    public java.lang.String toString() {
+      return "boolean";
     }
   }
 
@@ -32,11 +45,19 @@ public abstract class LoLangType {
     public boolean isEquivalent(LoLangType other) {
       return other instanceof Any ? true : other instanceof Null;
     }
+
+    public java.lang.String toString() {
+      return "null";
+    }
   }
 
   public static class Void extends Intrinsic {
     public boolean isEquivalent(LoLangType other) {
       return other instanceof Any ? true : other instanceof Void;
+    }
+
+    public java.lang.String toString() {
+      return "void";
     }
   }
 
@@ -45,18 +66,20 @@ public abstract class LoLangType {
       return other instanceof Any ? true : other instanceof String;
     }
 
-    // TODO: implement
     public boolean hasKey(java.lang.String key) {
-      return false;
+      return Global.StringMethods.containsKey(key);
     }
 
-    // TODO: implement
-    public LoLangType getKey(java.lang.String key) {
-      return null;
+    public LoLangType getKey(SemanticContext context, java.lang.String key) {
+      return Global.StringMethods.get(key).type(this, null);
+    }
+
+    public java.lang.String toString() {
+      return "string";
     }
   }
 
-  public static class Array extends Intrinsic {
+  public static class Array extends Intrinsic implements DotGettable {
     public LoLangType elementType;
 
     public Array(LoLangType elementType) {
@@ -72,6 +95,18 @@ public abstract class LoLangType {
 
       Array otherArray = (Array) other;
       return this.elementType.isEquivalent(otherArray.elementType);
+    }
+
+    public java.lang.String toString() {
+      return "[" + this.elementType.toString() + "]";
+    }
+
+    public LoLangType getKey(SemanticContext context, java.lang.String key) {
+      return Global.ArrayMethods.get(key).type(this, context);
+    }
+
+    public boolean hasKey(java.lang.String key) {
+      return Global.ArrayMethods.containsKey(key);
     }
   }
 
@@ -111,14 +146,24 @@ public abstract class LoLangType {
       return this.fields.containsKey(key);
     }
 
-    public LoLangType getKey(java.lang.String key) {
+    public LoLangType getKey(SemanticContext context, java.lang.String key) {
       return this.fields.get(key);
+    }
+
+    public java.lang.String toString() {
+      java.lang.String ret = "{";
+
+      for (java.lang.String key : this.fields.keySet())
+        ret += key + ": " + this.fields.get(key).toString() + ", ";
+
+      return ret + "}";
     }
   }
 
   public static class Lambda extends LoLangType {
     public static interface GenerateGenericReturnType {
-      LoLangType run(ArrayList<LoLangType> parameterTypes);
+      LoLangType run(SemanticContext context, ArrayList<LoLangType> parameterTypes)
+          throws GenericReturnTypeException;
     }
 
     public final LoLangType returnType;
@@ -134,7 +179,15 @@ public abstract class LoLangType {
       this(returnType, parameterList, null);
     }
 
-    public Lambda(LoLangType returnType, ArrayList<LoLangType> parameterList,
+    public Lambda(GenerateGenericReturnType generateGenericReturnType, ArrayList<LoLangType> parameterList) {
+      this(new LoLangType.Any(), parameterList, generateGenericReturnType);
+    }
+
+    public Lambda(GenerateGenericReturnType generateGenericReturnType) {
+      this(new LoLangType.Any(), new ArrayList<>(), generateGenericReturnType);
+    }
+
+    private Lambda(LoLangType returnType, ArrayList<LoLangType> parameterList,
         GenerateGenericReturnType generateGenericReturnType) {
       this.returnType = returnType;
       this.parameterList = parameterList;
@@ -163,17 +216,34 @@ public abstract class LoLangType {
 
       return true;
     }
+
+    public java.lang.String toString() {
+      java.lang.String ret = "lambda";
+
+      for (LoLangType parameter : this.parameterList)
+        ret += parameter.toString() + ",";
+
+      return ret + ") ->" + this.returnType.toString();
+    }
   }
 
   public static class Any extends LoLangType {
     public boolean isEquivalent(LoLangType other) {
       return true;
     }
+
+    public java.lang.String toString() {
+      return "any";
+    }
   }
 
   public static class Unknown extends LoLangType {
     public boolean isEquivalent(LoLangType other) {
       return true;
+    }
+
+    public java.lang.String toString() {
+      return "unknown";
     }
   }
 }

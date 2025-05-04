@@ -3,9 +3,13 @@ package interpreter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 
 import semantic.LoLangType;
 import semantic.SemanticContext;
+import semantic.SemanticAnalyzerException.GenericReturnTypeArityException;
+import semantic.SemanticAnalyzerException.GenericReturnTypeParameterMismatchException;
 import utils.InputScanner;
 
 public class Global {
@@ -75,5 +79,274 @@ public class Global {
     ArrayList<LoLangType> returned = new ArrayList<>(Arrays.asList(parameterTypes));
     Collections.reverse(returned);
     return returned;
+  }
+
+  public abstract static class InternalMethod<T extends LoLangValue> {
+    public abstract LoLangValue run(T thisValue);
+
+    public abstract LoLangType type(LoLangType thisType, SemanticContext context);
+  }
+
+  public static HashMap<String, InternalMethod<LoLangValue.String>> StringMethods = new HashMap<String, InternalMethod<LoLangValue.String>>() {
+    {
+      put("length", new InternalMethod<LoLangValue.String>() {
+        public LoLangValue run(LoLangValue.String internalString) {
+          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+            return new LoLangValue.Number(internalString.value.length());
+          }, 0);
+        }
+
+        public LoLangType type(LoLangType thisType, SemanticContext context) {
+          return new LoLangType.Lambda(new LoLangType.Number());
+        }
+      });
+
+      put("charAt", new InternalMethod<LoLangValue.String>() {
+        public LoLangValue run(LoLangValue.String internalString) {
+          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+            if (arguments.length != 1)
+              throw new InterpreterExceptions.FunctionCallArityException(1, arguments.length);
+
+            if (!(arguments[0] instanceof LoLangValue.Number))
+              throw new InterpreterExceptions.FunctionCallArgumentMismatchException(0,
+                  new LoLangType.Number(), arguments[0].getType());
+
+            double index = ((LoLangValue.Number) arguments[0]).value;
+            int intIndex = (int) Math.max(Math.round(index), 0);
+
+            if (internalString.value.length() < 0 || intIndex >= internalString.value.length())
+              throw new InterpreterExceptions.IndexAccessOutOfBoundsException(intIndex);
+
+            return new LoLangValue.String(internalString.value.charAt(intIndex) + " ");
+          }, 1);
+        }
+
+        public LoLangType type(LoLangType thisType, SemanticContext context) {
+          return new LoLangType.Lambda(new LoLangType.Number());
+        }
+      });
+    }
+  };
+
+  public static HashMap<String, InternalMethod<LoLangValue.Array>> ArrayMethods = new HashMap<String, InternalMethod<LoLangValue.Array>>() {
+    {
+      put("length", new InternalMethod<LoLangValue.Array>() {
+        public LoLangValue run(LoLangValue.Array internalArray) {
+          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+            return new LoLangValue.Number(internalArray.values.size());
+          }, 0);
+        }
+
+        public LoLangType type(LoLangType thisType, SemanticContext context) {
+          return new LoLangType.Lambda(new LoLangType.Number());
+        }
+      });
+
+      put("filter", new InternalMethod<LoLangValue.Array>() {
+        public LoLangValue run(LoLangValue.Array internalArray) {
+          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+            LoLangValue.UserDefinedFunction function = (LoLangValue.UserDefinedFunction) arguments[0];
+            ArrayList<LoLangValue> response = new ArrayList<>();
+
+            for (int i = 0; i < internalArray.values.size(); i++) {
+              LoLangValue condition = function.call(new ArrayList<>(Arrays.asList(internalArray.values.get(i))));
+
+              if (!(condition instanceof LoLangValue.Boolean))
+                throw new InterpreterExceptions.FunctionCallReturnTypeMismatchException(new LoLangType.Boolean(),
+                    condition.getType());
+              else if (((LoLangValue.Boolean) condition).value == true)
+                response.add(internalArray.values.get(i));
+            }
+
+            return new LoLangValue.Array(response);
+          }, 1);
+        }
+
+        public LoLangType type(LoLangType thisType, SemanticContext _context) {
+          final LoLangType.Array arrayType = (LoLangType.Array) thisType;
+
+          return new LoLangType.Lambda((SemanticContext context, ArrayList<LoLangType> parameterTypes) -> {
+            if (parameterTypes.size() != 1)
+              throw new GenericReturnTypeArityException(1, parameterTypes.size());
+
+            if (!(parameterTypes.get(0) instanceof LoLangType.Lambda))
+              throw new GenericReturnTypeParameterMismatchException(0,
+                  new LoLangType.Lambda(new LoLangType.Boolean(),
+                      new ArrayList<>(createParameters(new LoLangType[] { arrayType.elementType }))),
+                  parameterTypes.get(0));
+
+            LoLangType.Lambda lambda = (LoLangType.Lambda) parameterTypes.get(0);
+
+            if (lambda.parameterList.size() != 1 || !lambda.returnType.isEquivalent(new LoLangType.Boolean()))
+              throw new GenericReturnTypeParameterMismatchException(0,
+                  new LoLangType.Lambda(new LoLangType.Boolean(),
+                      new ArrayList<>(createParameters(new LoLangType[] { arrayType.elementType }))),
+                  parameterTypes.get(0));
+
+            return new LoLangType.Array(arrayType.elementType);
+          });
+        }
+      });
+
+      put("map", new InternalMethod<LoLangValue.Array>() {
+        public LoLangValue run(LoLangValue.Array internalArray) {
+          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+            LoLangValue.UserDefinedFunction function = (LoLangValue.UserDefinedFunction) arguments[0];
+            ArrayList<LoLangValue> response = new ArrayList<>();
+
+            for (int i = 0; i < internalArray.values.size(); i++)
+              response.add(function.call(new ArrayList<>(Arrays.asList(internalArray.values.get(i)))));
+
+            return new LoLangValue.Array(response);
+          }, 1);
+        }
+
+        public LoLangType type(LoLangType thisType, SemanticContext _context) {
+          final LoLangType.Array arrayType = (LoLangType.Array) thisType;
+
+          return new LoLangType.Lambda((SemanticContext context, ArrayList<LoLangType> parameterTypes) -> {
+            if (parameterTypes.size() != 1)
+              throw new GenericReturnTypeArityException(1, parameterTypes.size());
+
+            if (!(parameterTypes.get(0) instanceof LoLangType.Lambda))
+              throw new GenericReturnTypeParameterMismatchException(0,
+                  new LoLangType.Lambda(new LoLangType.Any(),
+                      new ArrayList<>(createParameters(new LoLangType[] { arrayType.elementType }))),
+                  parameterTypes.get(0));
+
+            LoLangType.Lambda lambda = (LoLangType.Lambda) parameterTypes.get(0);
+
+            if (lambda.parameterList.size() != 1)
+              throw new GenericReturnTypeParameterMismatchException(0,
+                  new LoLangType.Lambda(new LoLangType.Any(),
+                      new ArrayList<>(createParameters(new LoLangType[] { arrayType.elementType }))),
+                  parameterTypes.get(0));
+
+            return new LoLangType.Array(lambda.returnType);
+          });
+        }
+      });
+
+      put("toSorted", new InternalMethod<LoLangValue.Array>() {
+        public LoLangValue run(LoLangValue.Array internalArray) {
+          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+            LoLangValue[] cloned = new LoLangValue[internalArray.values.size()];
+            for (int i = 0; i < internalArray.values.size(); i++)
+              cloned[i] = internalArray.values.get(i);
+
+            LoLangValue.UserDefinedFunction function = (LoLangValue.UserDefinedFunction) arguments[0];
+
+            try {
+              Arrays.sort(cloned, new Comparator<LoLangValue>() {
+                public int compare(LoLangValue o1, LoLangValue o2) {
+                  ArrayList<LoLangValue> args = new ArrayList<>(Arrays.asList(o1, o2));
+                  LoLangValue result = function.call(args);
+
+                  if (!(result instanceof LoLangValue.Number))
+                    throw new SortingError(result.getType());
+
+                  return ((LoLangValue.Number) result).value > 0 ? -1
+                      : ((LoLangValue.Number) result).value < 0 ? 1 : 0;
+                }
+              });
+            } catch (SortingError e) {
+              throw new InterpreterExceptions.FunctionCallReturnTypeMismatchException(new LoLangType.Number(),
+                  e.type);
+            }
+
+            return new LoLangValue.Array(new ArrayList<>(Arrays.asList(cloned)));
+          }, 1);
+        }
+
+        public LoLangType type(LoLangType thisType, SemanticContext _context) {
+          final LoLangType.Array arrayType = (LoLangType.Array) thisType;
+
+          return new LoLangType.Lambda((SemanticContext context, ArrayList<LoLangType> parameterTypes) -> {
+            if (parameterTypes.size() != 1)
+              throw new GenericReturnTypeArityException(1, parameterTypes.size());
+
+            if (!(parameterTypes.get(0) instanceof LoLangType.Lambda))
+              throw new GenericReturnTypeParameterMismatchException(0,
+                  new LoLangType.Lambda(new LoLangType.Number(),
+                      new ArrayList<>(
+                          createParameters(new LoLangType[] { arrayType.elementType, arrayType.elementType }))),
+                  parameterTypes.get(0));
+
+            LoLangType.Lambda lambda = (LoLangType.Lambda) parameterTypes.get(0);
+
+            if (lambda.parameterList.size() != 2
+                || lambda.returnType.isEquivalent(new LoLangType.Number()) == false
+                || lambda.parameterList.get(0).isEquivalent(arrayType.elementType) == false
+                || lambda.parameterList.get(1).isEquivalent(arrayType.elementType) == false)
+              throw new GenericReturnTypeParameterMismatchException(0,
+                  new LoLangType.Lambda(new LoLangType.Number(),
+                      new ArrayList<>(
+                          createParameters(new LoLangType[] { arrayType.elementType, arrayType.elementType }))),
+                  parameterTypes.get(0));
+
+            return new LoLangType.Array(lambda.returnType);
+          });
+        }
+      });
+
+      put("push", new InternalMethod<LoLangValue.Array>() {
+        public LoLangValue run(LoLangValue.Array internalArray) {
+          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+            if (arguments.length != 1)
+              throw new InterpreterExceptions.FunctionCallArityException(1, arguments.length);
+
+            internalArray.values.add(arguments[0]);
+            return new LoLangValue.Number(internalArray.values.size());
+          }, 1);
+        }
+
+        public LoLangType type(LoLangType thisType, SemanticContext _context) {
+          final LoLangType.Array arrayType = (LoLangType.Array) thisType;
+
+          return new LoLangType.Lambda((SemanticContext context, ArrayList<LoLangType> parameterTypes) -> {
+            if (parameterTypes.size() != 1)
+              throw new GenericReturnTypeArityException(1, parameterTypes.size());
+
+            if (parameterTypes.get(0).isEquivalent(arrayType.elementType) == false)
+              throw new GenericReturnTypeParameterMismatchException(0,
+                  arrayType.elementType, parameterTypes.get(0));
+
+            return new LoLangType.Number();
+          });
+        }
+      });
+
+      put("pop", new InternalMethod<LoLangValue.Array>() {
+        public LoLangValue run(LoLangValue.Array internalArray) {
+          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+            if (internalArray.values.size() == 0)
+              throw new InterpreterExceptions.IndexAccessOutOfBoundsException(0);
+
+            LoLangValue last = internalArray.values.get(internalArray.values.size() - 1);
+            internalArray.values.remove(internalArray.values.size() - 1);
+            return last;
+          }, 0);
+        }
+
+        public LoLangType type(LoLangType thisType, SemanticContext _context) {
+          final LoLangType.Array arrayType = (LoLangType.Array) thisType;
+
+          return new LoLangType.Lambda((SemanticContext context, ArrayList<LoLangType> parameterTypes) -> {
+            if (parameterTypes.size() <= 0)
+              return arrayType.elementType;
+
+            throw new GenericReturnTypeArityException(0, parameterTypes.size());
+          });
+        }
+      });
+    }
+  };
+}
+
+class SortingError extends Error {
+  public final LoLangType type;
+
+  public SortingError(LoLangType type) {
+    this.type = type;
   }
 }

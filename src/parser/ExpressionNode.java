@@ -10,6 +10,9 @@ import lexer.Token;
 import lexer.TokenType;
 import semantic.LoLangType;
 import semantic.SemanticAnalyzerException;
+import semantic.SemanticAnalyzerException.GenericReturnTypeArityException;
+import semantic.SemanticAnalyzerException.GenericReturnTypeException;
+import semantic.SemanticAnalyzerException.GenericReturnTypeParameterMismatchException;
 import semantic.SemanticContext;
 import utils.DOTGenerator;
 import utils.EnvironmentException;
@@ -200,8 +203,7 @@ public abstract class ExpressionNode extends Node {
       try {
         return ((LoLangValue.DotGettable) left).getDot(this.identifier.lexeme);
       } catch (InterpreterExceptions.DotAccessNonExistentException e) {
-        throw new RuntimeError("Failed to access property \"" + this.identifier.lexeme + "\" on object",
-            this.identifier);
+        throw e.toRuntimeError(identifier);
       }
     }
 
@@ -221,7 +223,7 @@ public abstract class ExpressionNode extends Node {
         return new LoLangType.Any();
       }
 
-      return gettable.getKey(this.identifier.lexeme);
+      return gettable.getKey(context, this.identifier.lexeme);
     }
   }
 
@@ -274,9 +276,8 @@ public abstract class ExpressionNode extends Node {
 
       try {
         return callable.call(arguments);
-      } catch (InterpreterExceptions.FunctionCallArityException e) {
-        throw new RuntimeError("Incorrect number of arguments passed to function. Expected: "
-            + callable.getArity() + " but received: " + arguments.size(), functionCallToken);
+      } catch (InterpreterExceptions e) {
+        throw e.toRuntimeError(functionCallToken);
       }
     }
 
@@ -291,6 +292,32 @@ public abstract class ExpressionNode extends Node {
       }
 
       LoLangType.Lambda lambda = (LoLangType.Lambda) lambdaValue;
+
+      if (lambda.isGeneric && lambda.generateGenericReturnType != null) {
+        ArrayList<LoLangType> argumentTypes = new ArrayList<>();
+        for (int i = 0; i < this.parameters.expressions.size(); i++)
+          argumentTypes.add(this.parameters.expressions.get(i).evaluateType(context));
+
+        try {
+          return lambda.generateGenericReturnType.run(context, argumentTypes);
+        } catch (GenericReturnTypeArityException e) {
+          context.addException(new SemanticAnalyzerException("Incorrect number of parameters passed to function",
+              this.functionCallToken));
+
+          return new LoLangType.Any();
+        } catch (GenericReturnTypeParameterMismatchException e) {
+          context.addException(
+              new SemanticAnalyzerException(
+                  String.format("Incorrect parameter type passed to function at index %d", e.index),
+                  this.functionCallToken));
+
+          return new LoLangType.Any();
+        } catch (GenericReturnTypeException e) {
+          // should be unreachable
+          context.addException(new SemanticAnalyzerException("Error while generating generic return type",
+              this.functionCallToken));
+        }
+      }
 
       if (lambda.parameterList.size() != this.parameters.expressions.size()) {
         context.addException(new SemanticAnalyzerException("Incorrect number of parameters passed to function",
@@ -316,10 +343,7 @@ public abstract class ExpressionNode extends Node {
         }
       }
 
-      if (lambda.isGeneric == false)
-        return lambda.returnType;
-
-      return lambda.generateGenericReturnType.run(parameterTypes);
+      return lambda.returnType;
     }
   }
 
@@ -508,7 +532,7 @@ public abstract class ExpressionNode extends Node {
       try {
         array.setIndex(intIndex, newValue);
       } catch (InterpreterExceptions.IndexAccessOutOfBoundsException e) {
-        throw new RuntimeError(String.format("Index %d out of bounds", intIndex), indexAccess.leftBracket);
+        throw e.toRuntimeError(indexAccess.leftBracket);
       }
     }
 
@@ -524,8 +548,7 @@ public abstract class ExpressionNode extends Node {
       try {
         object.setDot(dotAccess.identifier.lexeme, newValue);
       } catch (InterpreterExceptions.DotAccessNonExistentException e) {
-        throw new RuntimeError("Cannot set property \"" + dotAccess.identifier.lexeme + "\" on object",
-            dotAccess.identifier);
+        throw e.toRuntimeError(dotAccess.identifier);
       }
     }
 
@@ -576,7 +599,7 @@ public abstract class ExpressionNode extends Node {
       try {
         return array.getIndex(intIndex);
       } catch (InterpreterExceptions.IndexAccessOutOfBoundsException e) {
-        throw new RuntimeError(String.format("Index %d out of bounds", intIndex), leftBracket);
+        throw e.toRuntimeError(leftBracket);
       }
     }
 

@@ -1,31 +1,19 @@
-item factorial: skill (stats) -> stats = skill (item n: stats): stats -> {
-    canwin (n <= 1) {
-        recast 1;
-    } lose {
-        recast n * factorial(n - 1);
-    }
-};
+item numbers: stats[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+broadcast(numbers.push(11));
+numbers.push(12);
 
-// Using the function
-item num: stats = 5;
-broadcast("Factorial of ");
-broadcast(num);
-broadcast("is:");
-broadcast(factorial(num));
+broadcast(numbers.pop());
 
-// Another function example - calculate damage
-item calculateDamage: skill (stats, stats, stats) -> stats = 
-skill (
-    item baseDamage: stats,
-    item armorPen: stats,
-    item targetArmor: stats
-): stats -> {
-    item effectiveArmor: stats = targetArmor * (1 - armorPen / 100);
-    item multiplier: stats = 100 / (100 + effectiveArmor);
-    recast baseDamage * multiplier;
-};
+broadcast(numbers.filter(skill (item num: stats): goat -> {
+  recast num > 5;
+}));
 
-// Using the damage calculation
-item damage: stats = calculateDamage(100, 30, 50);
-broadcast("Final damage dealt: ");
-broadcast(damage);
+item reversed: stats[] = numbers.toSorted(skill (item a: message, item b: stats): stats -> {
+  canwin(a < b){
+    recast 1;
+  }lose{
+    recast -1;
+  }
+});
+
+broadcast(reversed);

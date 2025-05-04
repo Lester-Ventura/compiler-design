@@ -1,3 +1,4 @@
+// This should be rechecked once we get standard library stuff
 // Array creation and manipulation
 item champions: message[] = ["Caps", "Uzi", "Pewdiepie", "Bengi", "Perkz"];
 broadcast("First champion: " + champions[0]);

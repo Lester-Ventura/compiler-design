@@ -1,3 +1,4 @@
+// This should be rechecked once we get standard library stuff
 // Example 1
 item functionName: skill (stats) -> stats =
 skill (item x: stats): stats -> {};

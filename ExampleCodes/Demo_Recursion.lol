@@ -8,7 +8,10 @@ item factorial: skill (stats) -> stats = skill (item n: stats): stats -> {
 
 // Using the function
 item num: stats = 5;
-broadcast("Factorial of " + num + " is: " + factorial(num));
+broadcast("Factorial of ");
+broadcast(num);
+broadcast("is:");
+broadcast(factorial(num));
 
 // Another function example - calculate damage
 item calculateDamage: skill (stats, stats, stats) -> stats = 
@@ -24,4 +27,5 @@ skill (
 
 // Using the damage calculation
 item damage: stats = calculateDamage(100, 30, 50);
-broadcast("Final damage dealt: " + damage);
+broadcast("Final damage dealt: ");
+broadcast(damage);

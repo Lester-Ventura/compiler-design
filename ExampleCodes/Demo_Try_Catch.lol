@@ -1,3 +1,4 @@
+// This should be rechecked once we get standard library stuff
 support {
     item value: stats = 100;
     item divisor: stats = 0;

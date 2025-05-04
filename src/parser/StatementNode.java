@@ -185,7 +185,6 @@ public abstract class StatementNode extends Node {
           if (this.declaration.equalsToken == null)
             throw new Error("INVARIANT VIOLATION: equalsToken should not be null");
 
-          System.out.println(declarationType.toString() + " " + expressionType.toString());
           context.addException(new SemanticAnalyzerException(
               "Type of variable declaration does not match type of expression", this.declaration.equalsToken));
         }

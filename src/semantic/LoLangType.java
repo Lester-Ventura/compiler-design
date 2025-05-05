@@ -98,7 +98,7 @@ public abstract class LoLangType {
     }
 
     public java.lang.String toString() {
-      return "[" + this.elementType.toString() + "]";
+      return this.elementType.toString() + "[]";
     }
 
     public LoLangType getKey(SemanticContext context, java.lang.String key) {
@@ -218,12 +218,16 @@ public abstract class LoLangType {
     }
 
     public java.lang.String toString() {
-      java.lang.String ret = "lambda";
+      java.lang.String ret = "lambda (";
 
-      for (LoLangType parameter : this.parameterList)
-        ret += parameter.toString() + ",";
+      for (int i = 0; i < this.parameterList.size(); i++) {
+        if (i != 0)
+          ret += ", ";
 
-      return ret + ") ->" + this.returnType.toString();
+        ret += this.parameterList.get(i).toString();
+      }
+
+      return ret + ") -> " + this.returnType.toString();
     }
   }
 

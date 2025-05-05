@@ -34,6 +34,10 @@ public class Global {
       return new LoLangValue.Null();
     }, 1), true);
 
+    context.environment.define("dump_symbol_table", new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+      return new LoLangValue.Null();
+    }, 0), true);
+
     // context.environment.define("testing", new
     // LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
     // LoLangValue.Number number = (LoLangValue.Number) arguments[0];
@@ -54,6 +58,12 @@ public class Global {
     context.typeEnvironment.define("goat", new LoLangType.Boolean(), true);
     context.typeEnvironment.define("cooldown", new LoLangType.Null(), true);
     context.typeEnvironment.define("passive", new LoLangType.Void(), true);
+
+    context.variableEnvironment.define("dump_symbol_table", new LoLangType.Lambda(
+        (SemanticContext localContext, ArrayList<LoLangType> parameterTypes) -> {
+          localContext.print();
+          return new LoLangType.Void();
+        }), true);
 
     LoLangType.Lambda broadcastType = new LoLangType.Lambda(new LoLangType.Void(),
         createParameters(new LoLangType[] { new LoLangType.Any() }));

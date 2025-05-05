@@ -8,6 +8,7 @@ import lexer.TokenType;
 import parser.StatementNode;
 import parser.Node.StatementList;
 import utils.Environment;
+import utils.Environment.SymbolTableEntry;
 
 public class SemanticContext {
   public enum Scope {
@@ -82,6 +83,36 @@ public class SemanticContext {
   public void addException(SemanticAnalyzerException exception) {
     if (this.exceptions != null)
       this.exceptions.add(exception);
+  }
+
+  public void print() {
+    System.out.println("Symbol Table:");
+    System.out
+        .println("==================================================================================================");
+    System.out
+        .println("| DEPTH |                 NAME                      |              TYPE               | CONSTANT |");
+    System.out
+        .println("==================================================================================================");
+
+    printHere(0, this.variableEnvironment);
+
+    System.out
+        .println("==================================================================================================");
+  }
+
+  private void printHere(int depth, Environment<LoLangType> local) {
+    for (String name : local.variables.keySet()) {
+      if (name.equals("dump_symbol_table"))
+        continue;
+
+      SymbolTableEntry<LoLangType> entry = local.variables.get(name);
+      System.out.println(
+          String.format("| %-5d | %-41s | %-31s | %-8s |", depth, name, entry.value.toString(),
+              entry.constant ? "true" : "false"));
+    }
+
+    if (local.parent != null)
+      printHere(depth + 1, local.parent);
   }
 
   public void loadTypesFromStatementList(StatementList list) {

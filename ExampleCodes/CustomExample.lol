@@ -1,12 +1,18 @@
-broadcast("Debug for equals");
+item testing: message[] = [
+	"Hello World!",
+	"This is a test"
+];
 
-item comma: message = ",";
+item lengths: stats[] = testing.map(skill (item x: message): stats -> {
+	item testing: message = x;
+	
+	dump_symbol_table();
+	recast x.length();
+});
 
-// so this works
-broadcast("," == ",");
+item firstCharacters: message[] = testing.map(skill (item x222: message): message -> {
+	recast x222.charAt(0);
+});
 
-// but how about this
-broadcast(comma == ",");
-
-// maybe it's charAt
-broadcast(comma.charAt(0) == ",");
+broadcast(lengths);
+broadcast(firstCharacters);

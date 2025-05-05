@@ -112,6 +112,9 @@ public class CodeReader {
       SemanticContext context = Global.createGlobalSemanticContext();
       program.semanticAnalysis(context);
 
+      // Print symbol table recursively
+      context.printSymbolTableToChild();
+
       if (context.exceptions.size() != 0) {
         System.out.println("The following errors were encountered during semantic analysis:\n");
         ErrorWindowBuilder.printErrors(context.exceptions);

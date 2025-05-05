@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import interpreter.ExecutionContext;
 import lexer.Token;
 import utils.DOTGenerator;
+import utils.EnvironmentException;
 
 public abstract class Node {
   abstract public String toString();
@@ -87,7 +88,7 @@ public abstract class Node {
       this.expression = expression;
     }
 
-    void addToContext(ExecutionContext context) {
+    void addToContext(ExecutionContext context) throws EnvironmentException.EnvironmentAlreadyDeclaredException {
       if (this.expression != null)
         context.environment.define(this.identifier.lexeme, this.expression.evaluate(context), false);
       else

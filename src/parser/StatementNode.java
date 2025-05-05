@@ -16,6 +16,7 @@ import semantic.SemanticContext;
 import semantic.SemanticContext.Scope;
 import utils.DOTGenerator;
 import utils.UnimplementedError;
+import utils.EnvironmentException.EnvironmentAlreadyDeclaredException;
 
 public abstract class StatementNode extends Node {
   public abstract void execute(ExecutionContext context);
@@ -174,17 +175,29 @@ public abstract class StatementNode extends Node {
     }
 
     public void execute(ExecutionContext context) {
-      this.declaration.addToContext(context);
+      try {
+        this.declaration.addToContext(context);
+      } catch (EnvironmentAlreadyDeclaredException e) {
+        throw new RuntimeError("Cannot redeclare variable \"" + this.declaration.identifier.lexeme + "\"",
+            this.declaration.identifier);
+      }
     }
 
     public void semanticAnalysis(SemanticContext context) {
       LoLangType declarationType = this.declaration.type.evaluate(context);
-      context.variableEnvironment.define(this.declaration.identifier.lexeme, declarationType,
-          false);
+
+      try {
+        context.variableEnvironment.define(this.declaration.identifier.lexeme, declarationType,
+            false);
+      } catch (EnvironmentAlreadyDeclaredException e) {
+        context.exceptions.add(
+            new SemanticAnalyzerException("Cannot redeclare variable \"" + this.declaration.identifier.lexeme + "\"",
+                this.declaration.identifier));
+      }
 
       if (this.declaration.expression != null) {
         LoLangType expressionType = this.declaration.expression.evaluateType(context);
-        if (!expressionType.isEquivalent(declarationType)) {
+        if (!declarationType.isEquivalent(expressionType)) {
           if (this.declaration.equalsToken == null)
             throw new Error("INVARIANT VIOLATION: equalsToken should not be null");
 
@@ -227,11 +240,21 @@ public abstract class StatementNode extends Node {
     }
 
     public void execute(ExecutionContext context) {
-      context.environment.define(this.identifier.lexeme, this.expression.evaluate(context), true);
+      try {
+        context.environment.define(this.identifier.lexeme, this.expression.evaluate(context), true);
+      } catch (EnvironmentAlreadyDeclaredException e) {
+        throw new RuntimeError("Cannot redeclare constant \"" + this.identifier.lexeme + "\"", this.identifier);
+      }
     }
 
     public void semanticAnalysis(SemanticContext context) {
-      context.variableEnvironment.define(this.identifier.lexeme, this.expression.evaluateType(context), true);
+      try {
+        context.variableEnvironment.define(this.identifier.lexeme, this.expression.evaluateType(context), true);
+      } catch (EnvironmentAlreadyDeclaredException e) {
+        context.exceptions.add(
+            new SemanticAnalyzerException("Cannot redeclare constant \"" + this.identifier.lexeme + "\"",
+                this.identifier));
+      }
     }
   }
 
@@ -370,7 +393,7 @@ public abstract class StatementNode extends Node {
         this.body.execute(forkedContext);
       } catch (LoLangThrowable.Error errorException) {
         ExecutionContext forkedContext = context.fork();
-        forkedContext.environment.define(identifier.lexeme, errorException.message, true);
+        forkedContext.environment.tryDefine(identifier.lexeme, errorException.message, true);
         this.catchBody.execute(forkedContext);
       }
     }
@@ -380,7 +403,7 @@ public abstract class StatementNode extends Node {
       this.body.semanticAnalysis(forkedContext);
 
       SemanticContext forkedCatchContext = context.fork();
-      forkedCatchContext.variableEnvironment.define(this.identifier.lexeme, new LoLangType.String(), true);
+      forkedCatchContext.variableEnvironment.tryDefine(this.identifier.lexeme, new LoLangType.String(), true);
 
       this.catchBody.semanticAnalysis(forkedCatchContext);
     }
@@ -678,7 +701,7 @@ public abstract class StatementNode extends Node {
 
       for (LoLangValue value : array.values) {
         ExecutionContext forkedContext = context.fork();
-        forkedContext.environment.define(this.variableIdentifier.lexeme, value, false);
+        forkedContext.environment.tryDefine(this.variableIdentifier.lexeme, value, false);
 
         try {
           this.statement.execute(forkedContext);
@@ -715,7 +738,7 @@ public abstract class StatementNode extends Node {
 
       SemanticContext forkedContext = context.fork();
       forkedContext.pushScope(Scope.LOOP_BODY);
-      forkedContext.variableEnvironment.define(this.variableIdentifier.lexeme, elementType, true);
+      forkedContext.variableEnvironment.tryDefine(this.variableIdentifier.lexeme, elementType, true);
       this.statement.semanticAnalysis(forkedContext);
     }
   }
@@ -819,8 +842,14 @@ public abstract class StatementNode extends Node {
 
       // Run init by adding declarations to the shared context across all runs
       if (this.init != null)
-        for (Node.VariableDeclaration declaration : this.init.declarations)
-          declaration.addToContext(forkedContext);
+        for (Node.VariableDeclaration declaration : this.init.declarations) {
+          try {
+            declaration.addToContext(forkedContext);
+          } catch (EnvironmentAlreadyDeclaredException e) {
+            throw new RuntimeError("Cannot redeclare variable \"" + declaration.identifier.lexeme + "\"",
+                declaration.identifier);
+          }
+        }
 
       while (true) {
         // If there is a condition, then we need to check if we shold run
@@ -856,7 +885,7 @@ public abstract class StatementNode extends Node {
 
       if (this.init != null) {
         for (Node.VariableDeclaration init : this.init.declarations)
-          forkedContext.variableEnvironment.define(init.identifier.lexeme, init.type.evaluate(context), false);
+          forkedContext.variableEnvironment.tryDefine(init.identifier.lexeme, init.type.evaluate(context), false);
       }
 
       if (this.condition != null) {

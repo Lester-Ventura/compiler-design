@@ -31,7 +31,7 @@ public abstract class TypeExpressionNode extends Node {
     public LoLangType evaluate(SemanticContext context) {
       try {
         return context.typeEnvironment.get(this.identifier.lexeme);
-      } catch (EnvironmentException e) {
+      } catch (EnvironmentException.EnvironmentUndeclaredException e) {
         context.addException(new SemanticAnalyzerException("Cannot find type \"" + this.identifier.lexeme + "\"",
             this.identifier));
         return new LoLangType.Any();

@@ -3,6 +3,8 @@ package utils;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import utils.EnvironmentException.EnvironmentAlreadyDeclaredException;
+
 public class Environment<InternalValue> {
   public static class SymbolTableEntry<InternalValue> {
     public InternalValue value;
@@ -26,7 +28,8 @@ public class Environment<InternalValue> {
   public Environment() {
   }
 
-  public SymbolTableEntry<InternalValue> getSymbolTableEntry(String name) throws EnvironmentException {
+  public SymbolTableEntry<InternalValue> getSymbolTableEntry(String name)
+      throws EnvironmentException.EnvironmentUndeclaredException {
     if (this.variables.containsKey(name))
       return this.variables.get(name);
 
@@ -39,29 +42,40 @@ public class Environment<InternalValue> {
         return value;
     }
 
-    throw new EnvironmentException("Cannot find symbol table entry \"" + name + "\"");
+    throw new EnvironmentException.EnvironmentUndeclaredException("Cannot find symbol table entry \"" + name + "\"");
   }
 
-  public InternalValue get(String name) throws EnvironmentException {
+  public InternalValue get(String name) throws EnvironmentException.EnvironmentUndeclaredException {
     return this.getSymbolTableEntry(name).value;
   }
 
-  public void define(String name, InternalValue value, boolean constant) {
+  public void tryDefine(String name, InternalValue value, boolean constant) {
+    try {
+      this.define(name, value, constant);
+    } catch (EnvironmentAlreadyDeclaredException e) {
+    }
+  }
+
+  public void define(String name, InternalValue value, boolean constant) throws EnvironmentAlreadyDeclaredException {
+    if (this.variables.containsKey(name))
+      throw new EnvironmentAlreadyDeclaredException("Cannot redeclare variable \"" + name + "\"");
+
     SymbolTableEntry<InternalValue> newEntry = new SymbolTableEntry<InternalValue>(value, constant);
     this.variables.put(name, newEntry);
   }
 
-  public void declare(String name) {
+  public void declare(String name) throws EnvironmentAlreadyDeclaredException {
     // only time this gets called is when declaring a variable with no initial value
     this.define(name, null, false);
   }
 
-  public void assign(String name, InternalValue value) throws EnvironmentException {
+  public void assign(String name, InternalValue value) throws EnvironmentException.EnvironmentUndeclaredException {
     if (this.variables.containsKey(name)) {
       SymbolTableEntry<InternalValue> entry = this.variables.get(name);
 
       if (entry.constant)
-        throw new EnvironmentException("Cannot assign to constant variable \"" + name + "\"");
+        throw new EnvironmentException.EnvironmentUndeclaredException(
+            "Cannot assign to constant variable \"" + name + "\"");
 
       entry.value = value;
       return;
@@ -72,6 +86,7 @@ public class Environment<InternalValue> {
       return;
     }
 
-    throw new EnvironmentException("Cannot assign to undeclared variable \"" + name + "\"");
+    throw new EnvironmentException.EnvironmentUndeclaredException(
+        "Cannot assign to undeclared variable \"" + name + "\"");
   }
 }

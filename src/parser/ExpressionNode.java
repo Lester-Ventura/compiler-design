@@ -67,7 +67,13 @@ public abstract class ExpressionNode extends Node {
 
       for (Node.VariableDeclarationHeader parameter : this.parameters.declarations) {
         parameterTypes.add(parameter.type.evaluate(context));
-        forkedContext.variableEnvironment.define(parameter.identifier.lexeme, parameter.type.evaluate(context), true);
+
+        try {
+          forkedContext.variableEnvironment.define(parameter.identifier.lexeme, parameter.type.evaluate(context), true);
+        } catch (EnvironmentException.EnvironmentAlreadyDeclaredException e) {
+          context.addException(new SemanticAnalyzerException(
+              "Cannot redeclare parameter \"" + parameter.identifier.lexeme + "\"", parameter.identifier));
+        }
       }
 
       // We also need to verify the body
@@ -373,7 +379,7 @@ public abstract class ExpressionNode extends Node {
     public LoLangValue evaluate(ExecutionContext context) {
       try {
         return context.environment.get(this.identifier.lexeme);
-      } catch (EnvironmentException e) {
+      } catch (EnvironmentException.EnvironmentUndeclaredException e) {
         throw new RuntimeError("Cannot find variable \"" + this.identifier.lexeme + "\"", this.identifier);
       }
     }
@@ -381,7 +387,7 @@ public abstract class ExpressionNode extends Node {
     public LoLangType evaluateType(SemanticContext context) {
       try {
         return context.variableEnvironment.get(this.identifier.lexeme);
-      } catch (EnvironmentException e) {
+      } catch (EnvironmentException.EnvironmentUndeclaredException e) {
         context.addException(new SemanticAnalyzerException("Cannot find variable \"" + this.identifier.lexeme + "\"",
             this.identifier));
         return new LoLangType.Any();
@@ -491,7 +497,7 @@ public abstract class ExpressionNode extends Node {
 
           if (entry.constant)
             context.addException(new SemanticAnalyzerException("Cannot assign to constant variable", equalsSign));
-        } catch (EnvironmentException e) {
+        } catch (EnvironmentException.EnvironmentUndeclaredException e) {
           context.addException(new SemanticAnalyzerException("Cannot find variable \"" + identifier + "\"",
               ((ExpressionNode.Identifier) this.left).identifier));
           return new LoLangType.Any();
@@ -517,7 +523,7 @@ public abstract class ExpressionNode extends Node {
 
       try {
         context.environment.assign(identifier.identifier.lexeme, newValue);
-      } catch (EnvironmentException e) {
+      } catch (EnvironmentException.EnvironmentUndeclaredException e) {
         throw new RuntimeError("Cannot assign to undeclared variable", identifier.identifier);
       }
     }

@@ -84,4 +84,16 @@ public abstract class InterpreterExceptions extends Exception {
       return new RuntimeError(String.format("Index %d out of bounds", this.index), token);
     }
   }
+
+  public static class RedeclaredVariableException extends InterpreterExceptions {
+    public final String identifier;
+
+    public RedeclaredVariableException(String identifier) {
+      this.identifier = identifier;
+    }
+
+    public RuntimeError toRuntimeError(Token token) {
+      return new RuntimeError("Cannot redeclare variable \"" + this.identifier + "\"", token);
+    }
+  }
 }

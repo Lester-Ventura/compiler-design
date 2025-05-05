@@ -133,6 +133,7 @@ public abstract class LoLangType {
           return false;
       }
 
+      // commenting this adds polymorphism actually..
       // check if otherObject has more fields than what this type wants
       for (Map.Entry<java.lang.String, LoLangType> entry : otherObject.fields.entrySet()) {
         if (!this.fields.containsKey(entry.getKey()))

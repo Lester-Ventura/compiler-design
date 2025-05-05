@@ -8,6 +8,7 @@ import interpreter.InterpreterExceptions.DotAccessNonExistentException;
 import parser.Node;
 import parser.StatementNode;
 import semantic.LoLangType;
+import utils.EnvironmentException;
 
 public abstract class LoLangValue {
 	public abstract java.lang.String toString();
@@ -198,12 +199,17 @@ public abstract class LoLangValue {
 			this.context = context;
 		}
 
-		public LoLangValue call(ArrayList<LoLangValue> arguments) {
+		public LoLangValue call(ArrayList<LoLangValue> arguments) throws InterpreterExceptions {
 			ExecutionContext forkedContext = context.fork();
 
 			for (int i = 0; i < this.parameters.declarations.size(); i++) {
 				Node.VariableDeclarationHeader declaration = this.parameters.declarations.get(i);
-				forkedContext.environment.define(declaration.identifier.lexeme, arguments.get(i), true);
+
+				try {
+					forkedContext.environment.define(declaration.identifier.lexeme, arguments.get(i), true);
+				} catch (EnvironmentException.EnvironmentAlreadyDeclaredException e) {
+					throw new InterpreterExceptions.RedeclaredVariableException(declaration.identifier.lexeme);
+				}
 			}
 
 			try {

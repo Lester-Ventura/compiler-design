@@ -8,6 +8,7 @@ import lexer.TokenType;
 import parser.StatementNode;
 import parser.Node.StatementList;
 import utils.Environment;
+import utils.EnvironmentException;
 import utils.Environment.SymbolTableEntry;
 
 public class SemanticContext {
@@ -55,14 +56,24 @@ public class SemanticContext {
     this.exceptions = new ArrayList<>();
   }
 
+  ArrayList<SemanticContext> childrens = new ArrayList<>();
+
   public SemanticContext cleanFunctionFork(LoLangType returnType) {
-    return new SemanticContext(typeEnvironment, variableEnvironment,
+    SemanticContext ret = new SemanticContext(typeEnvironment, variableEnvironment,
         new ArrayList<>(Arrays.asList(new Scope[] { Scope.FUNCTION_BODY })), returnType, this.gotoLabels,
         this.exceptions);
+
+    childrens.add(ret);
+    return ret;
   }
 
   public SemanticContext fork() {
-    return new SemanticContext(typeEnvironment, variableEnvironment, scopes, returnType, gotoLabels, exceptions);
+    SemanticContext ret = new SemanticContext(typeEnvironment, variableEnvironment, scopes, returnType, gotoLabels,
+        exceptions);
+
+    childrens.add(ret);
+    return ret;
+
   }
 
   public void pushScope(Scope scope) {
@@ -85,22 +96,21 @@ public class SemanticContext {
       this.exceptions.add(exception);
   }
 
-  public void print() {
-    System.out.println("Symbol Table:");
+  public void printSymbolTableToParent() {
+    System.out.println("Variables defined starting from this context:");
     System.out
         .println("==================================================================================================");
     System.out
         .println("| DEPTH |                 NAME                      |              TYPE               | CONSTANT |");
     System.out
         .println("==================================================================================================");
-
-    printHere(0, this.variableEnvironment);
-
+    printSymbolTableToParentR(0, this.variableEnvironment);
     System.out
-        .println("==================================================================================================");
+        .println(
+            "==================================================================================================\n");
   }
 
-  private void printHere(int depth, Environment<LoLangType> local) {
+  private void printSymbolTableToParentR(int depth, Environment<LoLangType> local) {
     for (String name : local.variables.keySet()) {
       if (name.equals("dump_symbol_table"))
         continue;
@@ -112,14 +122,67 @@ public class SemanticContext {
     }
 
     if (local.parent != null)
-      printHere(depth + 1, local.parent);
+      printSymbolTableToParentR(depth + 1, local.parent);
+  }
+
+  public void printSymbolTableToChild() {
+    System.out.println("Generated contexts starting from the root:");
+    printSymbolTableToChild(0);
+  }
+
+  private void printSymbolTableToChild(int depth) {
+    String spacer = "";
+    for (int i = 0; i < depth; i++)
+      spacer += "\t";
+
+    System.out
+        .println(
+            spacer + "===========================================================================================");
+    System.out
+        .println(
+            spacer + "|                  NAME                      |              TYPE               | CONSTANT |");
+    System.out
+        .println(
+            spacer + "===========================================================================================");
+
+    if (variableEnvironment.variables.keySet().size() > 0) {
+      for (String name : variableEnvironment.variables.keySet()) {
+        if (name.equals("dump_symbol_table"))
+          continue;
+
+        SymbolTableEntry<LoLangType> entry = variableEnvironment.variables.get(name);
+        System.out.println(
+            String.format(spacer + "| %-42s | %-31s | %-8s |", name, entry.value.toString(),
+                entry.constant ? "true" : "false"));
+      }
+    } else {
+      System.out
+          .println(
+              spacer + "|                         NO VARIABLES DEFINED IN THIS CONTEXT                            |");
+    }
+
+    System.out
+        .println(
+            spacer
+                + "===========================================================================================\n");
+
+    for (SemanticContext child : childrens) {
+      child.printSymbolTableToChild(depth + 1);
+    }
   }
 
   public void loadTypesFromStatementList(StatementList list) {
     for (StatementNode statement : list.statements) {
       if (statement instanceof StatementNode.ObjectTypeDeclaration) {
         StatementNode.ObjectTypeDeclaration declaration = (StatementNode.ObjectTypeDeclaration) statement;
-        typeEnvironment.define(declaration.identifier.lexeme, declaration.convertToType(this), true);
+        try {
+          typeEnvironment.define(declaration.identifier.lexeme, declaration.convertToType(this), true);
+        } catch (EnvironmentException.EnvironmentAlreadyDeclaredException e) {
+          this.addException(
+              new SemanticAnalyzerException(
+                  "Cannot redeclare type \"" + declaration.identifier.lexeme + "\"",
+                  declaration.identifier));
+        }
       }
     }
   }

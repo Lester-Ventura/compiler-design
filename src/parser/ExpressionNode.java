@@ -801,6 +801,11 @@ public abstract class ExpressionNode extends Node {
             this.operation);
       }
 
+      else if (left instanceof LoLangValue.String && right instanceof LoLangValue.Number) {
+        LoLangValue.Number rightNumber = (LoLangValue.Number) right;
+        return new LoLangValue.String(left.toString() + rightNumber.value);
+      }
+
       else
         throw new RuntimeError(String.format("Cannot find operations for types %s and %s",
             left.getClass().getName(), right.getClass().getName()), this.operation);
@@ -844,6 +849,11 @@ public abstract class ExpressionNode extends Node {
           return new LoLangType.String();
         else if (this.operation.lexeme.equals("=="))
           return new LoLangType.Boolean();
+      }
+
+      if (left instanceof LoLangType.String && right instanceof LoLangType.Number) {
+        if (this.operation.lexeme.equals("+"))
+          return new LoLangType.String();
       }
 
       context.addException(new SemanticAnalyzerException("Invalid binary operation \"" + this.operation.lexeme

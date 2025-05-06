@@ -28,21 +28,38 @@ public class Environment<InternalValue> {
   public Environment() {
   }
 
-  public SymbolTableEntry<InternalValue> getSymbolTableEntry(String name)
-      throws EnvironmentException.EnvironmentUndeclaredException {
+  private SymbolTableEntry<InternalValue> tryGetSymbolTableEntry(String name) {
     if (this.variables.containsKey(name))
       return this.variables.get(name);
-
-    else if (this.parent != null)
-      return this.parent.getSymbolTableEntry(name);
+    else if (this.parent != null && this.parent.tryGetSymbolTableEntry(name) != null)
+      return this.parent.tryGetSymbolTableEntry(name);
 
     for (Environment<InternalValue> sibling : this.siblings) {
-      SymbolTableEntry<InternalValue> value = sibling.getSymbolTableEntry(name);
+      SymbolTableEntry<InternalValue> value = sibling.tryGetSymbolTableEntry(name);
       if (value != null)
         return value;
     }
 
-    throw new EnvironmentException.EnvironmentUndeclaredException("Cannot find symbol table entry \"" + name + "\"");
+    return null;
+  }
+
+  public SymbolTableEntry<InternalValue> getSymbolTableEntry(String name)
+      throws EnvironmentException.EnvironmentUndeclaredException {
+    SymbolTableEntry<InternalValue> entry = this.tryGetSymbolTableEntry(name);
+    if (entry == null)
+      throw new EnvironmentException.EnvironmentUndeclaredException("Cannot find symbol table entry \"" + name + "\"");
+
+    return entry;
+
+    // else if (this.parent != null)
+    // return this.parent.getSymbolTableEntry(name);
+
+    // if (this.parent != null)
+    // try {
+    // return this.parent.getSymbolTableEntry(name);
+    // } catch (EnvironmentException.EnvironmentUndeclaredException e) {
+    // }
+
   }
 
   public InternalValue get(String name) throws EnvironmentException.EnvironmentUndeclaredException {

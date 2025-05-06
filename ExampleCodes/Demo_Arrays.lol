@@ -18,3 +18,7 @@ broadcast("\nChampions with long names:");
 cannon (item champ: message of longNameChampions) {
     broadcast(champ);
 }
+
+item testing: skill () -> passive = skill (): passive -> {
+    broadcast("this is running inside demo_arrays.lol, testing");
+};

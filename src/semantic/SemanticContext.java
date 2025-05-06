@@ -137,13 +137,16 @@ public class SemanticContext {
 
     System.out
         .println(
-            spacer + "===========================================================================================");
+            spacer
+                + "=====================================================================================================");
     System.out
         .println(
-            spacer + "|                  NAME                      |              TYPE               | CONSTANT |");
+            spacer
+                + "| SIBLING |                   NAME                     |              TYPE               | CONSTANT |");
     System.out
         .println(
-            spacer + "===========================================================================================");
+            spacer
+                + "=====================================================================================================");
 
     if (variableEnvironment.variables.keySet().size() > 0) {
       for (String name : variableEnvironment.variables.keySet()) {
@@ -152,19 +155,43 @@ public class SemanticContext {
 
         SymbolTableEntry<LoLangType> entry = variableEnvironment.variables.get(name);
         System.out.println(
-            String.format(spacer + "| %-42s | %-31s | %-8s |", name, entry.value.toString(),
+            String.format(spacer + "| %-7s | %-42s | %-31s | %-8s |", "x", name, entry.value.toString(),
                 entry.constant ? "true" : "false"));
       }
     } else {
       System.out
           .println(
-              spacer + "|                         NO VARIABLES DEFINED IN THIS CONTEXT                            |");
+              spacer
+                  + "|                              NO VARIABLES LOCALLY DEFINED IN THIS CONTEXT                        |");
     }
 
     System.out
         .println(
             spacer
-                + "===========================================================================================\n");
+                + "=====================================================================================================");
+
+    if (variableEnvironment.siblings.size() > 0) {
+      for (int i = 0; i < variableEnvironment.siblings.size(); i++) {
+        Environment<LoLangType> sibling = variableEnvironment.siblings.get(i);
+
+        for (String name : sibling.variables.keySet()) {
+          if (name.equals("dump_symbol_table"))
+            continue;
+
+          SymbolTableEntry<LoLangType> entry = sibling.variables.get(name);
+          System.out.println(
+              String.format(spacer + "| %-7s | %-42s | %-31s | %-8s |", i + "", name, entry.value.toString(),
+                  entry.constant ? "true" : "false"));
+        }
+      }
+
+      System.out
+          .println(
+              spacer
+                  + "=====================================================================================================");
+    }
+
+    System.out.println();
 
     for (SemanticContext child : childrens) {
       child.printSymbolTableToChild(depth + 1);

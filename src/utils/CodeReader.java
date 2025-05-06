@@ -16,10 +16,10 @@ import parser.LR1Parser;
 import parser.Node;
 
 public class CodeReader {
-  CreateParser parserCreator;
+  LR1Parser parser;
 
-  public CodeReader(CreateParser parserCreator) {
-    this.parserCreator = parserCreator;
+  public CodeReader(LR1Parser parser) {
+    this.parser = parser;
   }
 
   public void run(boolean interactive) {
@@ -81,14 +81,9 @@ public class CodeReader {
   public void parseFile(File file) throws IOException {
     Scanner scanner = new Scanner(file, "UTF-8");
 
-    // need to check if there is a next line,
-    // otherwise the scanner will throw an error
     String source = scanner.hasNext() ? scanner.useDelimiter("\\Z").next() + "\n" : "\n";
     scanner.close();
-
-    // create the parser with the input file and parse
-    LR1Parser parser = parserCreator.run(source, file.getPath());
-    ParserResult parsingResult = parser.parse();
+    ParserResult parsingResult = parser.parse(source, file.getPath());
 
     if (parsingResult.errors.size() != 0) {
       System.out.println("The following errors were encountered during parsing:\n");

@@ -1,5 +1,7 @@
 package interpreter;
 
+import lexer.Token;
+
 public class LoLangThrowable extends Error {
   public static class Return extends LoLangThrowable {
     LoLangValue value;
@@ -31,10 +33,12 @@ public class LoLangThrowable extends Error {
 
   public static class SwitchGoto extends LoLangThrowable {
     public final LoLangValue label;
+    public final Token source;
 
-    public SwitchGoto(LoLangValue label) {
+    public SwitchGoto(LoLangValue label, Token source) {
       super();
       this.label = label;
+      this.source = source;
     }
   }
 

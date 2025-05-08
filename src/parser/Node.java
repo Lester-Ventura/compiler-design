@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 
 import interpreter.ExecutionContext;
+import interpreter.LoLangValue;
 import lexer.Token;
 import utils.DOTGenerator;
 import utils.EnvironmentException;
@@ -90,10 +91,18 @@ public abstract class Node {
 
     void addToContext(ExecutionContext context, ExecutionContext dynamicContext)
         throws EnvironmentException.EnvironmentAlreadyDeclaredException {
-      if (this.expression != null)
+      if (this.expression != null) {
         context.environment.define(this.identifier.lexeme, this.expression.evaluate(context, dynamicContext), false);
-      else
-        context.environment.declare(this.identifier.lexeme);
+        return;
+      }
+
+      LoLangValue defaultValue = this.type.toDefaultValue();
+      if (defaultValue != null) {
+        context.environment.define(this.identifier.lexeme, defaultValue, false);
+        return;
+      }
+
+      context.environment.declare(this.identifier.lexeme);
     }
 
     public String toString() {
@@ -404,6 +413,7 @@ public abstract class Node {
     IfStatementBranch(ExpressionNode condition, StatementNode body, Token conditionToken) {
       this.condition = condition;
       this.body = body;
+      this.conditionToken = conditionToken;
     }
 
     public String toString() {

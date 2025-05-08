@@ -21,6 +21,7 @@ import semantic.LoLangType;
 import semantic.SemanticAnalyzerException;
 import semantic.SemanticContext;
 import semantic.SemanticContext.Scope;
+import utils.Caster;
 import utils.DOTGenerator;
 import utils.EnvironmentException.EnvironmentAlreadyDeclaredException;
 import utils.ErrorWindowBuilder;
@@ -248,12 +249,15 @@ public abstract class StatementNode extends Node {
       for (IfStatementBranch branch : this.branches.clauses) {
         // Evaluate the condition inside the branch
         LoLangValue condition = branch.condition.evaluate(context, dynamicContext);
-        if (!(condition instanceof LoLangValue.Boolean))
-          throw new RuntimeError("Condition must be a boolean", branch.conditionToken);
+        boolean conditionRaw = false;
 
-        LoLangValue.Boolean conditionValue = (LoLangValue.Boolean) condition;
+        try {
+          conditionRaw = Caster.toBoolean(condition);
+        } catch (Caster.CastingException err) {
+          throw new RuntimeError("If condition should be a boolean", branch.conditionToken);
+        }
 
-        if (conditionValue.value == false)
+        if (!conditionRaw)
           continue;
 
         // Execute the body of the branch
@@ -268,7 +272,7 @@ public abstract class StatementNode extends Node {
     public void semanticAnalysis(SemanticContext context) {
       for (IfStatementBranch branch : this.branches.clauses) {
         LoLangType conditionType = branch.condition.evaluateType(context);
-        if (!(new LoLangType.Boolean().isEquivalent(conditionType))) {
+        if (!(new LoLangType.Boolean().isEquivalent(conditionType) || Caster.toBooleanType(conditionType))) {
           context.addException(
               new SemanticAnalyzerException("Condition must be a boolean, received: " + conditionType.toString(),
                   branch.conditionToken));
@@ -449,7 +453,7 @@ public abstract class StatementNode extends Node {
 
     public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       throw new LoLangThrowable.Return(
-          this.expression != null ? this.expression.evaluate(context, dynamicContext) : null);
+          this.expression != null ? this.expression.evaluate(context, dynamicContext) : null, this.returnToken);
     }
 
     public void semanticAnalysis(SemanticContext context) {
@@ -518,7 +522,8 @@ public abstract class StatementNode extends Node {
         this.body.execute(forkedContext, dynamicContext);
       } catch (LoLangThrowable.Error errorException) {
         ExecutionContext forkedContext = context.fork();
-        forkedContext.environment.tryDefine(identifier.lexeme, errorException.message, true);
+        forkedContext.environment.tryDefine(identifier.lexeme, new LoLangValue.String(errorException.token.lexeme),
+            true);
         this.catchBody.execute(forkedContext, dynamicContext);
       }
     }
@@ -550,7 +555,7 @@ public abstract class StatementNode extends Node {
     }
 
     public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
-      throw new LoLangThrowable.Error(new LoLangValue.String(errorMessasge.lexeme));
+      throw new LoLangThrowable.Error(errorMessasge);
     }
 
     public void semanticAnalysis(SemanticContext context) {
@@ -713,7 +718,7 @@ public abstract class StatementNode extends Node {
     }
 
     public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
-      throw new LoLangThrowable.SwitchBreak();
+      throw new LoLangThrowable.SwitchBreak(this.token);
     }
 
     public void semanticAnalysis(SemanticContext context) {
@@ -748,7 +753,7 @@ public abstract class StatementNode extends Node {
           ? new LoLangValue.String(gotoTargetToken.lexeme)
           : new LoLangValue.Number(Double.parseDouble(gotoTargetToken.lexeme));
 
-      throw new LoLangThrowable.SwitchGoto(value, this.gotoTargetToken);
+      throw new LoLangThrowable.SwitchGoto(value, this.gotoTargetToken, gotoKeywordToken);
     }
 
     public void semanticAnalysis(SemanticContext context) {
@@ -981,10 +986,14 @@ public abstract class StatementNode extends Node {
         // If there is a condition, then we need to check if we shold run
         if (this.condition != null) {
           LoLangValue condition = this.condition.evaluate(forkedContext, dynamicContext);
-          if (!(condition instanceof LoLangValue.Boolean))
-            throw new RuntimeError("Condition must be a boolean", this.conditionSemicolonToken);
+          boolean conditionValue = false;
 
-          boolean conditionValue = ((LoLangValue.Boolean) condition).value;
+          try {
+            conditionValue = Caster.toBoolean(condition);
+          } catch (Caster.CastingException e) {
+            throw new RuntimeError("Condition must be a boolean", this.conditionSemicolonToken);
+          }
+
           if (conditionValue == false)
             break;
         }
@@ -1016,7 +1025,7 @@ public abstract class StatementNode extends Node {
 
       if (this.condition != null) {
         LoLangType conditionType = this.condition.evaluateType(forkedContext);
-        if (!(conditionType instanceof LoLangType.Boolean)) {
+        if (!(conditionType instanceof LoLangType.Boolean || Caster.toBooleanType(conditionType))) {
           if (!(conditionType instanceof LoLangType.Any))
             context
                 .addException(new SemanticAnalyzerException("Condition must be a boolean, received: " + conditionType,
@@ -1047,7 +1056,7 @@ public abstract class StatementNode extends Node {
     }
 
     public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
-      throw new LoLangThrowable.LoopBreak();
+      throw new LoLangThrowable.LoopBreak(token);
     }
 
     public void semanticAnalysis(SemanticContext context) {
@@ -1075,7 +1084,7 @@ public abstract class StatementNode extends Node {
     }
 
     public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
-      throw new LoLangThrowable.LoopContinue();
+      throw new LoLangThrowable.LoopContinue(token);
     }
 
     public void semanticAnalysis(SemanticContext context) {
@@ -1128,10 +1137,13 @@ public abstract class StatementNode extends Node {
         LoLangValue condition = this.condition != null ? this.condition.evaluate(context, dynamicContext)
             : new LoLangValue.Boolean(true);
 
-        if (!(condition instanceof LoLangValue.Boolean))
+        boolean conditionValue = false;
+        try {
+          conditionValue = Caster.toBoolean(condition);
+        } catch (Caster.CastingException e) {
           throw new RuntimeError("Condition must be a boolean", this.leftParenToken);
+        }
 
-        boolean conditionValue = ((LoLangValue.Boolean) condition).value;
         if (conditionValue == false)
           break;
 
@@ -1149,7 +1161,7 @@ public abstract class StatementNode extends Node {
     public void semanticAnalysis(SemanticContext context) {
       if (this.condition != null) {
         LoLangType conditionType = this.condition.evaluateType(context);
-        if (!(conditionType instanceof LoLangType.Boolean)) {
+        if (!(conditionType instanceof LoLangType.Boolean || Caster.toBooleanType(conditionType))) {
           if (!(conditionType instanceof LoLangType.Any))
             context.addException(
                 new SemanticAnalyzerException(

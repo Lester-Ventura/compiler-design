@@ -8,6 +8,7 @@ import java.util.Scanner;
 
 import interpreter.ExecutionContext;
 import interpreter.Global;
+import interpreter.LoLangThrowable;
 import interpreter.RuntimeError;
 import parser.ParserResult;
 import parser.StatementNode;
@@ -88,6 +89,14 @@ public class CodeReader {
     if (parsingResult.errors.size() != 0) {
       System.out.println("The following errors were encountered during parsing:\n");
       ErrorWindowBuilder.printErrors(parsingResult.errors);
+
+      if (parsingResult.root == null) {
+        System.out.println("Errors were encountered during parsing. Continue?");
+        System.out.print("yes/no: ");
+        String response = InputScanner.globalScanner.nextLine();
+        if (response.equals("yes") == false)
+          return;
+      }
     }
 
     if (parsingResult.root == null) {
@@ -120,11 +129,21 @@ public class CodeReader {
       // Begin executing the program
       printLongLine();
 
+      if (context.exceptions.size() != 0) {
+        System.out.println("Errors were encountered during semantic analysis. Continue to runtime?");
+        System.out.print("yes/no: ");
+        String response = InputScanner.globalScanner.nextLine();
+        if (response.equals("yes") == false)
+          return;
+      }
+
       try {
         ExecutionContext global = Global.createGlobalExecutionContext();
         program.execute(global, global);
       } catch (RuntimeError e) {
         ErrorWindowBuilder.printErrors(e);
+      } catch (LoLangThrowable e) {
+        ErrorWindowBuilder.printErrors(e.toRuntimeError());
       }
     }
   }

@@ -1,12 +1,19 @@
 import java.util.ArrayList;
 
+import interpreter.Global;
 import utils.*;
 import parser.*;
 
 public class Main {
 
     public static void main(String[] args) {
-        boolean isInteractive = args.length <= 0 || !args[0].equals("--no-interactive");
+        ArrayList<String> argsList = new ArrayList<>();
+        for (int i = 0; i < args.length; i++)
+            argsList.add(args[i]);
+
+        boolean isInteractive = argsList.contains("--interactive");
+        if (argsList.contains("--lenient"))
+            Global.isLenient = true;
 
         // load the grammar file and list of productions
         LR1GrammarParser grammarParser = new LR1GrammarParser(FileLoader.loadFile("grammar.txt"));

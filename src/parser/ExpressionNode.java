@@ -769,8 +769,6 @@ public abstract class ExpressionNode extends Node {
           return new LoLangValue.Number(leftNumber.value - rightNumber.value);
         else if (this.operation.lexeme.equals("*"))
           return new LoLangValue.Number(leftNumber.value * rightNumber.value);
-        else if (this.operation.lexeme.equals("/"))
-          return new LoLangValue.Number(leftNumber.value / rightNumber.value);
         else if (this.operation.lexeme.equals("%"))
           return new LoLangValue.Number(leftNumber.value % rightNumber.value);
         else if (this.operation.lexeme.equals("**"))
@@ -781,6 +779,11 @@ public abstract class ExpressionNode extends Node {
           return new LoLangValue.Number((int) leftNumber.value | (int) rightNumber.value);
         else if (this.operation.lexeme.equals("^"))
           return new LoLangValue.Number((int) leftNumber.value ^ (int) rightNumber.value);
+        else if (this.operation.lexeme.equals("/")) {
+          if (rightNumber.value == 0)
+            throw new RuntimeError("Division by zero", this.operation);
+          return new LoLangValue.Number(leftNumber.value / rightNumber.value);
+        }
 
         else if (this.operation.lexeme.equals("<"))
           return new LoLangValue.Boolean(leftNumber.value < rightNumber.value);

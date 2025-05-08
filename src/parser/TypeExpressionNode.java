@@ -2,6 +2,7 @@ package parser;
 
 import java.util.ArrayList;
 
+import interpreter.LoLangValue;
 import lexer.Token;
 import semantic.LoLangType;
 import semantic.SemanticAnalyzerException;
@@ -11,6 +12,8 @@ import utils.EnvironmentException;
 
 public abstract class TypeExpressionNode extends Node {
   abstract LoLangType evaluate(SemanticContext context);
+
+  abstract LoLangValue toDefaultValue();
 
   public static class Identifier extends TypeExpressionNode {
     Token identifier;
@@ -37,6 +40,21 @@ public abstract class TypeExpressionNode extends Node {
         return new LoLangType.Any();
       }
     }
+
+    public LoLangValue toDefaultValue() {
+      switch (this.identifier.lexeme) {
+        case "stats":
+          return new LoLangValue.Number(0);
+        case "message":
+          return new LoLangValue.String("");
+        case "goat":
+          return new LoLangValue.Boolean(false);
+        case "cooldown":
+          return new LoLangValue.Null();
+        default:
+          return null;
+      }
+    }
   }
 
   public static class Array extends TypeExpressionNode {
@@ -58,6 +76,10 @@ public abstract class TypeExpressionNode extends Node {
 
     public LoLangType evaluate(SemanticContext context) {
       return new LoLangType.Array(this.elementType.evaluate(context));
+    }
+
+    public LoLangValue toDefaultValue() {
+      return new LoLangValue.Array();
     }
   }
 
@@ -97,6 +119,10 @@ public abstract class TypeExpressionNode extends Node {
       }
 
       return new LoLangType.Lambda(this.returnType.evaluate(context), parameterList);
+    }
+
+    public LoLangValue toDefaultValue() {
+      return null;
     }
   }
 }

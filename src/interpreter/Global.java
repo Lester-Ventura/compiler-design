@@ -13,6 +13,8 @@ import semantic.SemanticAnalyzerException.GenericReturnTypeParameterMismatchExce
 import utils.InputScanner;
 
 public class Global {
+  public static boolean isLenient = false;
+
   static public ExecutionContext createGlobalExecutionContext() {
     ExecutionContext context = new ExecutionContext();
 

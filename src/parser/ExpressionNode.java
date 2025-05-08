@@ -222,7 +222,8 @@ public abstract class ExpressionNode extends Node {
     LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
       LoLangValue left = this.left.evaluate(context, dynamicContext);
       if ((left instanceof LoLangValue.DotGettable) == false)
-        throw new RuntimeError("Cannot access dot on non-object", identifier);
+        throw new RuntimeError(String.format("Cannot access property \"%s\"on non-object", this.identifier.lexeme),
+            identifier);
 
       try {
         return ((LoLangValue.DotGettable) left).getDot(this.identifier.lexeme);
@@ -724,7 +725,7 @@ public abstract class ExpressionNode extends Node {
     // handle if number is in hex format / octal format / binary format
     if (lexeme.startsWith("0x") || lexeme.startsWith("0X"))
       return Integer.parseInt(lexeme.substring(2), 16);
-    else if (lexeme.startsWith("0o") || lexeme.startsWith("0O"))
+    else if (lexeme.startsWith("0e") || lexeme.startsWith("0e"))
       return Integer.parseInt(lexeme.substring(2), 8);
     else if (lexeme.startsWith("0b") || lexeme.startsWith("0B"))
       return Integer.parseInt(lexeme.substring(2), 2);

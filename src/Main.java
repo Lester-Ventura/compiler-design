@@ -21,8 +21,7 @@ public class Main {
         LR1TableParser tableParser = new LR1TableParser(FileLoader.loadFile("lr1_table.txt"));
         ArrayList<LR1TableParser.LR1TableState> states = tableParser.parse();
 
-        LR1Parser.parser = new LR1Parser(productions, states);
-        CodeReader codeReader = new CodeReader(LR1Parser.parser);
+        CodeReader codeReader = new CodeReader(new LR1Parser(productions, states));
         codeReader.run(isInteractive);
     }
 }

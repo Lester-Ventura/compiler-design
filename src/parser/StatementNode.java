@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 import java.util.stream.Collectors;
@@ -23,8 +22,8 @@ import semantic.SemanticContext;
 import semantic.SemanticContext.Scope;
 import utils.Caster;
 import utils.DOTGenerator;
-import utils.EnvironmentException.EnvironmentAlreadyDeclaredException;
 import utils.ErrorWindowBuilder;
+import utils.EnvironmentException.EnvironmentAlreadyDeclaredException;
 
 public abstract class StatementNode extends Node {
   public abstract void execute(ExecutionContext context, ExecutionContext dynamicContext);
@@ -68,41 +67,17 @@ public abstract class StatementNode extends Node {
 
   public static class Import extends StatementNode {
     public static abstract class ImportException extends Exception {
-      public abstract RuntimeError toRuntimeError(Token token, Path path);
-
-      public abstract SemanticAnalyzerException toSemanticAnalyzerException(Token token, Path path);
+      public abstract ParserException toParserException(Token token, Path path);
     }
 
     public static class ImportNonExistentException extends ImportException {
-      public RuntimeError toRuntimeError(Token token, Path path) {
-        return new RuntimeError(String.format("Cannot find file \"%s\"", path.toAbsolutePath()), token);
-      }
-
-      public SemanticAnalyzerException toSemanticAnalyzerException(Token token, Path path) {
-        return new SemanticAnalyzerException(String.format("Cannot find file \"%s\"", path.toAbsolutePath()),
-            token);
-      }
-    }
-
-    public static class ImportParsingFailedException extends ImportException {
-      ArrayList<ParserException> errors;
-
-      public ImportParsingFailedException(ArrayList<ParserException> errors) {
-        super();
-        this.errors = errors;
-      }
-
-      public RuntimeError toRuntimeError(Token token, Path path) {
-        return new RuntimeError(String.format("Failed to parse \"%s\"", path.toAbsolutePath()), token);
-      }
-
-      public SemanticAnalyzerException toSemanticAnalyzerException(Token token, Path path) {
-        return new SemanticAnalyzerException(String.format("Failed to parse \"%s\"", path.toAbsolutePath()),
-            token);
+      public ParserException toParserException(Token token, Path path) {
+        return new ParserException(String.format("Cannot find file \"%s\"", path.toAbsolutePath()), token);
       }
     }
 
     Token token;
+    Node root = null;
 
     Import(Token token) {
       this.token = token;
@@ -121,91 +96,52 @@ public abstract class StatementNode extends Node {
       return Paths.get(Paths.get(this.token.sourcePath).getParent().toString(), this.token.lexeme);
     }
 
-    private ParserResult getSyntaxTree() throws ImportException {
+    public void getSyntaxTree(LR1Parser parser) {
       File file = getPath().toFile();
 
-      if (!file.exists())
-        throw new ImportNonExistentException();
+      if (!file.exists()) {
+        ErrorWindowBuilder
+            .printErrors(new ParserException(String.format("Cannot find file \"%s\"", file.getPath()), this.token));
+        return;
+      }
 
       try {
         Scanner scanner = new Scanner(file);
         String source = scanner.hasNext() ? scanner.useDelimiter("\\Z").next() + "\n" : "\n";
         scanner.close();
 
-        ParserResult result = LR1Parser.parser.parse(source, file.getPath());
-        if (result.root == null)
-          throw new ImportParsingFailedException(result.errors);
+        ParserResult result = parser.parse(source, file.getPath());
+        root = result.root;
 
-        return result;
+        for (ParserException e : result.errors)
+          ErrorWindowBuilder.printErrors(e);
       } catch (FileNotFoundException e) {
-        throw new ImportNonExistentException();
       }
     }
 
     public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
-      Path path = getPath();
-
-      try {
-        ParserResult result = getSyntaxTree();
-
-        if (result.errors.size() != 0) {
-          System.out.println(
-              String.format("The following errors were encountered during parsing %s:\n", path.toAbsolutePath()));
-          ErrorWindowBuilder.printErrors(result.errors);
-        }
-
-        StatementNode.Program program = (StatementNode.Program) result.root;
-        ExecutionContext newContext = Global.createGlobalExecutionContext();
-        program.execute(newContext, dynamicContext);
-        context.environment.siblings.add(newContext.environment);
-      } catch (ImportException e) {
-        if (e instanceof ImportParsingFailedException) {
-          System.out.println("Failed to parse file " + path.toAbsolutePath());
-          ArrayList<ParserException> errors = ((ImportParsingFailedException) e).errors;
-
-          if (errors.size() != 0) {
-            System.out.println(
-                String.format("The following errors were encountered during parsing %s:\n", path.toAbsolutePath()));
-            ErrorWindowBuilder.printErrors(errors);
-          }
-        }
-
-        throw e.toRuntimeError(token, path);
+      if (root == null) {
+        throw new RuntimeError("Failed to parse file " + getPath().toAbsolutePath(), token);
       }
+
+      StatementNode.Program program = (StatementNode.Program) root;
+      ExecutionContext newContext = Global.createGlobalExecutionContext();
+      program.execute(newContext, dynamicContext);
+      context.environment.siblings.add(newContext.environment);
     }
 
     public void semanticAnalysis(SemanticContext context) {
-      Path path = getPath();
-
-      try {
-        ParserResult result = getSyntaxTree();
-
-        if (result.errors.size() != 0) {
-          System.out.println(
-              String.format("The following errors were encountered during parsing %s:\n", path.toAbsolutePath()));
-          ErrorWindowBuilder.printErrors(result.errors);
-        }
-
-        StatementNode.Program program = (StatementNode.Program) result.root;
-        SemanticContext newContext = Global.createGlobalSemanticContext();
-        program.semanticAnalysis(newContext);
-
-        context.typeEnvironment.siblings.add(newContext.typeEnvironment);
-        context.variableEnvironment.siblings.add(newContext.variableEnvironment);
-      } catch (ImportException e) {
-        if (e instanceof ImportParsingFailedException) {
-          System.out.println("Failed to parse file " + path.toAbsolutePath());
-          ArrayList<ParserException> errors = ((ImportParsingFailedException) e).errors;
-
-          if (errors.size() != 0) {
-            System.out.println(
-                String.format("The following errors were encountered during parsing %s:\n", path.toAbsolutePath()));
-            ErrorWindowBuilder.printErrors(errors);
-          }
-        }
-
-        context.exceptions.add(e.toSemanticAnalyzerException(this.token, path));
+      if (root == null) {
+        context.exceptions.add(
+            new SemanticAnalyzerException("Failed to parse file " + getPath().toAbsolutePath(), token));
       }
+
+      StatementNode.Program program = (StatementNode.Program) root;
+      SemanticContext newContext = Global.createGlobalSemanticContext();
+      program.semanticAnalysis(newContext);
+
+      context.typeEnvironment.siblings.add(newContext.typeEnvironment);
+      context.variableEnvironment.siblings.add(newContext.variableEnvironment);
     }
   }
 

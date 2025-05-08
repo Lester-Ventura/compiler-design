@@ -7,7 +7,7 @@ import parser.LR1TableParser.LR1TableProcess;
 import parser.LR1TableParser.LR1TableProcessType;
 
 public class LR1Parser {
-  public static LR1Parser parser;
+  // public static LR1Parser parser;
 
   static class StateNode {
     int stateIndex;
@@ -61,6 +61,10 @@ public class LR1Parser {
       ArrayList<LR1TableParser.LR1TableState> states) {
     this.productions = productions;
     this.states = states;
+  }
+
+  public LR1Parser fork() {
+    return new LR1Parser(this.productions, this.states);
   }
 
   Stack<StateNode> statesStack = new Stack<>();
@@ -121,7 +125,7 @@ public class LR1Parser {
 
         // try to perform the reduction
         try {
-          Node result = reduction.reducer.run(reductionInput);
+          Node result = reduction.reducer.run(reductionInput, fork());
           LR1StackInternalNode node = new LR1StackInternalNode(result);
           symbolsStack.add(node);
         } catch (Exception e) {

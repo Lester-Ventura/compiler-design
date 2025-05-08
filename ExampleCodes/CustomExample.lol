@@ -1,1 +1,2 @@
-broadcast(0x111);
+steal "./Demo_Arrays.lol";
+testing();

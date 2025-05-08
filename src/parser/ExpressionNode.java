@@ -837,6 +837,15 @@ public abstract class ExpressionNode extends Node {
         return new LoLangValue.String(left.toString() + rightNumber.value);
       }
 
+      else if (left instanceof LoLangValue.String && right instanceof LoLangValue.Boolean) {
+        LoLangValue.Boolean rightBoolean = (LoLangValue.Boolean) right;
+        return new LoLangValue.String(left.toString() + rightBoolean.value);
+      }
+
+      else if (left instanceof LoLangValue.String && right instanceof LoLangValue.Null) {
+        return new LoLangValue.String(left.toString() + "null");
+      }
+
       else
         throw new RuntimeError(String.format("Cannot find operations for types %s and %s",
             left.getClass().getName(), right.getClass().getName()), this.operation);
@@ -885,6 +894,15 @@ public abstract class ExpressionNode extends Node {
       if (left instanceof LoLangType.String && right instanceof LoLangType.Number) {
         if (this.operation.lexeme.equals("+"))
           return new LoLangType.String();
+      }
+
+      if (left instanceof LoLangType.String && right instanceof LoLangType.Boolean) {
+        if (this.operation.lexeme.equals("+"))
+          return new LoLangType.String();
+      }
+
+      if (left instanceof LoLangType.String && right instanceof LoLangType.Null) {
+        return new LoLangType.String();
       }
 
       context.addException(new SemanticAnalyzerException("Invalid binary operation \"" + this.operation.lexeme

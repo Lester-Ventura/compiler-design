@@ -1,5 +1,14 @@
-//steal "./Demo_Arrays.lol";
+steal "./Demo_Arrays.lol";
 
-item testing: skill (stats) -> stats = skill (item x: stats): stats -> {
-  broadcast(x);
+testing();
+
+item factorial: skill (stats) -> stats = skill (item x: stats): stats -> {
+  canwin(x > 1){
+    recast (x) * factorial(x - 1);
+  }lose{
+    dump_call_stack();
+    recast 1;
+  }
 };
+
+broadcast(factorial(5));

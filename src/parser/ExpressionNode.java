@@ -19,25 +19,29 @@ import utils.EnvironmentException;
 import utils.Environment.SymbolTableEntry;
 
 public abstract class ExpressionNode extends Node {
-  abstract LoLangValue evaluate(ExecutionContext context);
+  abstract LoLangValue evaluate(ExecutionContext staticContext, ExecutionContext dynamicContext);
 
   abstract LoLangType evaluateType(SemanticContext context);
 
   public static class FunctionExpression extends ExpressionNode {
     Node.ParameterList parameters;
     TypeExpressionNode returnType;
-    StatementNode body;
+    StatementNode.Block body;
+    Token token;
 
-    FunctionExpression(Node.ParameterList parameters, TypeExpressionNode returnType, StatementNode body) {
+    FunctionExpression(Node.ParameterList parameters, TypeExpressionNode returnType, StatementNode.Block body,
+        Token token) {
       this.parameters = parameters;
       this.returnType = returnType;
       this.body = body;
+      this.token = token;
     }
 
-    FunctionExpression(TypeExpressionNode returnType, StatementNode body) {
+    FunctionExpression(TypeExpressionNode returnType, StatementNode.Block body, Token token) {
       this.parameters = new Node.ParameterList();
       this.returnType = returnType;
       this.body = body;
+      this.token = token;
     }
 
     public String toString() {
@@ -57,7 +61,7 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.body.hashCode());
     }
 
-    LoLangValue evaluate(ExecutionContext context) {
+    LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
       return new LoLangValue.UserDefinedFunction(this.parameters, this.body, context);
     }
 
@@ -76,10 +80,23 @@ public abstract class ExpressionNode extends Node {
         }
       }
 
+      LoLangType returnTypeValue = this.returnType.evaluate(context);
+      if (!returnTypeValue.isEquivalent(new LoLangType.Void())) {
+        if (this.body.statements.statements.size() == 0) {
+          context.addException(new SemanticAnalyzerException(
+              "Function expects a return value but contains no statements", token));
+        } else {
+          StatementNode stmt = this.body.statements.statements.get(this.body.statements.statements.size() - 1);
+          if (!(stmt instanceof StatementNode.Return) && !(stmt instanceof StatementNode.Throw)) {
+            context.addException(new SemanticAnalyzerException(
+                "Function should end with either feed or recast", token));
+          }
+        }
+      }
+
       // We also need to verify the body
       this.body.semanticAnalysis(forkedContext);
-
-      return new LoLangType.Lambda(this.returnType.evaluate(context), parameterTypes);
+      return new LoLangType.Lambda(returnTypeValue, parameterTypes);
     }
   }
 
@@ -108,11 +125,11 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.expressions.hashCode());
     }
 
-    LoLangValue evaluate(ExecutionContext context) {
+    LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
       ArrayList<LoLangValue> values = new ArrayList<>();
 
       for (int i = this.expressions.expressions.size() - 1; i >= 0; i--)
-        values.add(this.expressions.expressions.get(i).evaluate(context));
+        values.add(this.expressions.expressions.get(i).evaluate(context, dynamicContext));
 
       return new LoLangValue.Array(values);
     }
@@ -163,11 +180,11 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.fields.hashCode());
     }
 
-    LoLangValue evaluate(ExecutionContext context) {
+    LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
       HashMap<String, LoLangValue> fields = new HashMap<>();
 
       for (Node.ObjectLiteralField field : this.fields.fields)
-        fields.put(field.identifier.lexeme, field.expression.evaluate(context));
+        fields.put(field.identifier.lexeme, field.expression.evaluate(context, dynamicContext));
 
       return new LoLangValue.Object(fields);
     }
@@ -202,8 +219,8 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.left.hashCode());
     }
 
-    LoLangValue evaluate(ExecutionContext context) {
-      LoLangValue left = this.left.evaluate(context);
+    LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
+      LoLangValue left = this.left.evaluate(context, dynamicContext);
       if ((left instanceof LoLangValue.DotGettable) == false)
         throw new RuntimeError("Cannot access dot on non-object", identifier);
 
@@ -217,8 +234,9 @@ public abstract class ExpressionNode extends Node {
     public LoLangType evaluateType(SemanticContext context) {
       LoLangType left = this.left.evaluateType(context);
       if (!(left instanceof LoLangType.DotGettable)) {
-        context.addException(new SemanticAnalyzerException("Left side of dot access must be an object, received: "
-            + left.toString(), this.identifier));
+        if (!(left instanceof LoLangType.Any))
+          context.addException(new SemanticAnalyzerException("Left side of dot access must be an object, received: "
+              + left.toString(), this.identifier));
         return new LoLangType.Any();
       }
 
@@ -267,8 +285,8 @@ public abstract class ExpressionNode extends Node {
       }
     }
 
-    public LoLangValue evaluate(ExecutionContext context) {
-      LoLangValue left = this.left.evaluate(context);
+    public LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
+      LoLangValue left = this.left.evaluate(context, dynamicContext);
 
       if (!(left instanceof LoLangValue.Callable))
         throw new RuntimeError("Cannot call non-callable value", functionCallToken);
@@ -278,11 +296,12 @@ public abstract class ExpressionNode extends Node {
       ArrayList<LoLangValue> arguments = new ArrayList<>();
       if (this.parameters != null) {
         for (ExpressionNode parameter : this.parameters.expressions)
-          arguments.add(parameter.evaluate(context));
+          arguments.add(parameter.evaluate(context, dynamicContext));
       }
 
       try {
-        return callable.call(arguments);
+        return callable.call(dynamicContext.fork(new ExecutionContext.CallStackEntry(this.functionCallToken)),
+            arguments);
       } catch (InterpreterExceptions e) {
         throw e.toRuntimeError(functionCallToken);
       }
@@ -292,10 +311,11 @@ public abstract class ExpressionNode extends Node {
       LoLangType lambdaValue = this.left.evaluateType(context);
 
       if (!(lambdaValue instanceof LoLangType.Lambda)) {
-        context.addException(
-            new SemanticAnalyzerException(
-                "Left side of function-call expression must return a lambda, received: " + lambdaValue.toString(),
-                this.functionCallToken));
+        if (!(lambdaValue instanceof LoLangType.Any))
+          context.addException(
+              new SemanticAnalyzerException(
+                  "Left side of function-call expression must return a lambda, received: " + lambdaValue.toString(),
+                  this.functionCallToken));
         return new LoLangType.Any();
       }
 
@@ -376,11 +396,15 @@ public abstract class ExpressionNode extends Node {
           "Identifier [lexeme=" + this.identifier.lexeme.replace("\"", "\'") + "]");
     }
 
-    public LoLangValue evaluate(ExecutionContext context) {
+    public LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
       try {
-        return context.environment.get(this.identifier.lexeme);
+        LoLangValue value = context.environment.get(this.identifier.lexeme);
+        if (value == null)
+          throw new RuntimeError("Undefined variable \"" + this.identifier.lexeme + "\"", this.identifier);
+
+        return value;
       } catch (EnvironmentException.EnvironmentUndeclaredException e) {
-        throw new RuntimeError("Cannot find variable \"" + this.identifier.lexeme + "\"", this.identifier);
+        throw new RuntimeError("Undeclared variable \"" + this.identifier.lexeme + "\"", this.identifier);
       }
     }
 
@@ -427,8 +451,8 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.left.hashCode());
     }
 
-    public LoLangValue evaluate(ExecutionContext context) {
-      LoLangValue left = this.left.evaluate(context);
+    public LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
+      LoLangValue left = this.left.evaluate(context, dynamicContext);
 
       if (!(left instanceof LoLangValue.Number))
         throw new RuntimeError(String.format("Cannot %s non-number", isIncrement() ? "increment" : "decrement"), token);
@@ -437,7 +461,7 @@ public abstract class ExpressionNode extends Node {
       double modifier = isIncrement() ? 1 : -1;
 
       double newValue = value + modifier;
-      setValue(context, this.left, new LoLangValue.Number(newValue), this.token);
+      setValue(context, this.left, new LoLangValue.Number(newValue), this.token, dynamicContext);
 
       return new LoLangValue.Number(
           this.isPostfix ? value : newValue);
@@ -447,10 +471,11 @@ public abstract class ExpressionNode extends Node {
       LoLangType left = this.left.evaluateType(context);
 
       if (!(left instanceof LoLangType.Number)) {
-        context.addException(
-            new SemanticAnalyzerException(String.format("%s side of %s must have a type of number, received %s",
-                isPostfix ? "left" : "right", isIncrement() ? "increment" : "decrement", left.toString()),
-                this.token));
+        if (!(left instanceof LoLangType.Any))
+          context.addException(
+              new SemanticAnalyzerException(String.format("%s side of %s must have a type of number, received %s",
+                  isPostfix ? "left" : "right", isIncrement() ? "increment" : "decrement", left.toString()),
+                  this.token));
 
         return new LoLangType.Any();
       }
@@ -483,9 +508,9 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.right.hashCode());
     }
 
-    public LoLangValue evaluate(ExecutionContext context) {
-      LoLangValue newValue = this.right.evaluate(context);
-      return setValue(context, left, newValue, this.equalsSign);
+    public LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
+      LoLangValue newValue = this.right.evaluate(context, dynamicContext);
+      return setValue(context, left, newValue, this.equalsSign, dynamicContext);
     }
 
     public LoLangType evaluateType(SemanticContext context) {
@@ -517,7 +542,8 @@ public abstract class ExpressionNode extends Node {
     }
   }
 
-  public static LoLangValue setValue(ExecutionContext context, ExpressionNode left, LoLangValue newValue, Token token) {
+  public static LoLangValue setValue(ExecutionContext context, ExpressionNode left, LoLangValue newValue, Token token,
+      ExecutionContext dynamicContext) {
     if (left instanceof ExpressionNode.Identifier) {
       ExpressionNode.Identifier identifier = (ExpressionNode.Identifier) left;
 
@@ -530,8 +556,8 @@ public abstract class ExpressionNode extends Node {
 
     else if (left instanceof ExpressionNode.IndexAccess) {
       ExpressionNode.IndexAccess indexAccess = (ExpressionNode.IndexAccess) left;
-      LoLangValue leftValue = indexAccess.left.evaluate(context);
-      LoLangValue rightValue = indexAccess.right.evaluate(context);
+      LoLangValue leftValue = indexAccess.left.evaluate(context, dynamicContext);
+      LoLangValue rightValue = indexAccess.right.evaluate(context, dynamicContext);
 
       if (!(leftValue instanceof LoLangValue.Array))
         throw new RuntimeError("Cannot assign to non-array value", indexAccess.leftBracket);
@@ -552,7 +578,7 @@ public abstract class ExpressionNode extends Node {
 
     else if (left instanceof ExpressionNode.DotAccess) {
       ExpressionNode.DotAccess dotAccess = (ExpressionNode.DotAccess) left;
-      LoLangValue leftValue = dotAccess.left.evaluate(context);
+      LoLangValue leftValue = dotAccess.left.evaluate(context, dynamicContext);
 
       if (!(leftValue instanceof LoLangValue.Object))
         throw new RuntimeError("Cannot assign to non-object value", dotAccess.identifier);
@@ -596,9 +622,9 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.right.hashCode());
     }
 
-    public LoLangValue evaluate(ExecutionContext context) {
-      LoLangValue left = this.left.evaluate(context);
-      LoLangValue right = this.right.evaluate(context);
+    public LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
+      LoLangValue left = this.left.evaluate(context, dynamicContext);
+      LoLangValue right = this.right.evaluate(context, dynamicContext);
 
       if (!(left instanceof LoLangValue.Array))
         throw new RuntimeError("Cannot access index on non-array value", leftBracket);
@@ -622,16 +648,18 @@ public abstract class ExpressionNode extends Node {
       LoLangType right = this.right.evaluateType(context);
 
       if (!(left instanceof LoLangType.Array)) {
-        context.addException(
-            new SemanticAnalyzerException("Left side of index access should be an array type, received: "
-                + left.toString(), leftBracket));
+        if (!(left instanceof LoLangType.Any))
+          context.addException(
+              new SemanticAnalyzerException("Left side of index access should be an array type, received: "
+                  + left.toString(), leftBracket));
         return new LoLangType.Any();
       }
 
       if (!(right instanceof LoLangType.Number)) {
-        context.addException(
-            new SemanticAnalyzerException("Index should be a number type, received" + right.toString(),
-                leftBracket));
+        if (!(right instanceof LoLangType.Any))
+          context.addException(
+              new SemanticAnalyzerException("Index should be a number type, received" + right.toString(),
+                  leftBracket));
         return new LoLangType.Any();
       }
 
@@ -658,7 +686,7 @@ public abstract class ExpressionNode extends Node {
               + "]");
     }
 
-    LoLangValue evaluate(ExecutionContext context) {
+    LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
       switch (this.token.type) {
         case STRING_LITERAL:
           return new LoLangValue.String(this.token.lexeme);
@@ -727,9 +755,9 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.right.hashCode());
     }
 
-    public LoLangValue evaluate(ExecutionContext context) {
-      LoLangValue left = this.left.evaluate(context);
-      LoLangValue right = this.right.evaluate(context);
+    public LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
+      LoLangValue left = this.left.evaluate(context, dynamicContext);
+      LoLangValue right = this.right.evaluate(context, dynamicContext);
 
       if (left instanceof LoLangValue.Number && right instanceof LoLangValue.Number) {
         LoLangValue.Number leftNumber = (LoLangValue.Number) left;
@@ -881,8 +909,8 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.operand.hashCode());
     }
 
-    public LoLangValue evaluate(ExecutionContext context) {
-      LoLangValue operand = this.operand.evaluate(context);
+    public LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
+      LoLangValue operand = this.operand.evaluate(context, dynamicContext);
       String lexeme = this.operationToken.lexeme;
 
       if (operand instanceof LoLangValue.Number && lexeme.equals("-"))
@@ -928,8 +956,8 @@ public abstract class ExpressionNode extends Node {
       builder.addEdge(this.hashCode(), this.expression.hashCode());
     }
 
-    public LoLangValue evaluate(ExecutionContext context) {
-      return this.expression.evaluate(context);
+    public LoLangValue evaluate(ExecutionContext context, ExecutionContext dynamicContext) {
+      return this.expression.evaluate(context, dynamicContext);
     }
 
     public LoLangType evaluateType(SemanticContext context) {

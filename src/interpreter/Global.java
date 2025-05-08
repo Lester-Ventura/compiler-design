@@ -16,26 +16,35 @@ public class Global {
   static public ExecutionContext createGlobalExecutionContext() {
     ExecutionContext context = new ExecutionContext();
 
-    context.environment.tryDefine("broadcast", new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
-      System.out.println(arguments[0].toString());
-      return new LoLangValue.Null();
-    }, 1), true);
+    context.environment.tryDefine("broadcast",
+        new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
+          System.out.println(arguments[0].toString());
+          return new LoLangValue.Null();
+        }, 1), true);
 
-    context.environment.tryDefine("chat", new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
-      System.out.print(((LoLangValue.String) arguments[0]).value);
-      String input = InputScanner.globalScanner.nextLine();
+    context.environment.tryDefine("chat",
+        new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
+          System.out.print(((LoLangValue.String) arguments[0]).value);
+          String input = InputScanner.globalScanner.nextLine();
 
-      return new LoLangValue.String(input);
-    }, 1), true);
+          return new LoLangValue.String(input);
+        }, 1), true);
 
-    context.environment.tryDefine("ff", new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
-      LoLangValue.Number number = (LoLangValue.Number) arguments[0];
-      System.exit(number.value == 15 ? (int) 0 : (int) Math.floor(number.value));
-      return new LoLangValue.Null();
-    }, 1), true);
+    context.environment.tryDefine("ff",
+        new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
+          LoLangValue.Number number = (LoLangValue.Number) arguments[0];
+          System.exit(number.value == 15 ? (int) 0 : (int) Math.floor(number.value));
+          return new LoLangValue.Null();
+        }, 1), true);
 
     context.environment.tryDefine("dump_symbol_table",
-        new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+        new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
+          return new LoLangValue.Null();
+        }, 0), true);
+
+    context.environment.tryDefine("dump_call_stack",
+        new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
+          dynamicContext.printCallStack();
           return new LoLangValue.Null();
         }, 0), true);
 
@@ -63,6 +72,11 @@ public class Global {
     context.variableEnvironment.tryDefine("dump_symbol_table", new LoLangType.Lambda(
         (SemanticContext localContext, ArrayList<LoLangType> parameterTypes) -> {
           localContext.printSymbolTableToParent();
+          return new LoLangType.Void();
+        }), true);
+
+    context.variableEnvironment.tryDefine("dump_call_stack", new LoLangType.Lambda(
+        (SemanticContext localContext, ArrayList<LoLangType> parameterTypes) -> {
           return new LoLangType.Void();
         }), true);
 
@@ -102,7 +116,7 @@ public class Global {
     {
       put("length", new InternalMethod<LoLangValue.String>() {
         public LoLangValue run(LoLangValue.String internalString) {
-          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+          return new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
             return new LoLangValue.Number(internalString.value.length());
           }, 0);
         }
@@ -114,7 +128,7 @@ public class Global {
 
       put("charAt", new InternalMethod<LoLangValue.String>() {
         public LoLangValue run(LoLangValue.String internalString) {
-          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+          return new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
             if (arguments.length != 1)
               throw new InterpreterExceptions.FunctionCallArityException(1, arguments.length);
 
@@ -144,7 +158,7 @@ public class Global {
     {
       put("length", new InternalMethod<LoLangValue.Array>() {
         public LoLangValue run(LoLangValue.Array internalArray) {
-          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+          return new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
             return new LoLangValue.Number(internalArray.values.size());
           }, 0);
         }
@@ -156,12 +170,13 @@ public class Global {
 
       put("filter", new InternalMethod<LoLangValue.Array>() {
         public LoLangValue run(LoLangValue.Array internalArray) {
-          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+          return new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
             LoLangValue.UserDefinedFunction function = (LoLangValue.UserDefinedFunction) arguments[0];
             ArrayList<LoLangValue> response = new ArrayList<>();
 
             for (int i = 0; i < internalArray.values.size(); i++) {
-              LoLangValue condition = function.call(new ArrayList<>(Arrays.asList(internalArray.values.get(i))));
+              LoLangValue condition = function.call(dynamicContext,
+                  new ArrayList<>(Arrays.asList(internalArray.values.get(i))));
 
               if (!(condition instanceof LoLangValue.Boolean))
                 throw new InterpreterExceptions.FunctionCallReturnTypeMismatchException(new LoLangType.Boolean(),
@@ -202,12 +217,12 @@ public class Global {
 
       put("map", new InternalMethod<LoLangValue.Array>() {
         public LoLangValue run(LoLangValue.Array internalArray) {
-          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+          return new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
             LoLangValue.UserDefinedFunction function = (LoLangValue.UserDefinedFunction) arguments[0];
             ArrayList<LoLangValue> response = new ArrayList<>();
 
             for (int i = 0; i < internalArray.values.size(); i++)
-              response.add(function.call(new ArrayList<>(Arrays.asList(internalArray.values.get(i)))));
+              response.add(function.call(dynamicContext, new ArrayList<>(Arrays.asList(internalArray.values.get(i)))));
 
             return new LoLangValue.Array(response);
           }, 1);
@@ -241,7 +256,7 @@ public class Global {
 
       put("toSorted", new InternalMethod<LoLangValue.Array>() {
         public LoLangValue run(LoLangValue.Array internalArray) {
-          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+          return new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
             LoLangValue[] cloned = new LoLangValue[internalArray.values.size()];
             for (int i = 0; i < internalArray.values.size(); i++)
               cloned[i] = internalArray.values.get(i);
@@ -254,7 +269,7 @@ public class Global {
                   ArrayList<LoLangValue> args = new ArrayList<>(Arrays.asList(o1, o2));
 
                   try {
-                    LoLangValue result = function.call(args);
+                    LoLangValue result = function.call(dynamicContext, args);
 
                     if (!(result instanceof LoLangValue.Number))
                       throw new SortingError(
@@ -309,7 +324,7 @@ public class Global {
 
       put("push", new InternalMethod<LoLangValue.Array>() {
         public LoLangValue run(LoLangValue.Array internalArray) {
-          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+          return new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
             if (arguments.length != 1)
               throw new InterpreterExceptions.FunctionCallArityException(1, arguments.length);
 
@@ -336,7 +351,7 @@ public class Global {
 
       put("pop", new InternalMethod<LoLangValue.Array>() {
         public LoLangValue run(LoLangValue.Array internalArray) {
-          return new LoLangValue.SystemDefinedFunction((LoLangValue[] arguments) -> {
+          return new LoLangValue.SystemDefinedFunction((ExecutionContext dynamicContext, LoLangValue[] arguments) -> {
             if (internalArray.values.size() == 0)
               throw new InterpreterExceptions.IndexAccessOutOfBoundsException(0);
 

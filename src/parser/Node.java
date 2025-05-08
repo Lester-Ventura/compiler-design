@@ -88,9 +88,10 @@ public abstract class Node {
       this.expression = expression;
     }
 
-    void addToContext(ExecutionContext context) throws EnvironmentException.EnvironmentAlreadyDeclaredException {
+    void addToContext(ExecutionContext context, ExecutionContext dynamicContext)
+        throws EnvironmentException.EnvironmentAlreadyDeclaredException {
       if (this.expression != null)
-        context.environment.define(this.identifier.lexeme, this.expression.evaluate(context), false);
+        context.environment.define(this.identifier.lexeme, this.expression.evaluate(context, dynamicContext), false);
       else
         context.environment.declare(this.identifier.lexeme);
     }

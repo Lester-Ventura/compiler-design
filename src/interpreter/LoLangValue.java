@@ -35,7 +35,7 @@ public abstract class LoLangValue {
 	}
 
 	public interface Callable {
-		public LoLangValue call(ArrayList<LoLangValue> arguments) throws InterpreterExceptions;
+		public LoLangValue call(ExecutionContext context, ArrayList<LoLangValue> arguments) throws InterpreterExceptions;
 
 		public int getArity();
 	}
@@ -191,16 +191,17 @@ public abstract class LoLangValue {
 	public static class UserDefinedFunction extends LoLangValue implements Callable {
 		Node.ParameterList parameters;
 		StatementNode body;
-		ExecutionContext context;
+		ExecutionContext staticContext;
 
-		public UserDefinedFunction(Node.ParameterList parameters, StatementNode body, ExecutionContext context) {
+		public UserDefinedFunction(Node.ParameterList parameters, StatementNode body, ExecutionContext staticContext) {
 			this.parameters = parameters;
 			this.body = body;
-			this.context = context;
+			this.staticContext = staticContext;
 		}
 
-		public LoLangValue call(ArrayList<LoLangValue> arguments) throws InterpreterExceptions {
-			ExecutionContext forkedContext = context.fork();
+		public LoLangValue call(ExecutionContext dynamicContext, ArrayList<LoLangValue> arguments)
+				throws InterpreterExceptions {
+			ExecutionContext forkedContext = staticContext.fork();
 
 			for (int i = 0; i < this.parameters.declarations.size(); i++) {
 				Node.VariableDeclarationHeader declaration = this.parameters.declarations.get(i);
@@ -213,7 +214,7 @@ public abstract class LoLangValue {
 			}
 
 			try {
-				this.body.execute(forkedContext);
+				this.body.execute(forkedContext, dynamicContext);
 			} catch (LoLangThrowable.Return returnException) {
 				return returnException.value;
 			}
@@ -243,12 +244,13 @@ public abstract class LoLangValue {
 			this.arity = arity;
 		}
 
-		public LoLangValue call(ArrayList<LoLangValue> arguments) throws InterpreterExceptions {
+		public LoLangValue call(ExecutionContext dynamicContext, ArrayList<LoLangValue> arguments)
+				throws InterpreterExceptions {
 			if (arguments.size() != this.arity)
 				throw new InterpreterExceptions.FunctionCallArityException(this.arity, arguments.size());
 
 			Collections.reverse(arguments);
-			return this.lambda.run(arguments.toArray(new LoLangValue[this.arity]));
+			return this.lambda.run(dynamicContext, arguments.toArray(new LoLangValue[this.arity]));
 		}
 
 		public java.lang.String toString() {
@@ -265,6 +267,6 @@ public abstract class LoLangValue {
 	}
 
 	public static interface SystemDefinedFunctionLambda {
-		LoLangValue run(LoLangValue... arguments) throws InterpreterExceptions;
+		LoLangValue run(ExecutionContext context, LoLangValue... arguments) throws InterpreterExceptions;
 	}
 }

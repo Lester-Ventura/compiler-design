@@ -328,12 +328,14 @@ class ReductionTable {
       Node.ParameterList parameterList = (Node.ParameterList) input.getInternalNode(2);
       TypeExpressionNode returnType = (TypeExpressionNode) input.getTypeExpressionNode(5);
       StatementNode body = (StatementNode) input.getInternalNode(7);
-      return new ExpressionNode.FunctionExpression(parameterList, returnType, body);
+      Token token = input.getToken(6);
+      return new ExpressionNode.FunctionExpression(parameterList, returnType, (StatementNode.Block) body, token);
     }));
     reductions.put(74, new Reduction((input) -> {
       TypeExpressionNode returnType = (TypeExpressionNode) input.getTypeExpressionNode(4);
       StatementNode body = (StatementNode) input.getInternalNode(6);
-      return new ExpressionNode.FunctionExpression(returnType, body);
+      Token token = input.getToken(5);
+      return new ExpressionNode.FunctionExpression(returnType, (StatementNode.Block) body, token);
     }));
     reductions.put(75, new Reduction((input) -> {
       Node.VariableDeclarationHeader variableDeclarationHeader = (Node.VariableDeclarationHeader) input

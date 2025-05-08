@@ -26,7 +26,7 @@ import utils.EnvironmentException.EnvironmentAlreadyDeclaredException;
 import utils.ErrorWindowBuilder;
 
 public abstract class StatementNode extends Node {
-  public abstract void execute(ExecutionContext context);
+  public abstract void execute(ExecutionContext context, ExecutionContext dynamicContext);
 
   abstract void semanticAnalysis(SemanticContext context);
 
@@ -52,9 +52,9 @@ public abstract class StatementNode extends Node {
       builder.addEdge(this.hashCode(), this.statements.hashCode());
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       for (StatementNode statement : this.statements.statements)
-        statement.execute(context);
+        statement.execute(context, dynamicContext);
     }
 
     public void semanticAnalysis(SemanticContext context) {
@@ -141,7 +141,7 @@ public abstract class StatementNode extends Node {
       }
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       Path path = getPath();
 
       try {
@@ -155,7 +155,7 @@ public abstract class StatementNode extends Node {
 
         StatementNode.Program program = (StatementNode.Program) result.root;
         ExecutionContext newContext = Global.createGlobalExecutionContext();
-        program.execute(newContext);
+        program.execute(newContext, dynamicContext);
         context.environment.siblings.add(newContext.environment);
       } catch (ImportException e) {
         if (e instanceof ImportParsingFailedException) {
@@ -242,12 +242,12 @@ public abstract class StatementNode extends Node {
       }
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       ExecutionContext forkedContext = context.fork();
 
       for (IfStatementBranch branch : this.branches.clauses) {
         // Evaluate the condition inside the branch
-        LoLangValue condition = branch.condition.evaluate(context);
+        LoLangValue condition = branch.condition.evaluate(context, dynamicContext);
         if (!(condition instanceof LoLangValue.Boolean))
           throw new RuntimeError("Condition must be a boolean", branch.conditionToken);
 
@@ -257,18 +257,18 @@ public abstract class StatementNode extends Node {
           continue;
 
         // Execute the body of the branch
-        branch.body.execute(forkedContext);
+        branch.body.execute(forkedContext, dynamicContext);
         return;
       }
 
       if (this.elseBody != null)
-        this.elseBody.execute(context);
+        this.elseBody.execute(context, dynamicContext);
     }
 
     public void semanticAnalysis(SemanticContext context) {
       for (IfStatementBranch branch : this.branches.clauses) {
         LoLangType conditionType = branch.condition.evaluateType(context);
-        if (!(conditionType instanceof LoLangType.Boolean)) {
+        if (!(new LoLangType.Boolean().isEquivalent(conditionType))) {
           context.addException(
               new SemanticAnalyzerException("Condition must be a boolean, received: " + conditionType.toString(),
                   branch.conditionToken));
@@ -298,9 +298,9 @@ public abstract class StatementNode extends Node {
       this.declaration.toDot(builder);
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       try {
-        this.declaration.addToContext(context);
+        this.declaration.addToContext(context, dynamicContext);
       } catch (EnvironmentAlreadyDeclaredException e) {
         throw new RuntimeError("Cannot redeclare variable \"" + this.declaration.identifier.lexeme + "\"",
             this.declaration.identifier);
@@ -363,9 +363,9 @@ public abstract class StatementNode extends Node {
       }
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       try {
-        context.environment.define(this.identifier.lexeme, this.expression.evaluate(context), true);
+        context.environment.define(this.identifier.lexeme, this.expression.evaluate(context, dynamicContext), true);
       } catch (EnvironmentAlreadyDeclaredException e) {
         throw new RuntimeError("Cannot redeclare constant \"" + this.identifier.lexeme + "\"", this.identifier);
       }
@@ -404,11 +404,11 @@ public abstract class StatementNode extends Node {
       builder.addEdge(this.hashCode(), this.statements.hashCode());
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       ExecutionContext forkedContext = context.fork();
 
       for (StatementNode statement : this.statements.statements)
-        statement.execute(forkedContext);
+        statement.execute(forkedContext, dynamicContext);
     }
 
     public void semanticAnalysis(SemanticContext context) {
@@ -447,8 +447,9 @@ public abstract class StatementNode extends Node {
       }
     }
 
-    public void execute(ExecutionContext context) {
-      throw new LoLangThrowable.Return(this.expression != null ? this.expression.evaluate(context) : null);
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
+      throw new LoLangThrowable.Return(
+          this.expression != null ? this.expression.evaluate(context, dynamicContext) : null);
     }
 
     public void semanticAnalysis(SemanticContext context) {
@@ -511,14 +512,14 @@ public abstract class StatementNode extends Node {
       builder.addEdge(this.hashCode(), this.catchBody.hashCode());
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       try {
         ExecutionContext forkedContext = context.fork();
-        this.body.execute(forkedContext);
+        this.body.execute(forkedContext, dynamicContext);
       } catch (LoLangThrowable.Error errorException) {
         ExecutionContext forkedContext = context.fork();
         forkedContext.environment.tryDefine(identifier.lexeme, errorException.message, true);
-        this.catchBody.execute(forkedContext);
+        this.catchBody.execute(forkedContext, dynamicContext);
       }
     }
 
@@ -548,7 +549,7 @@ public abstract class StatementNode extends Node {
       builder.addNode(this.hashCode(), "Throw [errorMessage=" + this.errorMessasge.lexeme.replace("\"", "\'") + "]");
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       throw new LoLangThrowable.Error(new LoLangValue.String(errorMessasge.lexeme));
     }
 
@@ -587,31 +588,31 @@ public abstract class StatementNode extends Node {
       builder.addEdge(this.hashCode(), this.cases.hashCode());
     }
 
-    public void execute(ExecutionContext context) {
-      LoLangValue value = this.expr.evaluate(context);
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
+      LoLangValue value = this.expr.evaluate(context, dynamicContext);
       if (!(value instanceof LoLangValue.Number) && !(value instanceof LoLangValue.String)) {
         throw new RuntimeError("Switch expression value be a number or string", this.leftParenToken);
       }
 
       for (SwitchCase caseNode : this.cases.namedCases) {
         if (isValueEqualWithToken(value, caseNode.literal)) {
-          executeStatementsWithBreak(caseNode.statements, context);
+          executeStatementsWithBreak(caseNode.statements, context, dynamicContext);
           return;
         }
       }
 
       // if no case matched, execute default case
       if (this.cases.defaultCase != null)
-        executeStatementsWithBreak(this.cases.defaultCase.statements, context);
+        executeStatementsWithBreak(this.cases.defaultCase.statements, context, dynamicContext);
     }
 
-    void executeStatements(Block statements, ExecutionContext context) {
+    void executeStatements(Block statements, ExecutionContext context, ExecutionContext dynamicContext) {
       try {
-        statements.execute(context);
+        statements.execute(context, dynamicContext);
       } catch (LoLangThrowable.SwitchGoto gotoException) {
         for (SwitchCase caseNode : this.cases.namedCases) {
           if (isValueEqualWithToken(gotoException.label, caseNode.literal)) {
-            executeStatements(caseNode.statements, context);
+            executeStatements(caseNode.statements, context, dynamicContext);
             break;
           }
         }
@@ -622,9 +623,9 @@ public abstract class StatementNode extends Node {
       }
     }
 
-    void executeStatementsWithBreak(Block statements, ExecutionContext context) {
+    void executeStatementsWithBreak(Block statements, ExecutionContext context, ExecutionContext dynamicContext) {
       try {
-        executeStatements(statements, context);
+        executeStatements(statements, context, dynamicContext);
       } catch (LoLangThrowable.SwitchBreak breakException) {
         return;
       } catch (LoLangThrowable.SwitchGoto gotoException) {
@@ -648,9 +649,10 @@ public abstract class StatementNode extends Node {
     public void semanticAnalysis(SemanticContext context) {
       LoLangType exprType = this.expr.evaluateType(context);
       if (!(exprType instanceof LoLangType.Number) && !(exprType instanceof LoLangType.String)) {
-        context.addException(new SemanticAnalyzerException(
-            "Switch expression value must be a number or string, received: " + exprType.toString(),
-            this.leftParenToken));
+        if (!(exprType instanceof LoLangType.Any))
+          context.addException(new SemanticAnalyzerException(
+              "Switch expression value must be a number or string, received: " + exprType.toString(),
+              this.leftParenToken));
         return;
       }
 
@@ -710,7 +712,7 @@ public abstract class StatementNode extends Node {
       builder.addNode(this.hashCode(), "SwitchBreak");
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       throw new LoLangThrowable.SwitchBreak();
     }
 
@@ -741,7 +743,7 @@ public abstract class StatementNode extends Node {
       builder.addNode(this.hashCode(), "SwitchGoto [lexeme=" + this.gotoTargetToken.lexeme.replace("\"", "\'") + "]");
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       LoLangValue value = gotoTargetToken.type == TokenType.STRING_LITERAL
           ? new LoLangValue.String(gotoTargetToken.lexeme)
           : new LoLangValue.Number(Double.parseDouble(gotoTargetToken.lexeme));
@@ -815,8 +817,8 @@ public abstract class StatementNode extends Node {
       builder.addEdge(this.hashCode(), this.statement.hashCode());
     }
 
-    public void execute(ExecutionContext context) {
-      LoLangValue iteratorValue = this.iterator.evaluate(context);
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
+      LoLangValue iteratorValue = this.iterator.evaluate(context, dynamicContext);
       if (!(iteratorValue instanceof LoLangValue.Array))
         throw new RuntimeError("Iterate value must be an array", this.ofToken);
 
@@ -827,7 +829,7 @@ public abstract class StatementNode extends Node {
         forkedContext.environment.tryDefine(this.variableIdentifier.lexeme, value, false);
 
         try {
-          this.statement.execute(forkedContext);
+          this.statement.execute(forkedContext, dynamicContext);
         } catch (LoLangThrowable.LoopBreak breakException) {
           break;
         } catch (LoLangThrowable.LoopContinue continueException) {
@@ -839,8 +841,9 @@ public abstract class StatementNode extends Node {
     public void semanticAnalysis(SemanticContext context) {
       LoLangType iteratorType = this.iterator.evaluateType(context);
       if (!(iteratorType instanceof LoLangType.Array)) {
-        context.addException(new SemanticAnalyzerException("Iterator must be an array, received: " + iteratorType,
-            this.ofToken));
+        if (!(iteratorType instanceof LoLangType.Any))
+          context.addException(new SemanticAnalyzerException("Iterator must be an array, received: " + iteratorType,
+              this.ofToken));
 
         return;
       }
@@ -960,14 +963,14 @@ public abstract class StatementNode extends Node {
       builder.addEdge(this.hashCode(), this.stmt.hashCode());
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       ExecutionContext forkedContext = context.fork();
 
       // Run init by adding declarations to the shared context across all runs
       if (this.init != null)
         for (Node.VariableDeclaration declaration : this.init.declarations) {
           try {
-            declaration.addToContext(forkedContext);
+            declaration.addToContext(forkedContext, dynamicContext);
           } catch (EnvironmentAlreadyDeclaredException e) {
             throw new RuntimeError("Cannot redeclare variable \"" + declaration.identifier.lexeme + "\"",
                 declaration.identifier);
@@ -977,7 +980,7 @@ public abstract class StatementNode extends Node {
       while (true) {
         // If there is a condition, then we need to check if we shold run
         if (this.condition != null) {
-          LoLangValue condition = this.condition.evaluate(forkedContext);
+          LoLangValue condition = this.condition.evaluate(forkedContext, dynamicContext);
           if (!(condition instanceof LoLangValue.Boolean))
             throw new RuntimeError("Condition must be a boolean", this.conditionSemicolonToken);
 
@@ -988,7 +991,7 @@ public abstract class StatementNode extends Node {
 
         try {
           ExecutionContext loopBodyContext = forkedContext.fork();
-          this.stmt.execute(loopBodyContext);
+          this.stmt.execute(loopBodyContext, dynamicContext);
         } catch (LoLangThrowable.LoopBreak breakException) {
           break;
         } catch (LoLangThrowable.LoopContinue continueException) {
@@ -996,7 +999,7 @@ public abstract class StatementNode extends Node {
 
         if (this.increment != null)
           for (ExpressionNode increment : this.increment.expressions)
-            increment.evaluate(forkedContext);
+            increment.evaluate(forkedContext, dynamicContext);
 
         continue;
       }
@@ -1014,8 +1017,10 @@ public abstract class StatementNode extends Node {
       if (this.condition != null) {
         LoLangType conditionType = this.condition.evaluateType(forkedContext);
         if (!(conditionType instanceof LoLangType.Boolean)) {
-          context.addException(new SemanticAnalyzerException("Condition must be a boolean, received: " + conditionType,
-              this.conditionSemicolonToken));
+          if (!(conditionType instanceof LoLangType.Any))
+            context
+                .addException(new SemanticAnalyzerException("Condition must be a boolean, received: " + conditionType,
+                    this.conditionSemicolonToken));
           return;
         }
       }
@@ -1041,7 +1046,7 @@ public abstract class StatementNode extends Node {
       builder.addNode(this.hashCode(), "LoopBreak");
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       throw new LoLangThrowable.LoopBreak();
     }
 
@@ -1069,7 +1074,7 @@ public abstract class StatementNode extends Node {
       builder.addNode(this.hashCode(), "LoopContinue");
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       throw new LoLangThrowable.LoopContinue();
     }
 
@@ -1118,9 +1123,9 @@ public abstract class StatementNode extends Node {
       builder.addEdge(this.hashCode(), this.statement.hashCode());
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       while (true) {
-        LoLangValue condition = this.condition != null ? this.condition.evaluate(context)
+        LoLangValue condition = this.condition != null ? this.condition.evaluate(context, dynamicContext)
             : new LoLangValue.Boolean(true);
 
         if (!(condition instanceof LoLangValue.Boolean))
@@ -1132,7 +1137,7 @@ public abstract class StatementNode extends Node {
 
         try {
           ExecutionContext forkedContext = context.fork();
-          this.statement.execute(forkedContext);
+          this.statement.execute(forkedContext, dynamicContext);
         } catch (LoLangThrowable.LoopBreak breakException) {
           break;
         } catch (LoLangThrowable.LoopContinue continueException) {
@@ -1145,10 +1150,11 @@ public abstract class StatementNode extends Node {
       if (this.condition != null) {
         LoLangType conditionType = this.condition.evaluateType(context);
         if (!(conditionType instanceof LoLangType.Boolean)) {
-          context.addException(
-              new SemanticAnalyzerException(
-                  "While-loop condition must be a boolean, received: " + conditionType.toString(),
-                  this.leftParenToken));
+          if (!(conditionType instanceof LoLangType.Any))
+            context.addException(
+                new SemanticAnalyzerException(
+                    "While-loop condition must be a boolean, received: " + conditionType.toString(),
+                    this.leftParenToken));
           return;
         }
       }
@@ -1176,8 +1182,8 @@ public abstract class StatementNode extends Node {
       builder.addEdge(this.hashCode(), this.expression.hashCode());
     }
 
-    public void execute(ExecutionContext context) {
-      this.expression.evaluate(context);
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
+      this.expression.evaluate(context, dynamicContext);
     }
 
     public void semanticAnalysis(SemanticContext context) {
@@ -1209,7 +1215,7 @@ public abstract class StatementNode extends Node {
       builder.addEdge(this.hashCode(), this.properties.hashCode());
     }
 
-    public void execute(ExecutionContext context) {
+    public void execute(ExecutionContext context, ExecutionContext dynamicContext) {
       // This method does nothing at runtime
     }
 

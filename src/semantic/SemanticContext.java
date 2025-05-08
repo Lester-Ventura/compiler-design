@@ -162,7 +162,7 @@ public class SemanticContext {
       System.out
           .println(
               spacer
-                  + "|                              NO VARIABLES LOCALLY DEFINED IN THIS CONTEXT                        |");
+                  + "|                              NO VARIABLES LOCALLY DEFINED IN THIS CONTEXT                         |");
     }
 
     System.out

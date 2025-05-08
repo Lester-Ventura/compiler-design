@@ -122,7 +122,7 @@ public class CodeReader {
 
       try {
         ExecutionContext global = Global.createGlobalExecutionContext();
-        program.execute(global);
+        program.execute(global, global);
       } catch (RuntimeError e) {
         ErrorWindowBuilder.printErrors(e);
       }

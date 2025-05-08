@@ -1,3 +1,5 @@
-steal "./Demo_Arrays.lol";
+//steal "./Demo_Arrays.lol";
 
-testing();
+item testing: skill (stats) -> stats = skill (item x: stats): stats -> {
+  broadcast(x);
+};

@@ -402,7 +402,7 @@ public abstract class StatementNode extends Node {
 
       LoLangType expectedReturnType = context.returnType;
 
-      if (expectedReturnType == null) {
+      if (expectedReturnType == null || expectedReturnType instanceof LoLangType.Void) {
         if (this.expression != null)
           context.addException(new SemanticAnalyzerException("Return statement must not contain a return value",
               this.returnToken));

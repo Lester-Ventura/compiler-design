@@ -1,3 +1,13 @@
-// 38. Object type redeclarations
-item ultimateCast: message;
-item ultimateCast: stats;
+build LCKPlayer {
+  name: message;
+  age: stats;
+  clutchFactor: stats;
+  role: message;
+}
+
+build LCKPlayer {
+  name: message;
+  age: stats;
+  clutchFactor: stats;
+  role: message;
+}

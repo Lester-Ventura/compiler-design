@@ -89,14 +89,6 @@ public class CodeReader {
     if (parsingResult.errors.size() != 0) {
       System.out.println("The following errors were encountered during parsing:\n");
       ErrorWindowBuilder.printErrors(parsingResult.errors);
-
-      if (parsingResult.root == null) {
-        System.out.println("Errors were encountered during parsing. Continue?");
-        System.out.print("yes/no: ");
-        String response = InputScanner.globalScanner.nextLine();
-        if (response.equals("yes") == false)
-          return;
-      }
     }
 
     if (parsingResult.root == null) {
@@ -106,6 +98,14 @@ public class CodeReader {
 
     System.out.println(parsingResult.root);
     printRoot(parsingResult.root);
+
+    if (parsingResult.errors.size() != 0) {
+      System.out.println("Errors were encountered during parsing. Continue?");
+      System.out.print("yes/no: ");
+      String response = InputScanner.globalScanner.nextLine();
+      if (response.equals("yes") == false)
+        return;
+    }
 
     if (parsingResult.root != null && (parsingResult.root instanceof StatementNode.Program)) {
       StatementNode.Program program = (StatementNode.Program) parsingResult.root;

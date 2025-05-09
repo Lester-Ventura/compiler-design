@@ -31,6 +31,7 @@ public class Environment<InternalValue> {
   private SymbolTableEntry<InternalValue> tryGetSymbolTableEntry(String name) {
     if (this.variables.containsKey(name))
       return this.variables.get(name);
+
     else if (this.parent != null && this.parent.tryGetSymbolTableEntry(name) != null)
       return this.parent.tryGetSymbolTableEntry(name);
 
@@ -50,16 +51,6 @@ public class Environment<InternalValue> {
       throw new EnvironmentException.EnvironmentUndeclaredException("Cannot find symbol table entry \"" + name + "\"");
 
     return entry;
-
-    // else if (this.parent != null)
-    // return this.parent.getSymbolTableEntry(name);
-
-    // if (this.parent != null)
-    // try {
-    // return this.parent.getSymbolTableEntry(name);
-    // } catch (EnvironmentException.EnvironmentUndeclaredException e) {
-    // }
-
   }
 
   public InternalValue get(String name) throws EnvironmentException.EnvironmentUndeclaredException {
@@ -70,6 +61,7 @@ public class Environment<InternalValue> {
     try {
       this.define(name, value, constant);
     } catch (EnvironmentAlreadyDeclaredException e) {
+      System.out.println("INVARIANT - reached here");
     }
   }
 

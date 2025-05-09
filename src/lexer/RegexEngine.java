@@ -227,7 +227,8 @@ public class RegexEngine {
 
     // handle literal tokens
     lexer.addRule("string_literal", "$\"(${character} | $\')*$\" | $\'(${character} | $\")*$\'",
-        TokenType.STRING_LITERAL, (String str) -> str.substring(1, str.length() - 1));
+        TokenType.STRING_LITERAL,
+        (String str) -> str.substring(1, str.length() - 1).replaceAll(Pattern.quote("\\n"), "\n"));
     lexer.addRule("number_literal",
         "${float_number}|${decimal_number}|${octal_number}|${binary_number}|${hexadecimal_number}",
         TokenType.NUMBER_LITERAL);

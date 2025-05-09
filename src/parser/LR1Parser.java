@@ -87,7 +87,11 @@ public class LR1Parser {
       LR1TableParser.LR1TableProcess action = states.get(currentNode.stateIndex).actions.get(token.type.toString());
 
       if (action == null) {
-        token = sync(inputPath, lexer, exceptions);
+        try {
+          token = sync(inputPath, lexer, exceptions);
+        } catch (ParserEOFException e) {
+          return new ParserResult(null, exceptions);
+        }
 
         token = token != null ? token : lexer.peekNextToken();
         currentNode = statesStack.peek();
@@ -161,7 +165,8 @@ public class LR1Parser {
   }
 
   // performs panic mode error handling and leaves the parser in a safe state
-  private Token sync(String inputPath, RegexEngine lexer, ArrayList<ParserException> exceptions) {
+  private Token sync(String inputPath, RegexEngine lexer, ArrayList<ParserException> exceptions)
+      throws ParserEOFException {
     Token currentToken = lexer.peekNextToken();
     StateNode currentNode = statesStack.peek();
 
@@ -242,6 +247,7 @@ public class LR1Parser {
 
       if (nextToken.type == TokenType.EOF) {
         exceptions.add(new ParserException("Unexpected end of file", nextToken));
+        throw new ParserEOFException();
       }
     }
 
@@ -270,4 +276,7 @@ public class LR1Parser {
 
     throw new Error(e);
   }
+}
+
+class ParserEOFException extends Exception {
 }

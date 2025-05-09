@@ -69,7 +69,7 @@ public abstract class InterpreterExceptions extends Exception {
     }
 
     public RuntimeError toRuntimeError(Token token) {
-      return new RuntimeError("Failed to access property \"" + this.identifier + "\" on object", token);
+      return new RuntimeError("Failed to access property \"" + this.identifier + "\"", token);
     }
   }
 

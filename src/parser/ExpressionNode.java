@@ -245,7 +245,7 @@ public abstract class ExpressionNode extends Node {
 
       if (!(gettable.hasKey(this.identifier.lexeme))) {
         context.addException(new SemanticAnalyzerException("Cannot access property \"" + this.identifier.lexeme
-            + "\"on non-object: " + left.toString(), this.identifier));
+            + "\" on type: " + left.toString(), this.identifier));
         return new LoLangType.Any();
       }
 

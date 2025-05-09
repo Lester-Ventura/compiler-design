@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
+import interpreter.Global.InternalMethod;
 import interpreter.InterpreterExceptions.DotAccessNonExistentException;
 import parser.Node;
 import parser.StatementNode;
@@ -52,7 +53,10 @@ public abstract class LoLangValue {
 		}
 
 		public LoLangValue getDot(java.lang.String key) throws DotAccessNonExistentException {
-			return Global.StringMethods.get(key).run(this);
+			InternalMethod<String> method = Global.StringMethods.get(key);
+			if (method == null)
+				throw new DotAccessNonExistentException(key);
+			return method.run(this);
 		}
 
 		public LoLangType getType() {

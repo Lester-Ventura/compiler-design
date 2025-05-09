@@ -1,1 +1,2 @@
-steal "Demo_Arrays.lol";
+item champ: message = "ahri";
+broadcast(champ.health);

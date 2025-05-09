@@ -45,7 +45,7 @@ public class RegexEngine {
       } else if (peekNext() == '*') {
         currentCharacterIndex += 2;
 
-        while (peek() != '*' && peekNext() != '/') {
+        while (peek() != '*' || peekNext() != '/') {
           if (currentCharacterIndex >= input.length() - 2) {
             throw new ScannerError("Error: Unterminated multiline comment");
           }

@@ -134,6 +134,7 @@ public abstract class StatementNode extends Node {
       if (root == null) {
         context.exceptions.add(
             new SemanticAnalyzerException("Failed to parse file " + getPath().toAbsolutePath(), token));
+        return;
       }
 
       StatementNode.Program program = (StatementNode.Program) root;

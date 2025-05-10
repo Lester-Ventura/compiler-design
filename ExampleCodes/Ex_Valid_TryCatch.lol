@@ -4,10 +4,12 @@ support {
     
     canwin(team == "t1"){
         broadcast("T1 are the past, the present, and the future.");
-    } lose{
-        feed "It is not your time yet.";
+    } lose {
+        // this throws the error along with the accompanying message
+        feed "It is not your time yet."; 
     }
 
 } carry (e) {
+    broadcast(e);
 	broadcast("Knight sucks at Ahri. L."); 
 }

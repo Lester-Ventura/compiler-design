@@ -6,11 +6,7 @@
 // <78>
 item val : stats = (5 ** 2 + 3 - 4 / 2) * 3;
 
-canwin(val == 78) {
-    broadcast(val);
-} lose {
-    broadcast("the operations didn't work");
-}
+broadcast("Val = " + val);
 
 // this should be 5 or 101 in binary
 // note that | has higher precedence over &
@@ -19,22 +15,14 @@ canwin(val == 78) {
 // <101> or 5
 item bitwiseTest : stats = (0b11 | 0b111 & 0b1001) ^ 0b100;
 
-canwin(bitwiseTest == 5) {
-    broadcast(bitwiseTest); // this should work
-} lose {
-    broadcast("the bitwise operation didn't work");
-}
+broadcast("bitwiseTest = " + bitwiseTest);
 
 // now that we know what's happening, let's try combining them
 // removing the parentheses from & and ^ should still work cause they're the same level in the hierarchy
 item finalVal : stats = ((0b11 | 0b111 & 0b1001 ^ 0b100) ** 2 + 3 - 4 / 2) * 0b11;
 
 // this should still be 78 cause it's just the same as before
-canwin(finalVal == 78) {
-    broadcast(finalVal);
-} lose {
-    broadcast("the final test didn't work");
-}
+broadcast("finalVal = " + finalVal);
 
 // to also demonstrate unary operations
 // these are evaluated before everything else here
@@ -53,8 +41,4 @@ item precedenceTest : stats = 5 + 3 % 5 * 2 - --three ** 4 ** (1/2) / ++one;
 // 5 + 6 - <2>
 // <11> - 2
 // <9>
-canwin(precedenceTest == 9) {
-    broadcast(precedenceTest);
-} lose {
-    broadcast("the final test didn't work");
-}
+broadcast("precedenceTest = " + precedenceTest);

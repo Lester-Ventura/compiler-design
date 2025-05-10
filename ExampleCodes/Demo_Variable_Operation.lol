@@ -1,4 +1,3 @@
-// This should be rechecked once we get standard library stuff
 item health: stats = 100;
 item mana: stats = 50;
 item name: message = "Faker";
@@ -22,4 +21,3 @@ canwin (isAlive && mana > 20) {
 } lose {
     broadcast("Cannot cast a spell!");
 }
-

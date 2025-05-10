@@ -3,6 +3,7 @@ package parser;
 import java.util.ArrayList;
 import java.util.HashMap;
 import interpreter.ExecutionContext;
+import interpreter.Global;
 import interpreter.InterpreterExceptions;
 import interpreter.RuntimeError;
 import interpreter.LoLangValue;
@@ -525,8 +526,16 @@ public abstract class ExpressionNode extends Node {
           if (entry.constant)
             context.addException(new SemanticAnalyzerException("Cannot assign to constant variable", equalsSign));
         } catch (EnvironmentException.EnvironmentUndeclaredException e) {
-          context.addException(new SemanticAnalyzerException("Cannot find variable \"" + identifier + "\"",
-              ((ExpressionNode.Identifier) this.left).identifier));
+          if (!Global.isLenient) {
+            context.addException(new SemanticAnalyzerException("Cannot find variable \"" + identifier + "\"",
+                ((ExpressionNode.Identifier) this.left).identifier));
+          } else {
+            try {
+              context.variableEnvironment.define(identifier, new LoLangType.Any(), false);
+            } catch (EnvironmentException.EnvironmentAlreadyDeclaredException __) {
+            }
+          }
+
           return new LoLangType.Any();
         }
       }
@@ -552,7 +561,14 @@ public abstract class ExpressionNode extends Node {
       try {
         context.environment.assign(identifier.identifier.lexeme, newValue);
       } catch (EnvironmentException.EnvironmentUndeclaredException e) {
-        throw new RuntimeError("Cannot assign to undeclared variable", identifier.identifier);
+        if (!Global.isLenient) {
+          throw new RuntimeError("Cannot assign to undeclared variable", identifier.identifier);
+        } else {
+          try {
+            context.environment.define(identifier.identifier.lexeme, newValue, false);
+          } catch (EnvironmentException.EnvironmentAlreadyDeclaredException __) {
+          }
+        }
       }
     }
 
@@ -799,6 +815,10 @@ public abstract class ExpressionNode extends Node {
           return new LoLangValue.Boolean(leftNumber.value == rightNumber.value);
         else if (this.operation.lexeme.equals("!="))
           return new LoLangValue.Boolean(leftNumber.value != rightNumber.value);
+        else if (this.operation.lexeme.equals("<<"))
+          return new LoLangValue.Number((int) leftNumber.value << (int) rightNumber.value);
+        else if (this.operation.lexeme.equals(">>"))
+          return new LoLangValue.Number((int) leftNumber.value >> (int) rightNumber.value);
       }
 
       if (left instanceof LoLangValue.String && right instanceof LoLangValue.String) {
@@ -861,7 +881,9 @@ public abstract class ExpressionNode extends Node {
             || (this.operation.lexeme.equals("**"))
             || (this.operation.lexeme.equals("&"))
             || (this.operation.lexeme.equals("|"))
-            || (this.operation.lexeme.equals("^")))
+            || (this.operation.lexeme.equals("^"))
+            || (this.operation.lexeme.equals("<<"))
+            || (this.operation.lexeme.equals(">>")))
           return new LoLangType.Number();
 
         if ((this.operation.lexeme.equals("<"))

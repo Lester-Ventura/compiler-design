@@ -1,3 +1,2 @@
-canwin("faker" && faker){
-  broadcast("Winning with --lenient");
-}
+x = 5;
+broadcast(x);

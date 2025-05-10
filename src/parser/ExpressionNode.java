@@ -14,6 +14,7 @@ import semantic.SemanticAnalyzerException.GenericReturnTypeArityException;
 import semantic.SemanticAnalyzerException.GenericReturnTypeException;
 import semantic.SemanticAnalyzerException.GenericReturnTypeParameterMismatchException;
 import semantic.SemanticContext;
+import utils.Caster;
 import utils.DOTGenerator;
 import utils.EnvironmentException;
 import utils.Environment.SymbolTableEntry;
@@ -798,14 +799,40 @@ public abstract class ExpressionNode extends Node {
           return new LoLangValue.Boolean(leftNumber.value == rightNumber.value);
         else if (this.operation.lexeme.equals("!="))
           return new LoLangValue.Boolean(leftNumber.value != rightNumber.value);
-
-        throw new RuntimeError("Invalid binary operation \"" + this.operation.lexeme + "\" on Number, Number",
-            this.operation);
       }
 
-      else if (left instanceof LoLangValue.Boolean && right instanceof LoLangValue.Boolean) {
-        LoLangValue.Boolean leftBoolean = (LoLangValue.Boolean) left;
-        LoLangValue.Boolean rightBoolean = (LoLangValue.Boolean) right;
+      if (left instanceof LoLangValue.String && right instanceof LoLangValue.String) {
+        LoLangValue.String leftString = (LoLangValue.String) left;
+        LoLangValue.String rightString = (LoLangValue.String) right;
+
+        if (this.operation.lexeme.equals("+"))
+          return new LoLangValue.String(leftString.value + rightString.value);
+        else if (this.operation.lexeme.equals("=="))
+          return new LoLangValue.Boolean(leftString.value.equals(rightString.value));
+      }
+
+      if (left instanceof LoLangValue.String && right instanceof LoLangValue.Number) {
+        LoLangValue.Number rightNumber = (LoLangValue.Number) right;
+
+        if (this.operation.lexeme.equals("+"))
+          return new LoLangValue.String(left.toString() + rightNumber.value);
+      }
+
+      if (left instanceof LoLangValue.String && right instanceof LoLangValue.Null) {
+        if (this.operation.lexeme.equals("+"))
+          return new LoLangValue.String(left.toString() + "null");
+      }
+
+      if (left instanceof LoLangValue.String && Caster.toBooleanLoLangValue(right) != null) {
+        LoLangValue.Boolean rightBoolean = Caster.toBooleanLoLangValue(right);
+
+        if (this.operation.lexeme.equals("+"))
+          return new LoLangValue.String(left.toString() + rightBoolean.value);
+      }
+
+      if (Caster.toBooleanLoLangValue(left) != null && Caster.toBooleanLoLangValue(right) != null) {
+        LoLangValue.Boolean leftBoolean = Caster.toBooleanLoLangValue(left);
+        LoLangValue.Boolean rightBoolean = Caster.toBooleanLoLangValue(right);
 
         if (this.operation.lexeme.equals("&&"))
           return new LoLangValue.Boolean(leftBoolean.value && rightBoolean.value);
@@ -815,41 +842,10 @@ public abstract class ExpressionNode extends Node {
           return new LoLangValue.Boolean(leftBoolean.value == rightBoolean.value);
         else if (this.operation.lexeme.equals("!="))
           return new LoLangValue.Boolean(leftBoolean.value != rightBoolean.value);
-
-        throw new RuntimeError("Invalid binary operation \"" + this.operation.lexeme + "\" on Boolean, Boolean",
-            this.operation);
       }
 
-      else if (left instanceof LoLangValue.String && right instanceof LoLangValue.String) {
-        LoLangValue.String leftString = (LoLangValue.String) left;
-        LoLangValue.String rightString = (LoLangValue.String) right;
-
-        if (this.operation.lexeme.equals("+"))
-          return new LoLangValue.String(leftString.value + rightString.value);
-        else if (this.operation.lexeme.equals("=="))
-          return new LoLangValue.Boolean(leftString.value.equals(rightString.value));
-
-        throw new RuntimeError("Invalid binary operation \"" + this.operation.lexeme + "\" on String, String",
-            this.operation);
-      }
-
-      else if (left instanceof LoLangValue.String && right instanceof LoLangValue.Number) {
-        LoLangValue.Number rightNumber = (LoLangValue.Number) right;
-        return new LoLangValue.String(left.toString() + rightNumber.value);
-      }
-
-      else if (left instanceof LoLangValue.String && right instanceof LoLangValue.Boolean) {
-        LoLangValue.Boolean rightBoolean = (LoLangValue.Boolean) right;
-        return new LoLangValue.String(left.toString() + rightBoolean.value);
-      }
-
-      else if (left instanceof LoLangValue.String && right instanceof LoLangValue.Null) {
-        return new LoLangValue.String(left.toString() + "null");
-      }
-
-      else
-        throw new RuntimeError(String.format("Cannot find operations for types %s and %s",
-            left.getClass().getName(), right.getClass().getName()), this.operation);
+      throw new RuntimeError(String.format("Invalid binary operation \"%s\" on types %s and %s",
+          this.operation.lexeme, left.getClass().getName(), right.getClass().getName()), this.operation);
     }
 
     public LoLangType evaluateType(SemanticContext context) {
@@ -877,14 +873,6 @@ public abstract class ExpressionNode extends Node {
           return new LoLangType.Boolean();
       }
 
-      if (left instanceof LoLangType.Boolean && right instanceof LoLangType.Boolean) {
-        if ((this.operation.lexeme.equals("&&"))
-            || (this.operation.lexeme.equals("||"))
-            || (this.operation.lexeme.equals("=="))
-            || (this.operation.lexeme.equals("!=")))
-          return new LoLangType.Boolean();
-      }
-
       if (left instanceof LoLangType.String && right instanceof LoLangType.String) {
         if (this.operation.lexeme.equals("+"))
           return new LoLangType.String();
@@ -897,13 +885,21 @@ public abstract class ExpressionNode extends Node {
           return new LoLangType.String();
       }
 
-      if (left instanceof LoLangType.String && right instanceof LoLangType.Boolean) {
+      if (left instanceof LoLangType.String && right instanceof LoLangType.Null) {
+        return new LoLangType.String();
+      }
+
+      if (left instanceof LoLangType.String && Caster.toBooleanType(right)) {
         if (this.operation.lexeme.equals("+"))
           return new LoLangType.String();
       }
 
-      if (left instanceof LoLangType.String && right instanceof LoLangType.Null) {
-        return new LoLangType.String();
+      if (Caster.toBooleanType(left) && Caster.toBooleanType(right)) {
+        if ((this.operation.lexeme.equals("&&"))
+            || (this.operation.lexeme.equals("||"))
+            || (this.operation.lexeme.equals("=="))
+            || (this.operation.lexeme.equals("!=")))
+          return new LoLangType.Boolean();
       }
 
       context.addException(new SemanticAnalyzerException("Invalid binary operation \"" + this.operation.lexeme

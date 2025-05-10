@@ -1,6 +1,6 @@
-// Prompts then gets input
-broadcast("What country are you from?");
-item country: message = chat();
+item country: message = chat("What country are you from? "); 
+broadcast(country);
 
 // Output:
 // What country are you from? [user input here]
+// [user input]

@@ -4,8 +4,8 @@
 item outside : message = "outside";
 
 canwin(faker) {
-    item inside : message = "this should only work inside of the if statement and not " + outside;
+	item inside : message = "this should only work inside of the if statement and not " + outside;
 }
 
-// This should throw an error due to an undeclared variable
+// This should throw an error since it hasn't been declared in this scope
 broadcast(inside);

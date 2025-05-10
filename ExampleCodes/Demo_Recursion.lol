@@ -9,7 +9,7 @@ item factorial: skill (stats) -> stats = skill (item n: stats): stats -> {
 item num: stats = 5;
 broadcast("Factorial of " + num + " is = " + factorial(num));
 
-// Another function example - calculate damage
+// // Another function example - calculate damage
 item calculateDamage: skill (stats, stats, stats) -> stats = 
 skill (
     item baseDamage: stats,
@@ -21,6 +21,6 @@ skill (
     recast baseDamage * multiplier;
 };
 
-// // Using the damage calculation
+// // // Using the damage calculation
 item damage: stats = calculateDamage(100, 30, 50);
 broadcast("Final damage dealt: " + damage);

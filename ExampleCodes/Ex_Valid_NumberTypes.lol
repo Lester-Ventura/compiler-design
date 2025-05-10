@@ -12,4 +12,4 @@ item smallHexadecimal : stats = 0xF;
 // this should be 16, cause it's 15 + 1
 smallDecimal = smallDecimal + smallHexadecimal;
 
-broadcast(smallDecimal);
+broadcast(smallDecimal); // 16

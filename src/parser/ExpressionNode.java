@@ -832,22 +832,26 @@ public abstract class ExpressionNode extends Node {
       }
 
       if (left instanceof LoLangValue.String && right instanceof LoLangValue.Number) {
+        LoLangValue.String leftString = (LoLangValue.String) left;
         LoLangValue.Number rightNumber = (LoLangValue.Number) right;
 
         if (this.operation.lexeme.equals("+"))
-          return new LoLangValue.String(left.toString() + rightNumber.value);
+          return new LoLangValue.String(leftString.value + rightNumber.value);
       }
 
       if (left instanceof LoLangValue.String && right instanceof LoLangValue.Null) {
+        LoLangValue.String leftString = (LoLangValue.String) left;
+
         if (this.operation.lexeme.equals("+"))
-          return new LoLangValue.String(left.toString() + "null");
+          return new LoLangValue.String(leftString.value + "null");
       }
 
       if (left instanceof LoLangValue.String && Caster.toBooleanLoLangValue(right) != null) {
+        LoLangValue.String leftString = (LoLangValue.String) left;
         LoLangValue.Boolean rightBoolean = Caster.toBooleanLoLangValue(right);
 
         if (this.operation.lexeme.equals("+"))
-          return new LoLangValue.String(left.toString() + rightBoolean.value);
+          return new LoLangValue.String(leftString.value + rightBoolean.value);
       }
 
       if (Caster.toBooleanLoLangValue(left) != null && Caster.toBooleanLoLangValue(right) != null) {

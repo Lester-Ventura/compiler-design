@@ -60,7 +60,7 @@ public class SemanticContext {
 
   public SemanticContext cleanFunctionFork(LoLangType returnType) {
     SemanticContext ret = new SemanticContext(typeEnvironment, variableEnvironment,
-        new ArrayList<>(Arrays.asList(new Scope[] { Scope.FUNCTION_BODY })), returnType, this.gotoLabels,
+        new ArrayList<>(Arrays.asList(new Scope[] { Scope.FUNCTION_BODY })), returnType, new ArrayList<GotoLabel>(),
         this.exceptions);
 
     childrens.add(ret);

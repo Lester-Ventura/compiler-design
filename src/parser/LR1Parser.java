@@ -72,7 +72,7 @@ public class LR1Parser {
 
   public ParserResult parse(String input, String inputPath) {
     RegexEngine lexer = RegexEngine.createRegexEngine(input, inputPath);
-
+    
     // initialize the stacks, error list and the start state
     ArrayList<ParserException> exceptions = new ArrayList<>();
 
@@ -275,6 +275,12 @@ public class LR1Parser {
     System.out.println("\nSymbols Stack: " + symbolsStack.toString());
 
     throw new Error(e);
+  }
+  public void printRegexTokens(String source, String path){
+    RegexEngine lexer = RegexEngine.createRegexEngine(source, path);
+    while(lexer.peekNextToken().type != TokenType.EOF){
+      System.out.println(lexer.getNextToken().toString());
+    }
   }
 }
 

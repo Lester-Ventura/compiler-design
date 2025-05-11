@@ -12,6 +12,7 @@ import semantic.LoLangType;
 import utils.EnvironmentException;
 
 public abstract class LoLangValue {
+	public static boolean label = true;
 	public abstract java.lang.String toString();
 
 	public abstract LoLangType getType();
@@ -49,7 +50,9 @@ public abstract class LoLangValue {
 		}
 
 		public java.lang.String toString() {
-			return java.lang.String.format("[LoLangValue.String]: %s", this.value);
+			
+			return label ? java.lang.String.format("[LoLangValue.String]: %s", this.value) :
+						   java.lang.String.format("%s",this.value);
 		}
 
 		public LoLangValue getDot(java.lang.String key) throws DotAccessNonExistentException {
@@ -72,8 +75,9 @@ public abstract class LoLangValue {
 		}
 
 		public java.lang.String toString() {
-			return java.lang.String.format("[LoLangValue.Number]: %s", this.value);
-		}
+			return  label ? java.lang.String.format("[LoLangValue.Number]: %s", this.value) : 
+						    java.lang.String.format("%s",this.value);
+		}			
 
 		public LoLangType getType() {
 			return new LoLangType.Number();
@@ -88,7 +92,8 @@ public abstract class LoLangValue {
 		}
 
 		public java.lang.String toString() {
-			return java.lang.String.format("[LoLangValue.Boolean]: %s", this.value ? "true" : "false");
+			return label ? java.lang.String.format("[LoLangValue.Boolean]: %s", this.value ? "true" : "false"):
+						   java.lang.String.format("%s",this.value ? "true":"false");
 		}
 
 		public LoLangType getType() {
@@ -101,7 +106,7 @@ public abstract class LoLangValue {
 		}
 
 		public java.lang.String toString() {
-			return "[LoLangValue.Null]";
+			return label ? "[LoLangValue.Null]" : "null";
 		}
 
 		public LoLangType getType() {
@@ -132,7 +137,7 @@ public abstract class LoLangValue {
 		}
 
 		public java.lang.String toString() {
-			java.lang.String ret = "[LoLangValue.Object]: {";
+			java.lang.String ret = label ? "[LoLangValue.Object]: {" : "{";
 
 			for (java.lang.String key : this.fields.keySet())
 				ret += key + ": " + this.fields.get(key).toString() + ", ";
@@ -174,7 +179,7 @@ public abstract class LoLangValue {
 		}
 
 		public java.lang.String toString() {
-			java.lang.String ret = "[LoLangValue.Array]: [";
+			java.lang.String ret = label ? "[LoLangValue.Array]: [" : "[";
 
 			for (LoLangValue value : this.values)
 				ret += value.toString() + ", ";
@@ -227,7 +232,8 @@ public abstract class LoLangValue {
 		}
 
 		public java.lang.String toString() {
-			return java.lang.String.format("[LoLangValue.UserDefinedFunction]: 0x%s", this.hashCode());
+			return label ? java.lang.String.format("[LoLangValue.UserDefinedFunction]: 0x%s", this.hashCode()):
+						   java.lang.String.format("0x%s",this.hashCode());
 		}
 
 		public int getArity() {
@@ -258,7 +264,8 @@ public abstract class LoLangValue {
 		}
 
 		public java.lang.String toString() {
-			return java.lang.String.format("[LoLangValue.SystemDefinedFunction]: 0x%s", this.hashCode());
+			return label ? java.lang.String.format("[LoLangValue.SystemDefinedFunction]: 0x%s", this.hashCode()):
+						   java.lang.String.format("0x%s",this.hashCode());
 		}
 
 		public int getArity() {

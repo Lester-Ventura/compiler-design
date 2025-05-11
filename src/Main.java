@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 
 import interpreter.Global;
+import interpreter.LoLangValue;
 import utils.*;
 import parser.*;
 
@@ -14,6 +15,12 @@ public class Main {
         boolean isInteractive = argsList.contains("--interactive");
         if (argsList.contains("--lenient"))
             Global.isLenient = true;
+        
+        LoLangValue.label = !argsList.contains("--no:labels");
+        boolean printRegexTokens = !argsList.contains("--no:tokens");
+        boolean printTable = !argsList.contains("--no:tables");
+        boolean printParseTree = !argsList.contains("--no:trees");
+        CodeReader.settings(printTable,printParseTree,printRegexTokens);
 
         // load the grammar file and list of productions
         LR1GrammarParser grammarParser = new LR1GrammarParser(FileLoader.loadFile("grammar.txt"));

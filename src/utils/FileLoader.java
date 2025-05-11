@@ -2,7 +2,9 @@ package utils;
 
 import java.io.File;
 import java.util.Scanner;
-
+/**
+ * 
+ */
 public class FileLoader {
   /**
    * Platform agnostic way of loading files

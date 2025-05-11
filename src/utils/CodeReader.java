@@ -18,7 +18,9 @@ import parser.Node;
 
 public class CodeReader {
   LR1Parser parser;
-
+  static boolean symbolTableEnabled = false,
+  parseTreeEnabled = false,
+  tokenEnabled = false;
   public CodeReader(LR1Parser parser) {
     this.parser = parser;
   }
@@ -62,7 +64,7 @@ public class CodeReader {
       }
     }
   }
-
+  
   public static File[] getFiles() {
     FilenameFilter filter = new FilenameFilter() {
       public boolean accept(File dir, String name) {
@@ -78,14 +80,16 @@ public class CodeReader {
 
     return files;
   }
-
   public void parseFile(File file) throws IOException {
     Scanner scanner = new Scanner(file, "UTF-8");
 
     String source = scanner.hasNext() ? scanner.useDelimiter("\\Z").next() + "\n" : "\n";
     scanner.close();
     ParserResult parsingResult = parser.parse(source, file.getPath());
-
+    if(tokenEnabled){
+      parser.printRegexTokens(source,file.getPath());
+      printLongLine();
+    }
     if (parsingResult.errors.size() != 0) {
       System.out.println("The following errors were encountered during parsing:\n");
       ErrorWindowBuilder.printErrors(parsingResult.errors);
@@ -95,8 +99,9 @@ public class CodeReader {
       System.out.println("Was unable to create a parse tree");
       return;
     }
-
+    if(parseTreeEnabled){
     System.out.println(parsingResult.root);
+    }
     printRoot(parsingResult.root);
 
     if (parsingResult.errors.size() != 0) {
@@ -117,8 +122,9 @@ public class CodeReader {
       program.semanticAnalysis(context);
 
       // Print symbol table recursively
+      if(symbolTableEnabled){
       context.printSymbolTableToChild();
-
+      }
       if (context.exceptions.size() != 0) {
         System.out.println("The following errors were encountered during semantic analysis:\n");
         ErrorWindowBuilder.printErrors(context.exceptions);
@@ -147,6 +153,12 @@ public class CodeReader {
       }
     }
   }
+  public static void settings(boolean symbolTable, boolean parseTree, boolean tokens){
+    symbolTableEnabled = symbolTable;
+    parseTreeEnabled = parseTree;
+    tokenEnabled = tokens;
+
+  }
 
   static void printRoot(Node node) throws IOException {
     String output = DOTGenerator.generate(node);
@@ -161,7 +173,7 @@ public class CodeReader {
 
     writer.close();
   }
-
+  
   static void printLongLine() {
     System.out
         .println("==============================================================================================");

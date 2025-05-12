@@ -676,7 +676,7 @@ public abstract class ExpressionNode extends Node {
       if (!(right instanceof LoLangType.Number)) {
         if (!(right instanceof LoLangType.Any))
           context.addException(
-              new SemanticAnalyzerException("Index should be a number type, received" + right.toString(),
+              new SemanticAnalyzerException("Index should be a number type, received: " + right.toString(),
                   leftBracket));
         return new LoLangType.Any();
       }

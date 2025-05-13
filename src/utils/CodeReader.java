@@ -31,11 +31,12 @@ public class CodeReader {
     while (true) {
       ArrayList<File> files = getFilesRoot();
       File examplesRoot = getExamplesRoot();
-
-      for (int i = 0; i < files.size(); i++)
+      
+      for (int i = 0; i < files.size(); i++){
+        String filePath = files.get(i).getAbsolutePath().replaceAll("\\\\", "/");
         System.out.println(String.format("[%d]: %s", i + 1,
-            files.get(i).getAbsolutePath().replaceAll(examplesRoot.getAbsolutePath() + "/", "")));
-
+            filePath.replaceAll(examplesRoot.getAbsolutePath().replaceAll("\\\\","/") + "/", "")));
+      }
       System.out.println(String.format("[%d]: %s", files.size() + 1, "Exit"));
       printLongLine();
       System.out.print("Enter the file number to read: ");

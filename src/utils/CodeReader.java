@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 import interpreter.ExecutionContext;
@@ -19,20 +20,23 @@ import parser.Node;
 public class CodeReader {
   LR1Parser parser;
   static boolean symbolTableEnabled = false,
-  parseTreeEnabled = false,
-  tokenEnabled = false;
+      parseTreeEnabled = false,
+      tokenEnabled = false;
+
   public CodeReader(LR1Parser parser) {
     this.parser = parser;
   }
 
   public void run(boolean interactive) {
     while (true) {
-      File[] files = getFiles();
+      ArrayList<File> files = getFilesRoot();
+      File examplesRoot = getExamplesRoot();
 
-      for (int i = 0; i < files.length; i++) {
-        System.out.println(String.format("[%d]: %s", i + 1, files[i].getName()));
-      }
-      System.out.println(String.format("[%d]: %s", files.length + 1, "Exit"));
+      for (int i = 0; i < files.size(); i++)
+        System.out.println(String.format("[%d]: %s", i + 1,
+            files.get(i).getAbsolutePath().replaceAll(examplesRoot.getAbsolutePath() + "/", "")));
+
+      System.out.println(String.format("[%d]: %s", files.size() + 1, "Exit"));
       printLongLine();
       System.out.print("Enter the file number to read: ");
 
@@ -40,15 +44,15 @@ public class CodeReader {
       InputScanner.globalScanner.nextLine(); // consume the newline
 
       int index = fileNumber - 1;
-      if (index == files.length) {
+      if (index == files.size()) {
         System.out.println("Exiting...");
         break;
-      } else if (index < 0 || index >= files.length) {
+      } else if (index < 0 || index >= files.size()) {
         System.out.println("Invalid file number, restarting...");
         continue;
       }
 
-      File file = files[fileNumber - 1];
+      File file = files.get(fileNumber - 1);
       System.out.println("Scanning " + file.getName());
 
       try {
@@ -64,30 +68,58 @@ public class CodeReader {
       }
     }
   }
-  
-  public static File[] getFiles() {
-    FilenameFilter filter = new FilenameFilter() {
-      public boolean accept(File dir, String name) {
-        return name.endsWith(".lol");
-      }
-    };
 
+  static FilenameFilter filter = new FilenameFilter() {
+    public boolean accept(File dir, String name) {
+      return name.endsWith(".lol");
+    }
+  };
+
+  static FilenameFilter getDirs = new FilenameFilter() {
+    public boolean accept(File dir, String name) {
+      return dir.isDirectory();
+    }
+  };
+
+  public static ArrayList<File> recurse(File directory) {
     // get the list of files containing the .lol extension, trying in the current
     // directory first, then in the parent directory
-    File[] files = new File("./ExampleCodes").listFiles(filter);
-    if (files == null || files.length == 0)
-      files = new File("../ExampleCodes").listFiles(filter);
+    File[] files = directory.listFiles(filter);
+    ArrayList<File> filesList = new ArrayList<>();
+    if (files != null)
+      for (File file : files)
+        filesList.add(file);
 
-    return files;
+    File[] subDirs = directory.listFiles(getDirs);
+    if (subDirs != null) {
+      for (File subDir : subDirs) {
+        filesList.addAll(recurse(subDir));
+      }
+    }
+
+    return filesList;
   }
+
+  public static File getExamplesRoot() {
+    File directory = new File("./ExampleCodes");
+    if (directory == null || directory.exists() == false)
+      directory = new File("../ExampleCodes");
+
+    return directory;
+  }
+
+  public static ArrayList<File> getFilesRoot() {
+    return recurse(getExamplesRoot());
+  }
+
   public void parseFile(File file) throws IOException {
     Scanner scanner = new Scanner(file, "UTF-8");
 
     String source = scanner.hasNext() ? scanner.useDelimiter("\\Z").next() + "\n" : "\n";
     scanner.close();
     ParserResult parsingResult = parser.parse(source, file.getPath());
-    if(tokenEnabled){
-      parser.printRegexTokens(source,file.getPath());
+    if (tokenEnabled) {
+      parser.printRegexTokens(source, file.getPath());
       printLongLine();
     }
     if (parsingResult.errors.size() != 0) {
@@ -99,8 +131,8 @@ public class CodeReader {
       System.out.println("Was unable to create a parse tree");
       return;
     }
-    if(parseTreeEnabled){
-    System.out.println(parsingResult.root);
+    if (parseTreeEnabled) {
+      System.out.println(parsingResult.root);
     }
     printRoot(parsingResult.root);
 
@@ -122,8 +154,8 @@ public class CodeReader {
       program.semanticAnalysis(context);
 
       // Print symbol table recursively
-      if(symbolTableEnabled){
-      context.printSymbolTableToChild();
+      if (symbolTableEnabled) {
+        context.printSymbolTableToChild();
       }
       if (context.exceptions.size() != 0) {
         System.out.println("The following errors were encountered during semantic analysis:\n");
@@ -153,7 +185,8 @@ public class CodeReader {
       }
     }
   }
-  public static void settings(boolean symbolTable, boolean parseTree, boolean tokens){
+
+  public static void settings(boolean symbolTable, boolean parseTree, boolean tokens) {
     symbolTableEnabled = symbolTable;
     parseTreeEnabled = parseTree;
     tokenEnabled = tokens;
@@ -173,7 +206,7 @@ public class CodeReader {
 
     writer.close();
   }
-  
+
   static void printLongLine() {
     System.out
         .println("==============================================================================================");

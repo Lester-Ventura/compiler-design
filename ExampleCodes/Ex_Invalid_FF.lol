@@ -1,1 +1,0 @@
-ff(); // The ff function must take an error code as a parameter

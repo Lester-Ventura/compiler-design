@@ -517,6 +517,8 @@ public abstract class ExpressionNode extends Node {
     }
 
     public LoLangType evaluateType(SemanticContext context) {
+      LoLangType right = this.right.evaluateType(context);
+
       if (this.left instanceof ExpressionNode.Identifier) {
         String identifier = ((ExpressionNode.Identifier) this.left).identifier.lexeme;
 
@@ -531,7 +533,8 @@ public abstract class ExpressionNode extends Node {
                 ((ExpressionNode.Identifier) this.left).identifier));
           } else {
             try {
-              context.variableEnvironment.define(identifier, new LoLangType.Any(), false);
+              context.variableEnvironment.define(identifier, right, false);
+              return right;
             } catch (EnvironmentException.EnvironmentAlreadyDeclaredException __) {
             }
           }
@@ -541,7 +544,6 @@ public abstract class ExpressionNode extends Node {
       }
 
       LoLangType left = this.left.evaluateType(context);
-      LoLangType right = this.right.evaluateType(context);
 
       if (left.isEquivalent(right) == false) {
         context.addException(new SemanticAnalyzerException(String.format(

@@ -383,6 +383,9 @@ class RegexLiteralNode extends RegexNode {
   }
 
   public ArrayList<String> getMatches(String restString, HashMap<String, RegexNode> environment) {
+    if (restString.length() == 0)
+      return new ArrayList<>();
+
     ArrayList<String> matches = new ArrayList<>();
     char starting = restString.charAt(0);
     if (starting == ch)

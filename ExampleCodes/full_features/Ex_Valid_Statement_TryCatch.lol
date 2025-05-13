@@ -8,7 +8,6 @@ support {
         // this throws the error along with the accompanying message
         feed "It is not your time yet."; 
     }
-
 } carry (e) {
     broadcast(e);
 	broadcast("Knight sucks at Ahri. L."); 

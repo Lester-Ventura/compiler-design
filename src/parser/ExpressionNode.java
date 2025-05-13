@@ -831,6 +831,8 @@ public abstract class ExpressionNode extends Node {
           return new LoLangValue.String(leftString.value + rightString.value);
         else if (this.operation.lexeme.equals("=="))
           return new LoLangValue.Boolean(leftString.value.equals(rightString.value));
+        else if (this.operation.lexeme.equals("!="))
+          return new LoLangValue.Boolean(!leftString.value.equals(rightString.value));
       }
 
       if (left instanceof LoLangValue.String && right instanceof LoLangValue.Number) {
@@ -905,6 +907,8 @@ public abstract class ExpressionNode extends Node {
         if (this.operation.lexeme.equals("+"))
           return new LoLangType.String();
         else if (this.operation.lexeme.equals("=="))
+          return new LoLangType.Boolean();
+        else if (this.operation.lexeme.equals("!="))
           return new LoLangType.Boolean();
       }
 

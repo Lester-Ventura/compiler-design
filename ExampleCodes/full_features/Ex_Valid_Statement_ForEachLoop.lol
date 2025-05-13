@@ -1,7 +1,7 @@
 // this is a valid for-each statement
 // this should loop through this array
 
-cannon (item name: message of ["Doran", "Oner", "Faker", "Smash", "Keria"]) {
+cannon (item name: message of ["Doran", "Oner", "Faker", "Gumayusi", "Keria"]) {
   broadcast(name);
 }
 // Output:

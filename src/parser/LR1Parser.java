@@ -7,6 +7,8 @@ import parser.LR1TableParser.LR1TableProcess;
 import parser.LR1TableParser.LR1TableProcessType;
 
 public class LR1Parser {
+  // public static LR1Parser parser;
+
   static class StateNode {
     int stateIndex;
 
@@ -47,31 +49,35 @@ public class LR1Parser {
     }
   }
 
-  String input;
+  // String input;
+  // String inputPath;
+  // RegexEngine lexer;
   ArrayList<LR1GrammarParser.LR1GrammarProduction> productions;
   ArrayList<LR1TableParser.LR1TableState> states;
   HashMap<Integer, ReductionTable.Reduction> reducers = ReductionTable.generateReductions();
-  RegexEngine lexer;
 
   public LR1Parser(
-      String input,
       ArrayList<LR1GrammarParser.LR1GrammarProduction> productions,
       ArrayList<LR1TableParser.LR1TableState> states) {
     this.productions = productions;
     this.states = states;
-    this.input = input;
-    lexer = RegexEngine.createRegexEngine(input);
+  }
+
+  public LR1Parser fork() {
+    return new LR1Parser(this.productions, this.states);
   }
 
   Stack<StateNode> statesStack = new Stack<>();
   Stack<LR1StackSymbol> symbolsStack = new Stack<>();
-  ArrayList<ParserException> exceptions = new ArrayList<>();
 
-  public ParserResult parse() {
+  public ParserResult parse(String input, String inputPath) {
+    RegexEngine lexer = RegexEngine.createRegexEngine(input, inputPath);
+    
     // initialize the stacks, error list and the start state
+    ArrayList<ParserException> exceptions = new ArrayList<>();
+
     statesStack = new Stack<>();
     symbolsStack = new Stack<>();
-    exceptions = new ArrayList<>();
     statesStack.push(new StateNode(0));
 
     while (true) {
@@ -82,10 +88,9 @@ public class LR1Parser {
 
       if (action == null) {
         try {
-          token = sync();
-        } catch (ParserException exception) {
-          exceptions.add(exception);
-          break;
+          token = sync(inputPath, lexer, exceptions);
+        } catch (ParserEOFException e) {
+          return new ParserResult(null, exceptions);
         }
 
         token = token != null ? token : lexer.peekNextToken();
@@ -124,7 +129,7 @@ public class LR1Parser {
 
         // try to perform the reduction
         try {
-          Node result = reduction.reducer.run(reductionInput);
+          Node result = reduction.reducer.run(reductionInput, fork());
           LR1StackInternalNode node = new LR1StackInternalNode(result);
           symbolsStack.add(node);
         } catch (Exception e) {
@@ -153,38 +158,15 @@ public class LR1Parser {
     return new ParserResult(null, exceptions);
   }
 
-  String buildErrorWindow(Token currentToken) {
-    // Point to the area of the file that caused the error
-    String[] lines = input.split("\n");
-    int length = Math.max(
-        String.format("%d", currentToken.line).length(),
-        currentToken.line < lines.length ? String.format("%d", currentToken.line + 1).length() : 0);
-
-    String second = "", third = "";
-
-    for (int i = 0; i < currentToken.column + length + 3; i++) {
-      second += " ";
-      third += "─";
-    }
-    second += "│";
-    third += "┘";
-
-    String window = String.format("%" + length + "d | %s\n%s\n%s\n", currentToken.line, lines.length <= currentToken.line -1 ? "" : lines[currentToken.line - 1],
-        second, third);
-    if (currentToken.line < lines.length)
-      window += String.format("%" + length + "d | %s\n", currentToken.line + 1, lines[currentToken.line]);
-
-    return window;
-  }
-
-  private boolean isSafe() {
+  private boolean isSafe(RegexEngine lexer) {
     Token currentToken = lexer.peekNextToken();
     StateNode currentNode = statesStack.peek();
     return states.get(currentNode.stateIndex).actions.containsKey(currentToken.type.toString());
   }
 
   // performs panic mode error handling and leaves the parser in a safe state
-  private Token sync() throws ParserException {
+  private Token sync(String inputPath, RegexEngine lexer, ArrayList<ParserException> exceptions)
+      throws ParserEOFException {
     Token currentToken = lexer.peekNextToken();
     StateNode currentNode = statesStack.peek();
 
@@ -194,7 +176,7 @@ public class LR1Parser {
         currentToken = lexer.getNextToken();
       currentToken = lexer.peekNextToken();
 
-      if (isSafe())
+      if (isSafe(lexer))
         return null;
     }
 
@@ -202,7 +184,8 @@ public class LR1Parser {
     HashMap<String, LR1TableProcess> expecteds = states.get(currentNode.stateIndex).actions;
     if (expecteds.containsKey("SEMICOLON")) {
       LR1TableProcess action = expecteds.get("SEMICOLON");
-      Token newToken = new Token(TokenType.SEMICOLON, ";", new ColumnAndRow(currentToken.line, currentToken.column));
+      Token newToken = new Token(TokenType.SEMICOLON, ";", new ColumnAndRow(currentToken.line, currentToken.column),
+          inputPath);
       if (action.type == LR1TableProcessType.REDUCE)
         return newToken;
 
@@ -210,25 +193,21 @@ public class LR1Parser {
           newToken));
       statesStack.push(new StateNode(action.value));
       exceptions.add(new ParserException(String.format(
-          "Expected SEMICOLON before line: %d, column: %d, but received %s, SEMICOLON was automatically inserted.",
-          currentToken.line, currentToken.column, currentToken.type.toString())));
+          "Expected SEMICOLON but received %s, SEMICOLON was automatically inserted.",
+          currentToken.type.toString()), currentToken));
 
-      if (isSafe())
+      if (isSafe(lexer))
         return null;
     }
 
     HashMap<String, DefaultProduction> defaultProductions = DefaultProductions.createDefaultProductions();
 
-    // Build error message
-    String window = buildErrorWindow(currentToken);
-
     // create a user error message by determining the possible next tokens
     String expectedString = String.join(", ", (String[]) expecteds.keySet().toArray(new String[0]));
 
-    String userErrorMessage = String.format(
-        "Error in line %d column %d\n%s\nExpected one of the following tokens: %s but got %s",
-        currentToken.line, currentToken.column, window, expectedString, currentToken.type.toString());
-    exceptions.add(new ParserException(userErrorMessage));
+    String userErrorMessage = String.format("Expected one of the following tokens: %s but got %s",
+        expectedString, currentToken.type.toString());
+    exceptions.add(new ParserException(userErrorMessage, currentToken));
 
     String productionToSkip = null;
 
@@ -254,7 +233,7 @@ public class LR1Parser {
 
         currentNode = statesStack.peek();
       } catch (Exception e) {
-        throw new ParserException("No more items in the stacks to pop");
+        exceptions.add(new ParserException("No more items in the stacks to pop", null));
       }
     }
 
@@ -267,7 +246,8 @@ public class LR1Parser {
       Token nextToken = lexer.getNextToken();
 
       if (nextToken.type == TokenType.EOF) {
-        throw new ParserException("Unexpected end of file");
+        exceptions.add(new ParserException("Unexpected end of file", nextToken));
+        throw new ParserEOFException();
       }
     }
 
@@ -296,4 +276,13 @@ public class LR1Parser {
 
     throw new Error(e);
   }
+  public void printRegexTokens(String source, String path){
+    RegexEngine lexer = RegexEngine.createRegexEngine(source, path);
+    while(lexer.peekNextToken().type != TokenType.EOF){
+      System.out.println(lexer.getNextToken().toString());
+    }
+  }
+}
+
+class ParserEOFException extends Exception {
 }

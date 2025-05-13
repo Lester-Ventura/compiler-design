@@ -7,7 +7,7 @@ import lexer.Token;
 
 class ReductionTable {
   interface Reducer {
-    Node run(ReductionInput input);
+    Node run(ReductionInput input, LR1Parser parser);
   }
 
   static class Reduction {
@@ -80,29 +80,29 @@ class ReductionTable {
   public static HashMap<Integer, Reduction> generateReductions() {
     HashMap<Integer, Reduction> reductions = new HashMap<>();
 
-    Reduction passthroughReducer = new Reduction((e) -> e.getInternalNode(0));
+    Reduction passthroughReducer = new Reduction((e, parser) -> e.getInternalNode(0));
     Reduction binaryOperationReducer = new Reduction(
-        (input) -> new ExpressionNode.Binary(input.getExpressionNode(0), input.getToken(1),
+        (input, parser) -> new ExpressionNode.Binary(input.getExpressionNode(0), input.getToken(1),
             input.getExpressionNode(2)));
     Reduction unaryOperationReducer = new Reduction(
-        (input) -> new ExpressionNode.Unary(input.getToken(0).lexeme,
+        (input, parser) -> new ExpressionNode.Unary(input.getToken(0),
             input.getExpressionNode(1)));
 
-    reductions.put(1, new Reduction((input) -> new StatementNode.Program()));
-    reductions.put(2, new Reduction((input) -> {
+    reductions.put(1, new Reduction((input, parser) -> new StatementNode.Program()));
+    reductions.put(2, new Reduction((input, parser) -> {
       Node statements = input.getInternalNode(0);
       if (statements instanceof Node.StatementList)
         return new StatementNode.Program((Node.StatementList) statements);
       return null;
     }));
-    reductions.put(3, new Reduction((input) -> {
+    reductions.put(3, new Reduction((input, parser) -> {
       Node statements = input.getInternalNode(0);
       Node newStatement = input.getInternalNode(1);
       if (statements instanceof Node.StatementList && newStatement instanceof StatementNode)
         return ((Node.StatementList) statements).add((StatementNode) newStatement);
       return null;
     }));
-    reductions.put(4, new Reduction((input) -> {
+    reductions.put(4, new Reduction((input, parser) -> {
       Node newStatement = input.getInternalNode(0);
       if (newStatement instanceof StatementNode)
         return new Node.StatementList((StatementNode) newStatement);
@@ -111,119 +111,133 @@ class ReductionTable {
 
     // HANDLE <STATEMENT> -> reductions;
     addALotOfSameReduction(5, 16, passthroughReducer, reductions);
-    reductions.put(17, new Reduction((input) -> new StatementNode.SwitchBreak()));
-    reductions.put(18, new Reduction((input) -> new StatementNode.SwitchGoto(input.getToken(1).lexeme)));
-    reductions.put(19, new Reduction((input) -> new StatementNode.SwitchGoto(input.getToken(1).lexeme)));
-    reductions.put(20, new Reduction((input) -> new StatementNode.LoopBreak()));
-    reductions.put(21, new Reduction((input) -> new StatementNode.LoopContinue()));
-    reductions.put(22, new Reduction((input) -> new StatementNode.Import(input.getToken(1).lexeme)));
+    reductions.put(17, new Reduction((input, parser) -> new StatementNode.SwitchBreak(input.getToken(0))));
+    reductions.put(18,
+        new Reduction((input, parser) -> new StatementNode.SwitchGoto(input.getToken(0), input.getToken(1))));
+    reductions.put(19,
+        new Reduction((input, parser) -> new StatementNode.SwitchGoto(input.getToken(0), input.getToken(1))));
+    reductions.put(20, new Reduction((input, parser) -> new StatementNode.LoopBreak(input.getToken(0))));
+    reductions.put(21, new Reduction((input, parser) -> new StatementNode.LoopContinue(input.getToken(0))));
+    reductions.put(22, new Reduction((input, parser) -> {
+      StatementNode.Import ret = new StatementNode.Import(input.getToken(1));
+      ret.getSyntaxTree(parser);
+      return ret;
+    }));
 
     // BEGIN HANDLING IF CONDITIONS
-    reductions.put(23, new Reduction((input) -> {
+    reductions.put(23, new Reduction((input, parser) -> {
       ExpressionNode cond = input.getExpressionNode(2);
       StatementNode stmt = input.getStatementNode(4);
       Node branches = input.getInternalNode(5);
       StatementNode elseBody = input.getStatementNode(7);
 
       if (branches instanceof Node.IfStatementBranches) {
-        Node.IfStatementBranch newBranch = new Node.IfStatementBranch(cond, stmt);
+        Node.IfStatementBranch newBranch = new Node.IfStatementBranch(cond, stmt, input.getToken(1));
         ((Node.IfStatementBranches) branches).add(newBranch);
         return new StatementNode.If((Node.IfStatementBranches) branches, elseBody);
       }
       return null;
     }));
-    reductions.put(24, new Reduction((input) -> {
+    reductions.put(24, new Reduction((input, parser) -> {
       ExpressionNode cond = input.getExpressionNode(2);
       StatementNode stmt = input.getStatementNode(4);
       Node branches = input.getInternalNode(5);
 
       if (branches instanceof Node.IfStatementBranches) {
-        Node.IfStatementBranch newBranch = new Node.IfStatementBranch(cond, stmt);
+        Node.IfStatementBranch newBranch = new Node.IfStatementBranch(cond, stmt, input.getToken(1));
         ((Node.IfStatementBranches) branches).add(newBranch);
 
         return new StatementNode.If((Node.IfStatementBranches) branches, null);
       }
       return null;
     }));
-    reductions.put(25, new Reduction((input) -> {
+    reductions.put(25, new Reduction((input, parser) -> {
       ExpressionNode cond = input.getExpressionNode(2);
       StatementNode stmt = input.getStatementNode(4);
       StatementNode elseBody = input.getStatementNode(6);
-      return new StatementNode.If(new Node.IfStatementBranches(new Node.IfStatementBranch(cond, stmt)), elseBody);
+      return new StatementNode.If(
+          new Node.IfStatementBranches(new Node.IfStatementBranch(cond, stmt, input.getToken(1))), elseBody);
     }));
-    reductions.put(26, new Reduction((input) -> {
+    reductions.put(26, new Reduction((input, parser) -> {
       ExpressionNode cond = input.getExpressionNode(2);
       StatementNode stmt = input.getStatementNode(4);
-      return new StatementNode.If(new Node.IfStatementBranches(new Node.IfStatementBranch(cond, stmt)));
+      return new StatementNode.If(
+          new Node.IfStatementBranches(new Node.IfStatementBranch(cond, stmt, input.getToken(1))));
     }));
-    reductions.put(27, new Reduction((input) -> ((Node.IfStatementBranches) input.getInternalNode(0))
+    reductions.put(27, new Reduction((input, parser) -> ((Node.IfStatementBranches) input.getInternalNode(0))
         .add((Node.IfStatementBranch) input.getInternalNode(1))));
     reductions.put(28,
-        new Reduction((input) -> new Node.IfStatementBranches((Node.IfStatementBranch) input.getInternalNode(0))));
+        new Reduction(
+            (input, parser) -> new Node.IfStatementBranches((Node.IfStatementBranch) input.getInternalNode(0))));
     reductions.put(29,
-        new Reduction((input) -> new Node.IfStatementBranch(input.getExpressionNode(2), input.getStatementNode(4))));
+        new Reduction(
+            (input, parser) -> new Node.IfStatementBranch(input.getExpressionNode(2), input.getStatementNode(4),
+                input.getToken(1))));
     // END OF HANDLING IF CONDITIONS
 
     // BEGIN HANDLING VARIABLE AND CONSTANT DECLARATIONS
-    reductions.put(30, new Reduction((input) -> {
+    reductions.put(30, new Reduction((input, parser) -> {
       Node.VariableDeclaration declaration = (Node.VariableDeclaration) input.getInternalNode(0);
       return new StatementNode.VariableDeclaration(declaration);
     }));
-    reductions.put(31, new Reduction((input) -> {
+    reductions.put(31, new Reduction((input, parser) -> {
       Node.VariableDeclarationHeader header = (Node.VariableDeclarationHeader) input.getInternalNode(0);
-      return new Node.VariableDeclaration(header.lexeme, header.type);
+      return new Node.VariableDeclaration(header.identifier, header.type);
     }));
-    reductions.put(32, new Reduction((input) -> {
+    reductions.put(32, new Reduction((input, parser) -> {
       Node.VariableDeclarationHeader header = (Node.VariableDeclarationHeader) input.getInternalNode(0);
       ExpressionNode expr = input.getExpressionNode(2);
-      return new Node.VariableDeclaration(header.lexeme, header.type, expr);
+      return new Node.VariableDeclaration(header.identifier, header.type, expr, input.getToken(1));
     }));
-    reductions.put(33, new Reduction((input) -> {
+    reductions.put(33, new Reduction((input, parser) -> {
       Token identifier = input.getToken(1);
       TypeExpressionNode type = input.getTypeExpressionNode(3);
-      return new Node.VariableDeclarationHeader(identifier.lexeme, type);
+      return new Node.VariableDeclarationHeader(identifier, type);
     }));
-    reductions.put(34, new Reduction((input) -> {
+    reductions.put(34, new Reduction((input, parser) -> {
       Token identifier = input.getToken(1);
       TypeExpressionNode type = input.getTypeExpressionNode(3);
       ExpressionNode expr = input.getExpressionNode(5);
-      return new StatementNode.ConstantDeclaration(identifier.lexeme, type, expr);
+      return new StatementNode.ConstantDeclaration(identifier, type, expr);
     }));
     // END OF HANDLING VARIABLE AND CONSTANT DECLARATIONS
 
-    reductions.put(35, new Reduction((input) -> new StatementNode.Block()));
+    reductions.put(35, new Reduction((input, parser) -> new StatementNode.Block()));
     reductions.put(36,
-        new Reduction((input) -> new StatementNode.Block((Node.StatementList) input.getInternalNode(1))));
-    reductions.put(37, new Reduction((input) -> new StatementNode.Return(input.getExpressionNode(1))));
-    reductions.put(38, new Reduction((input) -> new StatementNode.Return()));
-    reductions.put(39, new Reduction((input) -> {
+        new Reduction((input, parser) -> new StatementNode.Block((Node.StatementList) input.getInternalNode(1))));
+    reductions.put(37,
+        new Reduction((input, parser) -> new StatementNode.Return(input.getToken(0), input.getExpressionNode(1))));
+    reductions.put(38, new Reduction((input, parser) -> new StatementNode.Return(input.getToken(0))));
+    reductions.put(39, new Reduction((input, parser) -> {
       StatementNode.Block block = (StatementNode.Block) input.getInternalNode(1);
       Token identifier = input.getToken(4);
       StatementNode.Block errorHandler = (StatementNode.Block) input.getInternalNode(6);
 
-      return new StatementNode.TryCatch(block, identifier.lexeme, errorHandler);
+      return new StatementNode.TryCatch(block, identifier, errorHandler);
     }));
-    reductions.put(40, new Reduction((input) -> new StatementNode.Throw(input.getToken(1).lexeme)));
+    reductions.put(40, new Reduction((input, parser) -> new StatementNode.Throw(input.getToken(1))));
 
     // BEGIN HANDLING SWITCH STATEMENTS
-    reductions.put(41, new Reduction((input) -> new StatementNode.Switch(input.getExpressionNode(2),
-        (Node.SwitchCaseList) input.getInternalNode(5))));
-    reductions.put(42, new Reduction((input) -> new StatementNode.Switch(input.getExpressionNode(2))));
-    reductions.put(43, new Reduction((input) -> {
+    reductions.put(41, new Reduction((input, parser) -> new StatementNode.Switch(input.getExpressionNode(2),
+        (Node.SwitchCaseList) input.getInternalNode(5), input.getToken(1))));
+    reductions.put(42,
+        new Reduction((input, parser) -> new StatementNode.Switch(input.getExpressionNode(2), input.getToken(1))));
+    reductions.put(43, new Reduction((input, parser) -> {
       Node.SwitchCaseList list = (Node.SwitchCaseList) input.getInternalNode(0);
       StatementNode.Block defaultHandler = (StatementNode.Block) input.getInternalNode(3);
       return list.setDefaultCase(defaultHandler);
     }));
     reductions.put(44,
-        new Reduction((input) -> new Node.SwitchCaseList(
+        new Reduction((input, parser) -> new Node.SwitchCaseList(
             new Node.SwitchCaseList.SwitchCase(((StatementNode.Block) input.getInternalNode(2))))));
     reductions.put(45, passthroughReducer);
-    reductions.put(46, new Reduction((input) -> ((Node.SwitchCaseList) input.getInternalNode(0))
+    reductions.put(46, new Reduction((input, parser) -> ((Node.SwitchCaseList) input.getInternalNode(0))
         .addNamedCase((Node.SwitchCaseList.SwitchCase) input.getInternalNode(1))));
     reductions.put(47,
-        new Reduction((input) -> new Node.SwitchCaseList((Node.SwitchCaseList.SwitchCase) input.getInternalNode(0))));
+        new Reduction(
+            (input, parser) -> new Node.SwitchCaseList((Node.SwitchCaseList.SwitchCase) input.getInternalNode(0))));
 
-    Reduction switchCaseReducer = new Reduction((input) -> new Node.SwitchCaseList.SwitchCase(
+    Reduction switchCaseReducer = new Reduction((input, parser) -> new Node.SwitchCaseList.SwitchCase(
         input.getToken(2),
         ((StatementNode.Block) input.getInternalNode(5))));
 
@@ -239,77 +253,80 @@ class ReductionTable {
     reductions.put(51, passthroughReducer);
     reductions.put(52, passthroughReducer);
 
-    reductions.put(53, new Reduction((input) -> {
+    reductions.put(53, new Reduction((input, parser) -> {
       Token identifier = input.getToken(3);
       TypeExpressionNode type = input.getTypeExpressionNode(5);
       ExpressionNode expr = input.getExpressionNode(7);
       StatementNode body = input.getStatementNode(9);
-      return new StatementNode.ForEachLoop(identifier, type, expr, body);
+      return new StatementNode.ForEachLoop(identifier, type, expr, body, input.getToken(6));
     }));
-    reductions.put(54, new Reduction((input) -> {
+    reductions.put(54, new Reduction((input, parser) -> {
       Node.CounterLoopInit init = (Node.CounterLoopInit) input.getInternalNode(2);
       ExpressionNode condition = input.getExpressionNode(4);
       Node.ExpressionList increment = (Node.ExpressionList) input.getInternalNode(6);
       StatementNode body = input.getStatementNode(8);
-      return StatementNode.CounterControlledLoop.all(init, condition, increment, body);
+      return StatementNode.CounterControlledLoop.all(init, condition, increment, body, input.getToken(3));
     }));
-    reductions.put(55, new Reduction((input) -> {
+    reductions.put(55, new Reduction((input, parser) -> {
       ExpressionNode condition = input.getExpressionNode(3);
       Node.ExpressionList increment = (Node.ExpressionList) input.getInternalNode(5);
       StatementNode body = input.getStatementNode(7);
-      return StatementNode.CounterControlledLoop.missingInit(condition, increment, body);
+      return StatementNode.CounterControlledLoop.missingInit(condition, increment, body, input.getToken(2));
     }));
-    reductions.put(56, new Reduction((input) -> {
+    reductions.put(56, new Reduction((input, parser) -> {
       Node.CounterLoopInit init = (Node.CounterLoopInit) input.getInternalNode(2);
       Node.ExpressionList increment = (Node.ExpressionList) input.getInternalNode(5);
       StatementNode body = input.getStatementNode(7);
-      return StatementNode.CounterControlledLoop.missingCondition(init, increment, body);
+      return StatementNode.CounterControlledLoop.missingCondition(init, increment, body, input.getToken(3));
     }));
-    reductions.put(57, new Reduction((input) -> {
+    reductions.put(57, new Reduction((input, parser) -> {
       Node.CounterLoopInit init = (Node.CounterLoopInit) input.getInternalNode(2);
       ExpressionNode condition = input.getExpressionNode(4);
       StatementNode body = input.getStatementNode(7);
-      return StatementNode.CounterControlledLoop.missingIncrement(init, condition, body);
+      return StatementNode.CounterControlledLoop.missingIncrement(init, condition, body, input.getToken(3));
     }));
-    reductions.put(58, new Reduction((input) -> {
+    reductions.put(58, new Reduction((input, parser) -> {
       Node.ExpressionList increment = (Node.ExpressionList) input.getInternalNode(4);
       StatementNode body = input.getStatementNode(6);
-      return StatementNode.CounterControlledLoop.onlyIncrement(increment, body);
+      return StatementNode.CounterControlledLoop.onlyIncrement(increment, body, input.getToken(2));
     }));
-    reductions.put(59, new Reduction((input) -> {
+    reductions.put(59, new Reduction((input, parser) -> {
       Node.CounterLoopInit init = (Node.CounterLoopInit) input.getInternalNode(2);
       StatementNode body = input.getStatementNode(6);
-      return StatementNode.CounterControlledLoop.onlyInit(init, body);
+      return StatementNode.CounterControlledLoop.onlyInit(init, body, input.getToken(3));
     }));
-    reductions.put(60, new Reduction((input) -> {
+    reductions.put(60, new Reduction((input, parser) -> {
       ExpressionNode condition = input.getExpressionNode(3);
       StatementNode body = input.getStatementNode(6);
-      return StatementNode.CounterControlledLoop.onlyCondition(condition, body);
+      return StatementNode.CounterControlledLoop.onlyCondition(condition, body, input.getToken(2));
     }));
 
-    reductions.put(61, new Reduction((input) -> {
+    reductions.put(61, new Reduction((input, parser) -> {
       StatementNode body = input.getStatementNode(5);
-      return StatementNode.CounterControlledLoop.none(body);
+      return StatementNode.CounterControlledLoop.none(body, input.getToken(2));
     }));
 
     // HANDLE COUNTER_LOOP_INIT UNTIL LOOP_BODY_STATEMENT
     reductions.put(62,
         new Reduction(
-            (input) -> ((Node.CounterLoopInit) input.getInternalNode(0)).add((Node.VariableDeclaration) input
+            (input, parser) -> ((Node.CounterLoopInit) input.getInternalNode(0)).add((Node.VariableDeclaration) input
                 .getInternalNode(1))));
-    reductions.put(63, new Reduction((input) -> new Node.CounterLoopInit((Node.VariableDeclaration) input
+    reductions.put(63, new Reduction((input, parser) -> new Node.CounterLoopInit((Node.VariableDeclaration) input
         .getInternalNode(0))));
     reductions.put(64,
-        new Reduction((input) -> ((Node.ExpressionList) input.getInternalNode(2)).add(input.getExpressionNode(0))));
-    reductions.put(65, new Reduction((input) -> new Node.ExpressionList(input.getExpressionNode(0))));
+        new Reduction(
+            (input, parser) -> ((Node.ExpressionList) input.getInternalNode(2)).add(input.getExpressionNode(0))));
+    reductions.put(65, new Reduction((input, parser) -> new Node.ExpressionList(input.getExpressionNode(0))));
     reductions.put(66,
-        new Reduction((input) -> new StatementNode.WhileLoop(input.getExpressionNode(2),
-            (StatementNode) input.getStatementNode(4))));
+        new Reduction((input, parser) -> new StatementNode.WhileLoop(input.getExpressionNode(2),
+            (StatementNode) input.getStatementNode(4), input.getToken(1))));
     reductions.put(67,
-        new Reduction((input) -> new StatementNode.WhileLoop((StatementNode) input.getInternalNode(3))));
+        new Reduction(
+            (input, parser) -> new StatementNode.WhileLoop((StatementNode) input.getInternalNode(3),
+                input.getToken(1))));
 
     // EXPRESSION STATEMENTS AND EXPRESSIONS BELOW
-    reductions.put(68, new Reduction((input) -> new StatementNode.Expression(input.getExpressionNode(0))));
+    reductions.put(68, new Reduction((input, parser) -> new StatementNode.Expression(input.getExpressionNode(0))));
     // passthrough for FUNCTION EXPRESSION / ARRAY LITERAL / OBJECT LITERAL /
     // LOGICAL EXPRESSION
     reductions.put(69, passthroughReducer);
@@ -318,24 +335,26 @@ class ReductionTable {
     reductions.put(72, passthroughReducer);
 
     // HANDLE FUNCTION EXPRESSIONS
-    reductions.put(73, new Reduction((input) -> {
+    reductions.put(73, new Reduction((input, parser) -> {
       Node.ParameterList parameterList = (Node.ParameterList) input.getInternalNode(2);
       TypeExpressionNode returnType = (TypeExpressionNode) input.getTypeExpressionNode(5);
       StatementNode body = (StatementNode) input.getInternalNode(7);
-      return new ExpressionNode.FunctionExpression(parameterList, returnType, body);
+      Token token = input.getToken(6);
+      return new ExpressionNode.FunctionExpression(parameterList, returnType, (StatementNode.Block) body, token);
     }));
-    reductions.put(74, new Reduction((input) -> {
+    reductions.put(74, new Reduction((input, parser) -> {
       TypeExpressionNode returnType = (TypeExpressionNode) input.getTypeExpressionNode(4);
       StatementNode body = (StatementNode) input.getInternalNode(6);
-      return new ExpressionNode.FunctionExpression(returnType, body);
+      Token token = input.getToken(5);
+      return new ExpressionNode.FunctionExpression(returnType, (StatementNode.Block) body, token);
     }));
-    reductions.put(75, new Reduction((input) -> {
+    reductions.put(75, new Reduction((input, parser) -> {
       Node.VariableDeclarationHeader variableDeclarationHeader = (Node.VariableDeclarationHeader) input
           .getInternalNode(0);
       Node.ParameterList parameterList = (Node.ParameterList) input.getInternalNode(2);
       return parameterList.add(variableDeclarationHeader);
     }));
-    reductions.put(76, new Reduction((input) -> {
+    reductions.put(76, new Reduction((input, parser) -> {
       Node.VariableDeclarationHeader variableDeclarationHeader = (Node.VariableDeclarationHeader) input
           .getInternalNode(0);
       return new Node.ParameterList(variableDeclarationHeader);
@@ -344,17 +363,19 @@ class ReductionTable {
 
     // HANDLE ARRAY AND OBJECT LITERALS
     reductions.put(77,
-        new Reduction((input) -> new ExpressionNode.ArrayLiteral((Node.ExpressionList) input.getInternalNode(1))));
-    reductions.put(78, new Reduction((input) -> new ExpressionNode.ArrayLiteral()));
+        new Reduction((input, parser) -> new ExpressionNode.ArrayLiteral((Node.ExpressionList) input.getInternalNode(1),
+            input.getToken(0))));
+    reductions.put(78, new Reduction((input, parser) -> new ExpressionNode.ArrayLiteral(input.getToken(0))));
     reductions.put(79, new Reduction(
-        (input) -> new ExpressionNode.ObjectLiteral((Node.ObjectLiteralFieldList) input.getInternalNode(1))));
-    reductions.put(80, new Reduction((input) -> new ExpressionNode.ObjectLiteral()));
-    reductions.put(81, new Reduction((input) -> ((Node.ObjectLiteralFieldList) input.getInternalNode(2))
+        (input, parser) -> new ExpressionNode.ObjectLiteral((Node.ObjectLiteralFieldList) input.getInternalNode(1))));
+    reductions.put(80, new Reduction((input, parser) -> new ExpressionNode.ObjectLiteral()));
+    reductions.put(81, new Reduction((input, parser) -> ((Node.ObjectLiteralFieldList) input.getInternalNode(2))
         .add((Node.ObjectLiteralField) input.getInternalNode(0))));
     reductions.put(82,
-        new Reduction((input) -> new Node.ObjectLiteralFieldList((Node.ObjectLiteralField) input.getInternalNode(0))));
+        new Reduction(
+            (input, parser) -> new Node.ObjectLiteralFieldList((Node.ObjectLiteralField) input.getInternalNode(0))));
     reductions.put(83,
-        new Reduction((input) -> new Node.ObjectLiteralField(input.getToken(0).lexeme, input.getExpressionNode(2))));
+        new Reduction((input, parser) -> new Node.ObjectLiteralField(input.getToken(0), input.getExpressionNode(2))));
 
     // BEGIN FUNNY
     reductions.put(84, binaryOperationReducer);
@@ -394,47 +415,52 @@ class ReductionTable {
 
     // HANDLE INCREMENTATION AND ASSIGNMENT
     reductions.put(118, new Reduction(
-        (input) -> new ExpressionNode.Incrementation(input.getExpressionNode(0), input.getToken(1), true)));
+        (input, parser) -> new ExpressionNode.Incrementation(input.getExpressionNode(0), input.getToken(1), true)));
     reductions.put(119, new Reduction(
-        (input) -> new ExpressionNode.Incrementation(input.getExpressionNode(0), input.getToken(1), true)));
+        (input, parser) -> new ExpressionNode.Incrementation(input.getExpressionNode(0), input.getToken(1), true)));
     reductions.put(120, new Reduction(
-        (input) -> new ExpressionNode.Incrementation(input.getExpressionNode(1), input.getToken(0), false)));
+        (input, parser) -> new ExpressionNode.Incrementation(input.getExpressionNode(1), input.getToken(0), false)));
     reductions.put(121, new Reduction(
-        (input) -> new ExpressionNode.Incrementation(input.getExpressionNode(1), input.getToken(0), false)));
+        (input, parser) -> new ExpressionNode.Incrementation(input.getExpressionNode(1), input.getToken(0), false)));
     reductions.put(122, new Reduction(
-        (input) -> new ExpressionNode.Assignment(input.getExpressionNode(0), input.getExpressionNode(2))));
+        (input, parser) -> new ExpressionNode.Assignment(input.getExpressionNode(0), input.getExpressionNode(2),
+            input.getToken(1))));
 
     // HANDLE ASSIGNABLE LEFT EXPRESSIONS
-    reductions.put(123, new Reduction((input) -> new ExpressionNode.Identifier(input.getToken(0).lexeme)));
+    reductions.put(123, new Reduction((input, parser) -> new ExpressionNode.Identifier(input.getToken(0))));
     reductions.put(124,
-        new Reduction((input) -> new ExpressionNode.DotAccess(input.getExpressionNode(0), input.getToken(2).lexeme)));
+        new Reduction((input, parser) -> new ExpressionNode.DotAccess(input.getExpressionNode(0), input.getToken(2))));
     reductions.put(125,
         new Reduction(
-            (input) -> new ExpressionNode.DotAccess(new ExpressionNode.FunctionCall(input.getExpressionNode(0),
-                (Node.ExpressionList) input.getInternalNode(2)),
-                input.getToken(5).lexeme)));
+            (input, parser) -> new ExpressionNode.DotAccess(new ExpressionNode.FunctionCall(input.getExpressionNode(0),
+                (Node.ExpressionList) input.getInternalNode(2), input.getToken(1)),
+                input.getToken(5))));
     reductions.put(126,
         new Reduction(
-            (input) -> new ExpressionNode.DotAccess(new ExpressionNode.FunctionCall(input.getExpressionNode(0)),
-                input.getToken(4).lexeme)));
+            (input, parser) -> new ExpressionNode.DotAccess(
+                new ExpressionNode.FunctionCall(input.getExpressionNode(0), input.getToken(1)),
+                input.getToken(4))));
 
     reductions.put(127,
         new Reduction(
-            (input) -> new ExpressionNode.IndexAccess(input.getExpressionNode(0), input.getExpressionNode(2))));
+            (input, parser) -> new ExpressionNode.IndexAccess(input.getExpressionNode(0), input.getExpressionNode(2),
+                input.getToken(1))));
     reductions.put(128,
         new Reduction(
-            (input) -> new ExpressionNode.IndexAccess(new ExpressionNode.FunctionCall(input.getExpressionNode(0),
-                (Node.ExpressionList) input.getInternalNode(2)),
-                input.getExpressionNode(5))));
+            (input,
+                parser) -> new ExpressionNode.IndexAccess(new ExpressionNode.FunctionCall(input.getExpressionNode(0),
+                    (Node.ExpressionList) input.getInternalNode(2), input.getToken(1)),
+                    input.getExpressionNode(5), input.getToken(4))));
     reductions.put(129,
         new Reduction(
-            (input) -> new ExpressionNode.IndexAccess(new ExpressionNode.FunctionCall(input.getExpressionNode(0)),
-                input.getExpressionNode(4))));
+            (input, parser) -> new ExpressionNode.IndexAccess(
+                new ExpressionNode.FunctionCall(input.getExpressionNode(0), input.getToken(1)),
+                input.getExpressionNode(4), input.getToken(3))));
 
     // HANDLE IDENTIFIER STACK EXPRESSIONS
-    reductions.put(130, new Reduction((input) -> {
+    reductions.put(130, new Reduction((input, parser) -> {
       try {
-        return new ExpressionNode.Identifier(input.getToken(0).lexeme);
+        return new ExpressionNode.Identifier(input.getToken(0));
       } catch (Error e) {
         // <ASSIGNABLE_TARGET_EXPRESSION> uses this reduction when it spots an r_paren
         return input.getExpressionNode(0);
@@ -442,55 +468,59 @@ class ReductionTable {
     }));
 
     reductions.put(131,
-        new Reduction((input) -> new ExpressionNode.DotAccess(input.getExpressionNode(0), input.getToken(2).lexeme)));
+        new Reduction((input, parser) -> new ExpressionNode.DotAccess(input.getExpressionNode(0), input.getToken(2))));
     reductions.put(132,
         new Reduction(
-            (input) -> new ExpressionNode.IndexAccess(input.getExpressionNode(0), input.getExpressionNode(2))));
+            (input, parser) -> new ExpressionNode.IndexAccess(input.getExpressionNode(0), input.getExpressionNode(2),
+                input.getToken(1))));
     reductions.put(133,
         new Reduction(
-            (input) -> new ExpressionNode.FunctionCall(input.getExpressionNode(0),
-                (Node.ExpressionList) input.getInternalNode(2))));
+            (input, parser) -> new ExpressionNode.FunctionCall(input.getExpressionNode(0),
+                (Node.ExpressionList) input.getInternalNode(2), input.getToken(1))));
     reductions.put(134,
         new Reduction(
-            (input) -> new ExpressionNode.FunctionCall(input.getExpressionNode(0))));
+            (input, parser) -> new ExpressionNode.FunctionCall(input.getExpressionNode(0), input.getToken(1))));
 
     // HANDLE LITERALS AND GROUPING EXPRESSION
     addALotOfSameReduction(135, 138,
-        new Reduction((input) -> new ExpressionNode.Literal(input.getToken(0).lexeme, input.getToken(0).type)),
+        new Reduction((input, parser) -> new ExpressionNode.Literal(input.getToken(0))),
         reductions);
     reductions.put(139,
         new Reduction(
-            (input) -> new ExpressionNode.Grouping(input.getExpressionNode(1))));
+            (input, parser) -> new ExpressionNode.Grouping(input.getExpressionNode(1))));
 
     // HANDLE TYPES
     reductions.put(140,
         new Reduction(
-            (input) -> new StatementNode.ObjectTypeDeclaration((Node.PropertyList) input.getInternalNode(3))));
+            (input, parser) -> new StatementNode.ObjectTypeDeclaration(input.getToken(1),
+                (Node.PropertyList) input.getInternalNode(3))));
     reductions.put(141,
         new Reduction(
-            (input) -> new StatementNode.ObjectTypeDeclaration()));
-    reductions.put(142, new Reduction((input) -> ((Node.PropertyList) input.getInternalNode(0))
+            (input, parser) -> new StatementNode.ObjectTypeDeclaration(input.getToken(1))));
+    reductions.put(142, new Reduction((input, parser) -> ((Node.PropertyList) input.getInternalNode(0))
         .add((Node.PropertyDefinition) input.getInternalNode(1))));
     reductions.put(143,
-        new Reduction((input) -> new Node.PropertyList((Node.PropertyDefinition) input.getInternalNode(0))));
+        new Reduction((input, parser) -> new Node.PropertyList((Node.PropertyDefinition) input.getInternalNode(0))));
     reductions.put(144, new Reduction(
-        (input) -> new Node.PropertyDefinition(input.getToken(0).lexeme, input.getTypeExpressionNode(2))));
-    reductions.put(145, new Reduction((input) -> new TypeExpressionNode.Array(input.getTypeExpressionNode(0))));
+        (input, parser) -> new Node.PropertyDefinition(input.getToken(0), input.getTypeExpressionNode(2))));
+    reductions.put(145, new Reduction((input, parser) -> new TypeExpressionNode.Array(input.getTypeExpressionNode(0))));
 
     Reduction typeReductionEndpoint = new Reduction(
-        (input) -> new TypeExpressionNode.Identifier(input.getToken(0).lexeme));
+        (input, parser) -> new TypeExpressionNode.Identifier(input.getToken(0)));
     addALotOfSameReduction(146, 149, typeReductionEndpoint, reductions);
-    reductions.put(150, new Reduction((input) -> new TypeExpressionNode.Identifier(input.getToken(1).lexeme)));
+    reductions.put(150, new Reduction((input, parser) -> new TypeExpressionNode.Identifier(input.getToken(1))));
     reductions.put(151, passthroughReducer);
 
     // HANDLE LAMBDA TYPES
     reductions.put(152,
-        new Reduction((input) -> new TypeExpressionNode.Lambda((Node.LambdaParamterList) input.getInternalNode(2),
-            input.getTypeExpressionNode(5))));
-    reductions.put(153, new Reduction((input) -> new TypeExpressionNode.Lambda(input.getTypeExpressionNode(4))));
+        new Reduction(
+            (input, parser) -> new TypeExpressionNode.Lambda((Node.LambdaParamterList) input.getInternalNode(2),
+                input.getTypeExpressionNode(5))));
+    reductions.put(153,
+        new Reduction((input, parser) -> new TypeExpressionNode.Lambda(input.getTypeExpressionNode(4))));
     reductions.put(154, new Reduction(
-        (input) -> ((Node.LambdaParamterList) input.getInternalNode(2)).add(input.getTypeExpressionNode(0))));
-    reductions.put(155, new Reduction((input) -> new Node.LambdaParamterList(input.getTypeExpressionNode(0))));
+        (input, parser) -> ((Node.LambdaParamterList) input.getInternalNode(2)).add(input.getTypeExpressionNode(0))));
+    reductions.put(155, new Reduction((input, parser) -> new Node.LambdaParamterList(input.getTypeExpressionNode(0))));
 
     return reductions;
   }

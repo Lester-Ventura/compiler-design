@@ -1,1 +1,2 @@
-item champions: message[] = this.testing() + 120;
+x = 5;
+broadcast(x);

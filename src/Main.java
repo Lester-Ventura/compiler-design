@@ -1,11 +1,26 @@
 import java.util.ArrayList;
 
+import interpreter.Global;
+import interpreter.LoLangValue;
 import utils.*;
 import parser.*;
 
 public class Main {
+
     public static void main(String[] args) {
-        boolean isInteractive = args.length <= 0 || !args[0].equals("--no-interactive");
+        ArrayList<String> argsList = new ArrayList<>();
+        for (int i = 0; i < args.length; i++)
+            argsList.add(args[i]);
+
+        boolean isInteractive = argsList.contains("--interactive");
+        if (argsList.contains("--lenient"))
+            Global.isLenient = true;
+        
+        LoLangValue.label = !argsList.contains("--no:labels");
+        boolean printRegexTokens = !argsList.contains("--no:tokens");
+        boolean printTable = !argsList.contains("--no:tables");
+        boolean printParseTree = !argsList.contains("--no:trees");
+        CodeReader.settings(printTable,printParseTree,printRegexTokens);
 
         // load the grammar file and list of productions
         LR1GrammarParser grammarParser = new LR1GrammarParser(FileLoader.loadFile("grammar.txt"));
@@ -13,15 +28,7 @@ public class Main {
         LR1TableParser tableParser = new LR1TableParser(FileLoader.loadFile("lr1_table.txt"));
         ArrayList<LR1TableParser.LR1TableState> states = tableParser.parse();
 
-        CreateParser parserGenerator = (String input) -> new LR1Parser(input, productions, states);
-        CodeReader codeReader = new CodeReader(parserGenerator);
+        CodeReader codeReader = new CodeReader(new LR1Parser(productions, states));
         codeReader.run(isInteractive);
-
-        // String sourceCode = FileLoader.loadFile("./ExampleCodes/CustomExample.lol");
-        // Node node = parser.parse();
-        // System.out.println(node);
-
-        // CodeReader reader = new CodeReader();
-        // reader.run();
     }
 }

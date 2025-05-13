@@ -1,94 +1,73 @@
-steal "standard.lol";
+steal "Long_Demo_2.lol";
 
-// this is a comment
+// ========= INPUT SECTION =========
+item input1: message = chat("Enter first number: ");
+item input2: message = chat("Enter second number: ");
 
-// number literals
-item binaryNum: stats = 0b1010;  // 10 in decimal
-item octalNum: stats = 0e12;    // 10 in decimal
-item decimalNum: stats = 10;
-item hexNum: stats = 0xA;       // 10 in decimal
-item floatNum: stats = 10.5;
+item num1: stats = parseInt(input1);
+item num2: stats = parseInt(input2);
 
-// variables
-item x: stats;
-item y: stats;
-item result: stats;
-
-broadcast("Enter first number: ");
-x = chat();
-broadcast("Enter second number: ");
-y = chat();
-
-// arithmetic operations
-result = add(x, y) - subtract(x, y) * multiply(x, y) / add(x, y);
-broadcast("Complex Arithmetic Result: " + result);
-
-// bitwise operations
-item bitwiseAnd: stats = x & y;
-item bitwiseOr: stats = x | y;
-item bitwiseXor: stats = x ^ y;
-item bitwiseShift: stats = x << 2;
-broadcast("Bitwise AND: " + bitwiseAnd);
-broadcast("Bitwise OR: " + bitwiseOr);
-broadcast("Bitwise XOR: " + bitwiseXor);
-broadcast("Bitwise Shift Left: " + bitwiseShift);
-
-// logical operations
-item logicalResult: goat = (x > 5) && (y < 10) || (x == y);
-broadcast("Logical Operation Result: " + logicalResult);
-
-// if else
-canwin (result > 10) {
-    broadcast("Result is greater than 10");
-} remake (result == 10) {
-    broadcast("Result is exactly 10");
+// ========= EVEN/ODD CHECK =========
+// EVEN/ODD for Number 1
+canwin (isEven(num1)) {
+    broadcast("Number 1 (" + num1 + ") is even");
 } lose {
-    broadcast("Result is less than 10");
+    broadcast("Number 1 (" + num1 + ") is odd");
 }
 
-// switch
-channel (result) {
-    teleport (10): {
-        broadcast("\n\tThe result is ten.");
-        cancel;
-    }
-    teleport (15): {
-        broadcast("\n\tThe result is fifteen.");
-        cancel;
-    }
-    recall: {
-        broadcast("\n\tThe result is unknown.");
-    }
+// EVEN/ODD for Number 2
+canwin (isEven(num2)) {
+    broadcast("Number 2 (" + num2 + ") is even");
+} lose {
+    broadcast("Number 2 (" + num2 + ") is odd");
 }
 
-// looping
-wave (x > 0) {
-    broadcast("x is positive: " + x);
-    x = x - 1;
-    clear;
-} 
+// ========= BASIC ARITHMETIC RESULTS =========
+item sum: stats = add(num1, num2);
+item difference: stats = subtract(num1, num2);
+item product: stats = multiply(num1, num2);
 
-cannon (item i: stats = 0; i < 5; i = i + 1) {
-    broadcast("Loop iteration: " + i);
+
+item quotient: stats = 0;
+canwin (num2 != 0) {
+    quotient = divide(num1, num2);
+} lose {
+    feed "Cannot divide by zero!";
 }
 
-cannon (item num: stats of [1, 2, 3, 4, 5]) {
-    broadcast("For each: " + num);
+broadcast("Addition Result: " + sum);
+broadcast("Subtraction Result: " + difference);
+broadcast("Multiplication Result: " + product);
+broadcast("Division Result: " + quotient);
+
+// ========= COMPARISON =========
+item greater: stats = max(num1, num2);
+item lesser: stats = min(num1, num2);
+
+broadcast("Greater number: " + greater);
+broadcast("Lesser number: " + lesser);
+
+// ========= BITWISE CHECK =========
+item andResult: stats = num1 & num2;
+item orResult: stats = num1 | num2;
+item xorResult: stats = num1 ^ num2;
+
+broadcast("Bitwise AND: " + andResult);
+broadcast("Bitwise OR: " + orResult);
+broadcast("Bitwise XOR: " + xorResult);
+
+// ========= LOGICAL ANALYSIS =========
+item bothOver10: goat = (num1 > 10) && (num2 > 10);
+item isEqual: goat = (num1 == num2);
+
+broadcast("Are both numbers over 10? " + bothOver10);
+broadcast("Are they equal? " + isEqual);
+
+// ========= FEEDBACK =========
+canwin (sum > 100) {
+    broadcast("High total! Looks like you're working with big numbers.");
+} remake (sum > 50) {
+    broadcast("Moderate total. That's a decent sum.");
+} lose {
+    broadcast("Small total. Pretty manageable!");
 }
-
-// object type declaration
-build Player {
-    name: message;
-    health: stats;
-    mana: stats;
-}
-
-// error handling
-support {
-    feed "Something went wrong!";
-} carry (error) {
-    broadcast("Caught error: " + error);
-}
-
-
-

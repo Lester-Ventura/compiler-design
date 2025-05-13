@@ -6,14 +6,20 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+interface StringTransformer {
+  String run(String input);
+}
+
 public class RegexEngine {
   private HashMap<String, RegexNode> environment = new HashMap<>();
   String input;
+  String inputPath;
   int currentCharacterIndex;
   int startCharacterIndex;
 
-  private RegexEngine(String input) {
+  private RegexEngine(String input, String inputPath) {
     this.input = input;
+    this.inputPath = inputPath;
   }
 
   private char peek() {
@@ -39,7 +45,7 @@ public class RegexEngine {
       } else if (peekNext() == '*') {
         currentCharacterIndex += 2;
 
-        while (peek() != '*' && peekNext() != '/') {
+        while (peek() != '*' || peekNext() != '/') {
           if (currentCharacterIndex >= input.length() - 2) {
             throw new ScannerError("Error: Unterminated multiline comment");
           }
@@ -73,7 +79,7 @@ public class RegexEngine {
     addRule(name, expression, null);
   }
 
-  public void addRule(String name, String expression, TokenType emit) {
+  public void addRule(String name, String expression, TokenType emit, StringTransformer transformer) {
     // need to lex the expression
     RegexLexer lexer = new RegexLexer(expression);
     ArrayList<RegexToken> tokens = lexer.lex();
@@ -82,8 +88,12 @@ public class RegexEngine {
     RegexNode root = parser.parse();
 
     root.setTokenType(emit);
-
+    root.setTransformer(transformer);
     environment.put(name, root);
+  }
+
+  public void addRule(String name, String expression, TokenType emit) {
+    addRule(name, expression, emit, null);
   }
 
   public Token peekNextToken() {
@@ -107,7 +117,7 @@ public class RegexEngine {
     startCharacterIndex = currentCharacterIndex;
 
     if (hasNextToken() == false)
-      return new Token(TokenType.EOF, "", ColumnAndRow.calculate(startCharacterIndex, input));
+      return new Token(TokenType.EOF, "", ColumnAndRow.calculate(startCharacterIndex, input), inputPath);
 
     RegexEngineParsingResult ret = new RegexEngineParsingResult(false, "", null);
     RegexNode retNode = null;
@@ -136,8 +146,11 @@ public class RegexEngine {
 
     if (retNode != null && retNode.getTokenType() != null) {
       currentCharacterIndex += ret.lexeme.length();
-      Token returnedToken = new Token(retNode.getTokenType(), ret.lexeme,
-          ColumnAndRow.calculate(startCharacterIndex, input));
+
+      String lexeme = retNode.getTransformer() != null ? retNode.getTransformer().run(ret.lexeme) : ret.lexeme;
+      Token returnedToken = new Token(retNode.getTokenType(), lexeme,
+          ColumnAndRow.calculate(startCharacterIndex, input), inputPath);
+
       return returnedToken;
     }
 
@@ -153,8 +166,8 @@ public class RegexEngine {
     return currentCharacterIndex < input.length();
   }
 
-  public static RegexEngine createRegexEngine(String input) {
-    RegexEngine lexer = new RegexEngine(input);
+  public static RegexEngine createRegexEngine(String input, String inputPath) {
+    RegexEngine lexer = new RegexEngine(input, inputPath);
 
     // lex symbols
     lexer.addRule("plus", "$+", TokenType.PLUS);
@@ -201,7 +214,7 @@ public class RegexEngine {
     lexer.addRule("uppercase", "A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z");
     lexer.addRule("letter", "${lowercase}|${uppercase}");
     lexer.addRule("symbols",
-        "$ | $! | $@ | $# | $$ | $% | $^ | $& | $* | $( | $) | ${ | $[ | $} | $] | $; | $: | $< | $, | $. | $> | $? | $/ | $` | $~ | $- | $_ | $+ | $=");
+        "$ | $! | $@ | $# | $$ | $% | $^ | $& | $* | $( | $) | ${ | $[ | $} | $] | $; | $: | $< | $, | $. | $> | $? | $/ | $` | $~ | $- | $_ | $+ | $= | $|");
     lexer.addRule("escape_character", "$\\ | $\n | $\t | $\r | $\\$\" | $\\$\'");
     lexer.addRule("digit", "0|1|2|3|4|5|6|7|8|9");
     lexer.addRule("character", "${letter}|${digit}|${symbols}|${escape_character}");
@@ -214,7 +227,8 @@ public class RegexEngine {
 
     // handle literal tokens
     lexer.addRule("string_literal", "$\"(${character} | $\')*$\" | $\'(${character} | $\")*$\'",
-        TokenType.STRING_LITERAL);
+        TokenType.STRING_LITERAL,
+        (String str) -> str.substring(1, str.length() - 1).replaceAll(Pattern.quote("\\n"), "\n"));
     lexer.addRule("number_literal",
         "${float_number}|${decimal_number}|${octal_number}|${binary_number}|${hexadecimal_number}",
         TokenType.NUMBER_LITERAL);
@@ -246,9 +260,9 @@ public class RegexEngine {
     lexer.addRule("recast", "recast", TokenType.RETURN);
 
     // handle type tokens
-    lexer.addRule("number_type", "message", TokenType.NUMBER_TYPE);
-    lexer.addRule("boolean_type", "stats", TokenType.BOOLEAN_TYPE);
-    lexer.addRule("string_type", "goat", TokenType.STRING_TYPE);
+    lexer.addRule("number_type", "stats", TokenType.NUMBER_TYPE);
+    lexer.addRule("boolean_type", "goat", TokenType.BOOLEAN_TYPE);
+    lexer.addRule("string_type", "message", TokenType.STRING_TYPE);
     lexer.addRule("void_type", "passive", TokenType.VOID_TYPE);
     lexer.addRule("identifier", "(${letter}|$_)(${letter}|${digit}|$_)*", TokenType.IDENTIFIER);
 
@@ -274,6 +288,7 @@ class RegexEngineParsingResult {
 
 abstract class RegexNode {
   private TokenType emit;
+  private StringTransformer transformer;
 
   public TokenType getTokenType() {
     return emit;
@@ -281,6 +296,14 @@ abstract class RegexNode {
 
   public void setTokenType(TokenType emit) {
     this.emit = emit;
+  }
+
+  public StringTransformer getTransformer() {
+    return transformer;
+  }
+
+  public void setTransformer(StringTransformer transformer) {
+    this.transformer = transformer;
   }
 
   abstract public String toString();
@@ -360,6 +383,9 @@ class RegexLiteralNode extends RegexNode {
   }
 
   public ArrayList<String> getMatches(String restString, HashMap<String, RegexNode> environment) {
+    if (restString.length() == 0)
+      return new ArrayList<>();
+
     ArrayList<String> matches = new ArrayList<>();
     char starting = restString.charAt(0);
     if (starting == ch)

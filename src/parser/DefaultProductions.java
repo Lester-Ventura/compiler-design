@@ -2,6 +2,7 @@ package parser;
 
 import java.util.HashMap;
 
+import lexer.Token;
 import lexer.TokenType;
 
 public class DefaultProductions {
@@ -13,7 +14,8 @@ public class DefaultProductions {
     HashMap<String, DefaultProduction> defaultProductions = new HashMap<>();
 
     defaultProductions.put("STATEMENT", () -> new StatementNode.Block());
-    defaultProductions.put("EXPRESSION", () -> new ExpressionNode.Literal("0", TokenType.NUMBER_LITERAL));
+    defaultProductions.put("EXPRESSION",
+        () -> new ExpressionNode.Literal(new Token(TokenType.NUMBER_LITERAL, "0")));
 
     return defaultProductions;
   }

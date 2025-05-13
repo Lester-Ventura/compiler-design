@@ -18,9 +18,8 @@ item divide: skill(stats, stats) -> stats =
 skill (item a: stats, item b: stats): stats -> {
     canwin (b != 0) {
         recast a / b;
-    } lose {
-        feed "Division by zero error!";
     }
+    feed "Division by zero error!";
 };
 
 // Logical Operations
@@ -39,18 +38,16 @@ item max: skill(stats, stats) -> stats =
 skill (item a: stats, item b: stats): stats -> {
     canwin (a > b) {
         recast a;
-    } lose {
-        recast b;
-    }
+    } 
+    recast b;
 };
 
 item min: skill(stats, stats) -> stats =
 skill (item a: stats, item b: stats): stats -> {
     canwin (a < b) {
         recast a;
-    } lose {
-        recast b;
     }
+    recast b;
 };
 
 

@@ -4,7 +4,7 @@
 item outside: message = "outside";
 item inside: message;
 
-cannon(faker) {
+canwin(faker) {
     inside = "this should work " + outside + " now";
 }
 
